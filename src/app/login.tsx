@@ -255,6 +255,13 @@ export default function LoginScreen() {
                   )}
                 </View>
 
+                {/* Web Dev Test Hint */}
+                <View style={styles.testHintBox}>
+                  <Text style={styles.testHintText}>
+                    💡 In web test mode: Enter any 6 digits (e.g. <Text style={{ fontWeight: '800' }}>123456</Text>) or your official Amul SMS code
+                  </Text>
+                </View>
+
                 {/* Verify Button */}
                 <TouchableOpacity
                   style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
@@ -486,6 +493,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#2563EB',
     fontWeight: '700',
+  },
+  testHintBox: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  testHintText: {
+    fontSize: 11,
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 16,
   },
   changeNumberButton: {
     marginTop: 14,
