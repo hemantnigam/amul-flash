@@ -57,9 +57,6 @@ export default function AccountScreen() {
     smsRetrieverEnabled,
     setSmsRetrieverEnabled,
     updateUserProfile,
-    addAddress,
-    deleteAddress,
-    setDefaultAddress,
     loadUserData,
     logout,
   } = useSessionStore();
@@ -75,17 +72,6 @@ export default function AccountScreen() {
   const [email, setEmail] = useState(userProfile?.email || 'h.nigam654@gmail.com');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-  // Address Add Modal State
-  const [isAddAddressVisible, setIsAddAddressVisible] = useState(false);
-  const [addrFullName, setAddrFullName] = useState('Hemant Nigam');
-  const [addrPhone, setAddrPhone] = useState('+919899940268');
-  const [addrStreet, setAddrStreet] = useState('G-50/10, Gali No 2A, Molarband Extn');
-  const [addrCity, setAddrCity] = useState('SOUTH');
-  const [addrState, setAddrState] = useState('Delhi');
-  const [addrZip, setAddrZip] = useState('110044');
-  const [addrType, setAddrType] = useState<'home' | 'office'>('home');
-  const [isSavingAddress, setIsSavingAddress] = useState(false);
-
   const handleSaveProfile = async () => {
     setIsSavingProfile(true);
     await updateUserProfile({
@@ -95,43 +81,6 @@ export default function AccountScreen() {
     });
     setIsSavingProfile(false);
     setIsEditProfileVisible(false);
-  };
-
-  const handleSaveNewAddress = async () => {
-    if (!addrStreet || !addrZip) {
-      Alert.alert('Missing Details', 'Please fill in the street address and pincode.');
-      return;
-    }
-
-    setIsSavingAddress(true);
-    await addAddress({
-      fullName: addrFullName,
-      phone: addrPhone,
-      address: addrStreet,
-      city: addrCity,
-      state: addrState,
-      zip: addrZip,
-      country: 'IN',
-      addressType: addrType,
-      userId: userProfile?.id || session.userId || '696091a6025cd5c65247e101',
-      isDefault: addresses.length === 0,
-    });
-    setIsSavingAddress(false);
-    setIsAddAddressVisible(false);
-  };
-
-  const handleDeleteAddress = (id: string) => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      if (window.confirm('Delete this delivery address from your Amul account?')) {
-        deleteAddress(id);
-      }
-      return;
-    }
-
-    Alert.alert('Delete Address', 'Are you sure you want to delete this address?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteAddress(id) },
-    ]);
   };
 
   const handleSignOut = async () => {
@@ -251,7 +200,7 @@ export default function AccountScreen() {
 
           {/* Orders Navigation Option */}
           <TouchableOpacity
-            style={[styles.cardRow, { borderBottomWidth: 0 }]}
+            style={styles.cardRow}
             onPress={() => router.push('/orders')}
             activeOpacity={0.7}
           >
@@ -279,75 +228,37 @@ export default function AccountScreen() {
             </View>
             <ChevronRight size={18} color="#94A3B8" />
           </TouchableOpacity>
-        </View>
 
-        {/* Section 2: Saved Delivery Addresses */}
-        <View style={styles.sectionHeaderRow}>
-          <View style={styles.sectionTitleRow}>
-            <MapPin size={16} color="#2563EB" />
-            <Text style={styles.groupHeading}>SAVED DELIVERY ADDRESSES</Text>
-          </View>
+          {/* Addresses Navigation Option */}
           <TouchableOpacity
-            style={styles.addAddressBtn}
-            onPress={() => setIsAddAddressVisible(true)}
+            style={[styles.cardRow, { borderBottomWidth: 0 }]}
+            onPress={() => router.push('/addresses')}
             activeOpacity={0.7}
           >
-            <Plus size={14} color="#2563EB" />
-            <Text style={styles.addAddressText}>Add New</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.addressesList}>
-          {addresses.length === 0 ? (
-            <View style={styles.emptyAddressCard}>
-              <Text style={styles.emptyText}>No saved addresses found.</Text>
-            </View>
-          ) : (
-            addresses.map((addr) => {
-              const isDefault = addr.isDefault || session.defaultAddressId === addr.id;
-              return (
-                <View key={addr.id} style={[styles.addressCard, isDefault && styles.addressCardDefault]}>
-                  <View style={styles.addressTopRow}>
-                    <View style={styles.addressTypePill}>
-                      <Text style={styles.addressTypeText}>
-                        {addr.addressType.toUpperCase()}
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#FEF3C7' }]}>
+                <MapPin size={18} color="#D97706" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={styles.titleBadgeRow}>
+                  <Text style={styles.rowTitle}>Addresses</Text>
+                  {addresses.length > 0 && (
+                    <View style={[styles.countBadge, { backgroundColor: '#FEF3C7' }]}>
+                      <Text style={[styles.countBadgeText, { color: '#B45309' }]}>
+                        {addresses.length}
                       </Text>
                     </View>
-                    {isDefault && (
-                      <View style={styles.defaultPill}>
-                        <CheckCircle2 size={11} color="#059669" />
-                        <Text style={styles.defaultPillText}>DEFAULT</Text>
-                      </View>
-                    )}
-                    <TouchableOpacity
-                      style={styles.deleteAddrBtn}
-                      onPress={() => handleDeleteAddress(addr.id)}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      <Trash2 size={14} color="#94A3B8" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <Text style={styles.addrFullName}>{addr.fullName}</Text>
-                  <Text style={styles.addrText}>{addr.address}</Text>
-                  <Text style={styles.addrCity}>
-                    {addr.city}, {addr.state} - {addr.zip}
-                  </Text>
-                  <Text style={styles.addrPhone}>Phone: {addr.phone}</Text>
-
-                  {!isDefault && (
-                    <TouchableOpacity
-                      style={styles.setDefaultBtn}
-                      onPress={() => setDefaultAddress(addr.id)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.setDefaultText}>Set as Default Delivery Address</Text>
-                    </TouchableOpacity>
                   )}
                 </View>
-              );
-            })
-          )}
+                <Text style={styles.rowSub}>
+                  {addresses.length > 0
+                    ? `${addresses.length} saved addresses • Manage delivery locations`
+                    : 'Manage saved delivery addresses'}
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color="#94A3B8" />
+          </TouchableOpacity>
         </View>
 
         {/* Section 3: Delivery Pincode & Radar */}
@@ -469,111 +380,6 @@ export default function AccountScreen() {
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <Text style={styles.modalSubmitText}>Save Changes</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Add Address Modal */}
-      <Modal visible={isAddAddressVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: '90%' }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Delivery Address</Text>
-              <TouchableOpacity onPress={() => setIsAddAddressVisible(false)}>
-                <X size={20} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.inputLabel}>Full Name</Text>
-              <TextInput
-                style={styles.modalInput}
-                value={addrFullName}
-                onChangeText={setAddrFullName}
-                placeholder="Full Name"
-              />
-
-              <Text style={styles.inputLabel}>Phone (+91)</Text>
-              <TextInput
-                style={styles.modalInput}
-                value={addrPhone}
-                onChangeText={setAddrPhone}
-                placeholder="+91 Phone Number"
-                keyboardType="phone-pad"
-              />
-
-              <Text style={styles.inputLabel}>House No / Street / Landmark</Text>
-              <TextInput
-                style={[styles.modalInput, { height: 60 }]}
-                value={addrStreet}
-                onChangeText={setAddrStreet}
-                placeholder="Complete Address"
-                multiline
-              />
-
-              <View style={styles.inputRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Pincode</Text>
-                  <TextInput
-                    style={styles.modalInput}
-                    value={addrZip}
-                    onChangeText={setAddrZip}
-                    placeholder="Pincode"
-                    keyboardType="number-pad"
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>City</Text>
-                  <TextInput
-                    style={styles.modalInput}
-                    value={addrCity}
-                    onChangeText={setAddrCity}
-                    placeholder="City"
-                  />
-                </View>
-              </View>
-
-              <Text style={styles.inputLabel}>State</Text>
-              <TextInput
-                style={styles.modalInput}
-                value={addrState}
-                onChangeText={setAddrState}
-                placeholder="State"
-              />
-
-              <Text style={styles.inputLabel}>Address Type</Text>
-              <View style={styles.typeSelectorRow}>
-                <TouchableOpacity
-                  style={[styles.typePill, addrType === 'home' && styles.typePillActive]}
-                  onPress={() => setAddrType('home')}
-                >
-                  <Text style={[styles.typePillText, addrType === 'home' && styles.typePillTextActive]}>
-                    Home
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.typePill, addrType === 'office' && styles.typePillActive]}
-                  onPress={() => setAddrType('office')}
-                >
-                  <Text style={[styles.typePillText, addrType === 'office' && styles.typePillTextActive]}>
-                    Office
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-
-            <TouchableOpacity
-              style={styles.modalSubmitBtn}
-              onPress={handleSaveNewAddress}
-              disabled={isSavingAddress}
-              activeOpacity={0.8}
-            >
-              {isSavingAddress ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.modalSubmitText}>Save Delivery Address</Text>
               )}
             </TouchableOpacity>
           </View>
