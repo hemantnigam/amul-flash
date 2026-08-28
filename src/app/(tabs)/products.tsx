@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   productsScroll: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 90,
+    paddingBottom: 110,
   },
   productsGrid: {
     gap: 2,

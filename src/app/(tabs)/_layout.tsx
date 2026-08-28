@@ -1,16 +1,22 @@
 import React from 'react';
 import { Platform } from 'react-native';
 import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, LayoutGrid, User } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
 
 export default function TabLayout() {
   const { session, isInitialized } = useSessionStore();
+  const insets = useSafeAreaInsets();
 
   // If user is not logged in or auth is still checking, do not render dashboard tabs
   if (!isInitialized || !session.isLoggedIn) {
     return null;
   }
+
+  // Dynamically calculate bottom padding based on Android 3-button nav, gesture bar, or iOS home indicator
+  const bottomInset = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'android' ? 12 : 8);
+  const tabHeight = 60 + bottomInset;
 
   return (
     <Tabs
@@ -19,8 +25,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: '#2563EB',
         tabBarInactiveTintColor: '#64748B',
         tabBarStyle: {
-          height: Platform.OS === 'ios' ? 86 : 68,
-          paddingBottom: Platform.OS === 'ios' ? 26 : 10,
+          height: tabHeight,
+          paddingBottom: bottomInset,
           paddingTop: 8,
           backgroundColor: '#FFFFFF',
           borderTopColor: '#E2E8F0',
