@@ -27,7 +27,7 @@ import { useSessionStore } from '../../store/useSessionStore';
 import { ProductCard } from '../../components/ProductCard';
 import { DropAlertBanner } from '../../components/DropAlertBanner';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
-import { FlashCheckoutModal } from '../../components/FlashCheckoutModal';
+import { AmulCheckoutModal } from '../../components/AmulCheckoutModal';
 import { AmulProduct } from '../../types/amul';
 
 export default function HomeScreen() {
@@ -280,7 +280,7 @@ export default function HomeScreen() {
         onClose={() => setIsPincodeModalVisible(false)}
       />
 
-      <FlashCheckoutModal
+      <AmulCheckoutModal
         visible={!!selectedProductForCheckout}
         product={selectedProductForCheckout}
         onClose={() => setSelectedProductForCheckout(null)}

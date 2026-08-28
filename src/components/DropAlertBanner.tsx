@@ -60,8 +60,8 @@ export const DropAlertBanner: React.FC<DropAlertBannerProps> = ({
           onPress={() => onPayNow(alert)}
           activeOpacity={0.8}
         >
-          <Zap size={16} color="#FFFFFF" />
-          <Text style={styles.payNowText}>⚡ 1-Tap UPI Flash Pay</Text>
+          <ShoppingBag size={16} color="#FFFFFF" />
+          <Text style={styles.payNowText}>Checkout on Amul</Text>
         </TouchableOpacity>
       </View>
     </View>

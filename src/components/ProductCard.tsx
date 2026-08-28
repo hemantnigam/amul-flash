@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Switch } from 'react-native';
-import { Zap, Bell, Check } from 'lucide-react-native';
+import { Zap, Bell, Check, ShoppingCart } from 'lucide-react-native';
 import { AmulProduct } from '../types/amul';
 import { useStockStore } from '../store/useStockStore';
 
@@ -90,8 +90,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 onPress={onQuickBuy || onPress}
                 activeOpacity={0.8}
               >
-                <Zap size={13} color="#FFFFFF" />
-                <Text style={styles.buyButtonText}>Buy Now</Text>
+                <ShoppingCart size={13} color="#FFFFFF" />
+                <Text style={styles.buyButtonText}>Buy on Amul</Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.autoTrackBadge}>

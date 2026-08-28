@@ -19,10 +19,11 @@ import {
   Bell,
   MapPin,
   CheckCircle2,
+  ShoppingCart,
 } from 'lucide-react-native';
 import { useStockStore } from '../../store/useStockStore';
 import { StockBadge } from '../../components/StockBadge';
-import { FlashCheckoutModal } from '../../components/FlashCheckoutModal';
+import { AmulCheckoutModal } from '../../components/AmulCheckoutModal';
 
 export default function ProductDetailsScreen() {
   const { id } = useLocalSearchParams();
@@ -155,13 +156,13 @@ export default function ProductDetailsScreen() {
           onPress={() => setIsCheckoutModalVisible(true)}
           activeOpacity={0.85}
         >
-          <Zap size={18} color="#FFFFFF" />
-          <Text style={styles.checkoutBtnText}>1-Tap Flash Pay</Text>
+          <ShoppingCart size={18} color="#FFFFFF" />
+          <Text style={styles.checkoutBtnText}>Proceed to Amul Checkout</Text>
         </TouchableOpacity>
       </View>
 
-      {/* 1-Tap Flash Checkout Modal */}
-      <FlashCheckoutModal
+      {/* Official Amul Checkout Modal */}
+      <AmulCheckoutModal
         visible={isCheckoutModalVisible}
         product={product}
         onClose={() => setIsCheckoutModalVisible(false)}

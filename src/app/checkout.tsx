@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { FlashCheckoutModal } from '../components/FlashCheckoutModal';
+import { AmulCheckoutModal } from '../components/AmulCheckoutModal';
 import { useStockStore } from '../store/useStockStore';
 
 export default function CheckoutScreen() {
@@ -13,7 +13,7 @@ export default function CheckoutScreen() {
 
   return (
     <View style={styles.container}>
-      <FlashCheckoutModal
+      <AmulCheckoutModal
         visible={true}
         product={product}
         onClose={() => router.back()}

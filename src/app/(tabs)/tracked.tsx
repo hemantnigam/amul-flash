@@ -19,7 +19,7 @@ import {
 import { useStockStore } from '../../store/useStockStore';
 import { useSessionStore } from '../../store/useSessionStore';
 import { ProductCard } from '../../components/ProductCard';
-import { FlashCheckoutModal } from '../../components/FlashCheckoutModal';
+import { AmulCheckoutModal } from '../../components/AmulCheckoutModal';
 import { AmulProduct } from '../../types/amul';
 
 export default function TrackedScreen() {
@@ -134,9 +134,9 @@ export default function TrackedScreen() {
         )}
       </ScrollView>
 
-      {/* Flash Checkout Modal */}
+      {/* Official Amul Checkout Modal */}
       {selectedProductForCheckout && (
-        <FlashCheckoutModal
+        <AmulCheckoutModal
           visible={!!selectedProductForCheckout}
           product={selectedProductForCheckout}
           onClose={() => setSelectedProductForCheckout(null)}
