@@ -193,7 +193,6 @@ export default function ProductDetailsScreen() {
       <FlashCheckoutModal
         visible={isCheckoutModalVisible}
         product={product}
-        variant={selectedVariant}
         onClose={() => setIsCheckoutModalVisible(false)}
       />
     </View>

@@ -20,6 +20,34 @@ export interface ProductVariant {
   sku: string;
 }
 
+export type ProductCategory =
+  | 'all'
+  | 'protein'
+  | 'organic'
+  | 'kitchen-essentials'
+  | 'tea-and-snacks'
+  | 'chocolates'
+  | 'peanut-butter'
+  | 'beverages'
+  | 'camel-milk'
+  | 'sweets'
+  | 'milk'
+  | 'ghee'
+  | 'cake'
+  | 'infant-food'
+  | 'fresh-cream'
+  | 'panchamrit'
+  | 'milk-powders'
+  | string;
+
+export interface AmulCategory {
+  id: string;
+  name: string;
+  slug: string;
+  icon?: string;
+  itemCount?: number;
+}
+
 export interface AmulProduct {
   id: string;
   title: string;
@@ -58,11 +86,13 @@ export interface RestockEvent {
 
 export interface ActivityLog {
   id: string;
-  type: 'restock' | 'auto_cart' | 'heartbeat' | 'checkout' | 'alert' | 'fallback';
+  type: 'restock' | 'auto_cart' | 'heartbeat' | 'checkout' | 'alert' | 'fallback' | 'order' | 'info';
   title: string;
   description: string;
   timestamp: number;
   status: 'success' | 'warning' | 'error' | 'info';
+  pincode?: string;
+  productId?: string;
   metadata?: Record<string, any>;
 }
 

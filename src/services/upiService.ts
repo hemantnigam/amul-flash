@@ -11,22 +11,31 @@ export interface UPITransactionParams {
 
 export type UPIApp = 'any' | 'gpay' | 'phonepe' | 'paytm' | 'cred';
 
+export interface UPIAppItem {
+  id: UPIApp;
+  name: string;
+  color: string;
+}
+
+export const UPI_APPS: UPIAppItem[] = [
+  { id: 'gpay', name: 'Google Pay', color: '#4285F4' },
+  { id: 'phonepe', name: 'PhonePe', color: '#5F259F' },
+  { id: 'paytm', name: 'Paytm', color: '#00B9F1' },
+  { id: 'cred', name: 'CRED UPI', color: '#1E293B' },
+];
+
 export const UPI_CONFIG = {
   DEFAULT_VPA: 'amul@razorpay',
   DEFAULT_NAME: 'Amul D2C Cloud',
   CURRENCY: 'INR',
 };
 
-/**
- * Builds standard UPI Deep Link URL compliant with NPCI specs
- * Example: upi://pay?pa=amul@razorpay&pn=AmulD2C&am=750.00&tr=order_1234&cu=INR&tn=Amul+Protein+Lassi
- */
 export function buildUPIIntentUrl(params: UPITransactionParams, app: UPIApp = 'any'): string {
   const vpa = params.payeeVpa || UPI_CONFIG.DEFAULT_VPA;
   const name = encodeURIComponent(params.payeeName || UPI_CONFIG.DEFAULT_NAME);
   const amount = params.amount.toFixed(2);
   const ref = params.transactionRef || `ORDER_${Date.now()}`;
-  const note = encodeURIComponent(params.transactionNote || 'Amul High Protein Flash Checkout');
+  const note = encodeURIComponent(params.transactionNote || 'Amul Flash Checkout');
   const currency = params.currency || UPI_CONFIG.CURRENCY;
 
   const baseQuery = `pa=${vpa}&pn=${name}&am=${amount}&tr=${ref}&tn=${note}&cu=${currency}`;
@@ -46,9 +55,6 @@ export function buildUPIIntentUrl(params: UPITransactionParams, app: UPIApp = 'a
   }
 }
 
-/**
- * Triggers 1-Tap UPI Flash Checkout handover to installed apps (Google Pay, PhonePe, Paytm, CRED)
- */
 export async function launchUPICheckout(
   params: UPITransactionParams,
   app: UPIApp = 'any'
@@ -57,7 +63,6 @@ export async function launchUPICheckout(
     const url = buildUPIIntentUrl(params, app);
 
     if (Platform.OS === 'web') {
-      // In web demo mode, show the generated UPI link
       console.log('UPI Intent URL:', url);
       window.open(url, '_blank');
       return { success: true };
@@ -68,7 +73,6 @@ export async function launchUPICheckout(
       await Linking.openURL(url);
       return { success: true };
     } else {
-      // Fallback to generic upi://pay if specific package fails
       const fallbackUrl = buildUPIIntentUrl(params, 'any');
       await Linking.openURL(fallbackUrl);
       return { success: true };
@@ -83,3 +87,30 @@ export async function launchUPICheckout(
     return { success: false, error: error?.message };
   }
 }
+
+export const UpiService = {
+  launchUpiPayment: async ({
+    appId = 'gpay',
+    amount,
+    orderId,
+    merchantName,
+    note,
+  }: {
+    appId: UPIApp;
+    amount: number;
+    orderId: string;
+    merchantName?: string;
+    note?: string;
+  }) => {
+    const res = await launchUPICheckout(
+      {
+        amount,
+        transactionRef: orderId,
+        payeeName: merchantName,
+        transactionNote: note,
+      },
+      appId
+    );
+    return res.success;
+  },
+};

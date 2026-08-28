@@ -1,207 +1,218 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ShieldCheck, ChevronRight, Zap } from 'lucide-react-native';
-import { Theme } from '../constants/theme';
+import { Zap, ShoppingBag, Check, Plus } from 'lucide-react-native';
 import { AmulProduct } from '../types/amul';
 import { StockBadge } from './StockBadge';
 
 interface ProductCardProps {
   product: AmulProduct;
-  onQuickBuy?: (product: AmulProduct) => void;
+  onPress: () => void;
+  onQuickBuy?: () => void;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickBuy }) => {
-  const router = useRouter();
+export const ProductCard: React.FC<ProductCardProps> = ({
+  product,
+  onPress,
+  onQuickBuy,
+}) => {
   const primaryVariant = product.variants[0];
-  const isInStock = product.variants.some((v) => v.isInStock);
-  const totalStock = product.variants.reduce((acc, v) => acc + (v.stockCount || 0), 0);
+  const isInStock = primaryVariant?.isInStock;
+  const stockCount = primaryVariant?.stockCount || 0;
 
   return (
-    <View style={styles.card}>
-      <View style={styles.cardBody}>
-        {/* Left Info Section */}
-        <View style={styles.infoSection}>
-          {/* Header Row with Stock Badge */}
-          <View style={styles.titleRow}>
-            <Text style={styles.productTitle} numberOfLines={1}>
-              {product.title}
-            </Text>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
+      <View style={styles.contentRow}>
+        {/* Product Image Container */}
+        <View style={styles.imageWrapper}>
+          <Image
+            source={{ uri: product.imageUrl }}
+            style={styles.productImage}
+            resizeMode="contain"
+          />
+          {product.nutrition?.proteinGrams ? (
+            <View style={styles.macroBadge}>
+              <Text style={styles.macroText}>
+                {product.nutrition.proteinGrams}g Protein
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Product Info */}
+        <View style={styles.infoCol}>
+          {/* Top Status Pill */}
+          <View style={styles.statusRow}>
             <StockBadge
               isInStock={isInStock}
-              stockCount={totalStock}
+              stockCount={stockCount}
               size="sm"
             />
           </View>
 
-          {/* Subtext & Protein Tag */}
-          <View style={styles.metaRow}>
-            <Text style={styles.variantSubtext}>
-              {primaryVariant?.name || product.flavor || 'High Protein Dairy'}
-            </Text>
-            <View style={styles.proteinTag}>
-              <Text style={styles.proteinTagText}>
-                {product.nutrition.proteinGrams}g Protein
-              </Text>
-            </View>
-          </View>
+          {/* Title */}
+          <Text style={styles.title} numberOfLines={2}>
+            {product.title}
+          </Text>
 
-          {/* Price & Auto-Cart Indicator */}
-          <View style={styles.priceRow}>
-            <Text style={styles.priceText}>₹{primaryVariant?.price || product.defaultPrice}</Text>
-            {product.autoCartEnabled && (
-              <View style={styles.autoCartChip}>
-                <Zap size={10} color={Theme.colors.primary} />
-                <Text style={styles.autoCartChipText}>Auto-Cart Active</Text>
-              </View>
+          {/* SKU / Flavor */}
+          <Text style={styles.flavorText} numberOfLines={1}>
+            {product.flavor && product.flavor !== 'Natural' ? product.flavor : 'Amul Official D2C'}
+          </Text>
+
+          {/* Price & Quick Buy Row */}
+          <View style={styles.bottomRow}>
+            <View style={styles.priceContainer}>
+              <Text style={styles.priceSymbol}>₹</Text>
+              <Text style={styles.priceAmount}>{product.defaultPrice}</Text>
+            </View>
+
+            {isInStock ? (
+              <TouchableOpacity
+                style={styles.quickBuyButton}
+                onPress={onQuickBuy || onPress}
+                activeOpacity={0.8}
+              >
+                <Zap size={13} color="#FFFFFF" />
+                <Text style={styles.quickBuyText}>Quick Buy</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.outOfStockButton}
+                onPress={onPress}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.outOfStockText}>Auto-Cart</Text>
+              </TouchableOpacity>
             )}
           </View>
         </View>
       </View>
-
-      {/* Card Actions Footer */}
-      <View style={styles.actionFooter}>
-        <TouchableOpacity
-          style={styles.detailsBtn}
-          onPress={() => router.push(`/product/${product.id}` as any)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.detailsBtnText}>View Details</Text>
-          <ChevronRight size={16} color={Theme.colors.primary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.buyBtn, !isInStock && styles.buyBtnDisabled]}
-          onPress={() => onQuickBuy && onQuickBuy(product)}
-          disabled={!isInStock}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.buyBtnText}>{isInStock ? '⚡ 1-Tap Pay' : 'Auto-Reserve'}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Theme.colors.surfaceContainerLowest,
-    borderRadius: Theme.radius.xl,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 14,
     borderWidth: 1,
-    borderColor: Theme.colors.outlineVariant,
-    padding: Theme.spacing.lg,
-    ...Theme.shadows.card,
+    borderColor: 'rgba(0, 0, 0, 0.06)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
   },
-  cardBody: {
+  contentRow: {
     flexDirection: 'row',
+    gap: 14,
   },
-  infoSection: {
+  imageWrapper: {
+    width: 105,
+    height: 115,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  productImage: {
+    width: 90,
+    height: 90,
+  },
+  macroBadge: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    right: 4,
+    backgroundColor: 'rgba(16, 185, 129, 0.92)',
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  macroText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  infoCol: {
     flex: 1,
+    justifyContent: 'space-between',
   },
-  titleRow: {
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    lineHeight: 18,
+  },
+  flavorText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 6,
+    marginTop: 8,
   },
-  productTitle: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
-    color: Theme.colors.onSurface,
-  },
-  metaRow: {
+  priceContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
+    alignItems: 'baseline',
   },
-  variantSubtext: {
-    fontSize: 13,
-    color: Theme.colors.onSurfaceVariant,
-  },
-  proteinTag: {
-    backgroundColor: Theme.colors.proteinGoldBg,
-    borderColor: Theme.colors.proteinGoldBorder,
-    borderWidth: 1,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: Theme.radius.full,
-  },
-  proteinTagText: {
-    fontSize: 11,
+  priceSymbol: {
+    fontSize: 14,
     fontWeight: '700',
-    color: Theme.colors.proteinGoldText,
+    color: '#0F172A',
   },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 2,
-  },
-  priceText: {
+  priceAmount: {
     fontSize: 18,
-    fontWeight: '700',
-    color: Theme.colors.onSurface,
+    fontWeight: '900',
+    color: '#0F172A',
   },
-  autoCartChip: {
+  quickBuyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Theme.colors.surfaceContainerLow,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: Theme.radius.full,
-    gap: 3,
-    borderWidth: 1,
-    borderColor: Theme.colors.primaryFixed,
-  },
-  autoCartChipText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Theme.colors.primary,
-  },
-  actionFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: Theme.colors.outlineVariant,
-  },
-  detailsBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: Theme.radius.lg,
-    borderWidth: 1,
-    borderColor: Theme.colors.outlineVariant,
-    backgroundColor: Theme.colors.surfaceContainerLow,
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
     gap: 4,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  detailsBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Theme.colors.primary,
-  },
-  buyBtn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: Theme.radius.lg,
-    backgroundColor: Theme.colors.primaryContainer,
-  },
-  buyBtnDisabled: {
-    backgroundColor: Theme.colors.secondary,
-    opacity: 0.7,
-  },
-  buyBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
+  quickBuyText: {
     color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  outOfStockButton: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  outOfStockText: {
+    color: '#475569',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

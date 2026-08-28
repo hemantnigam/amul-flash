@@ -1,20 +1,25 @@
 import { create } from 'zustand';
-import { AmulProduct, PincodeLocation, ActivityLog, RestockEvent } from '../types/amul';
-import { INITIAL_PRODUCTS, INITIAL_PINCODES, INITIAL_ACTIVITY_LOGS } from '../constants/products';
+import { AmulProduct, AmulCategory, PincodeLocation, ActivityLog, RestockEvent } from '../types/amul';
+import { INITIAL_PINCODES, INITIAL_ACTIVITY_LOGS } from '../constants/products';
 import { NotificationService } from '../services/notificationService';
-import { AmulApiClient } from '../services/amulApi';
+import { AmulApiClient, DEFAULT_CATEGORIES } from '../services/amulApi';
 
 interface StockStoreState {
   products: AmulProduct[];
+  categories: AmulCategory[];
+  selectedCategory: string;
   pincodes: PincodeLocation[];
   selectedPincode: PincodeLocation;
   activityLogs: ActivityLog[];
   activeDropAlert: RestockEvent | null;
   isSimulatingDrop: boolean;
+  isLoadingProducts: boolean;
   lastUpdated: number;
 
   // Actions
-  setSelectedPincode: (pincode: PincodeLocation) => void;
+  loadInitialData: () => Promise<void>;
+  setSelectedCategory: (categorySlug: string) => Promise<void>;
+  setSelectedPincode: (pincode: PincodeLocation) => Promise<void>;
   addPincode: (pincode: PincodeLocation) => void;
   removePincode: (pincodeStr: string) => void;
   toggleAutoCartForProduct: (productId: string) => void;
@@ -25,22 +30,72 @@ interface StockStoreState {
 }
 
 export const useStockStore = create<StockStoreState>((set, get) => ({
-  products: INITIAL_PRODUCTS,
+  products: [],
+  categories: DEFAULT_CATEGORIES,
+  selectedCategory: 'protein',
   pincodes: INITIAL_PINCODES,
   selectedPincode: INITIAL_PINCODES[0],
   activityLogs: INITIAL_ACTIVITY_LOGS,
   activeDropAlert: null,
   isSimulatingDrop: false,
+  isLoadingProducts: false,
   lastUpdated: Date.now(),
 
-  setSelectedPincode: (pincode) => {
-    set({ selectedPincode: pincode, lastUpdated: Date.now() });
+  loadInitialData: async () => {
+    set({ isLoadingProducts: true });
+    try {
+      // 1. Fetch all 16 live categories
+      const liveCategories = await AmulApiClient.fetchCategories();
+      set({ categories: liveCategories.length > 0 ? liveCategories : DEFAULT_CATEGORIES });
+
+      // 2. Fetch live products for default category (protein)
+      const substoreId = get().selectedPincode.storeId || '66505ff5145c16635e6cc74d';
+      const liveProducts = await AmulApiClient.fetchStoreProducts(get().selectedCategory, substoreId);
+
+      set({
+        products: liveProducts,
+        isLoadingProducts: false,
+        lastUpdated: Date.now(),
+      });
+    } catch (e) {
+      console.warn('Initial data load error:', e);
+      set({ isLoadingProducts: false });
+    }
+  },
+
+  setSelectedCategory: async (categorySlug: string) => {
+    set({ selectedCategory: categorySlug, isLoadingProducts: true });
+    try {
+      const substoreId = get().selectedPincode.storeId || '66505ff5145c16635e6cc74d';
+      const liveProducts = await AmulApiClient.fetchStoreProducts(categorySlug, substoreId);
+      set({
+        products: liveProducts,
+        isLoadingProducts: false,
+        lastUpdated: Date.now(),
+      });
+    } catch (e) {
+      console.warn('Category change product load error:', e);
+      set({ isLoadingProducts: false });
+    }
+  },
+
+  setSelectedPincode: async (pincode) => {
+    set({ selectedPincode: pincode, isLoadingProducts: true, lastUpdated: Date.now() });
+
     get().addActivityLog({
       type: 'info' as any,
       title: `Switched location to ${pincode.label} (${pincode.pincode})`,
       description: `Active store cluster set to ${pincode.storeId}`,
       status: 'info',
     });
+
+    // Re-fetch products for new location cluster
+    try {
+      const liveProducts = await AmulApiClient.fetchStoreProducts(get().selectedCategory, pincode.storeId);
+      set({ products: liveProducts, isLoadingProducts: false });
+    } catch (e) {
+      set({ isLoadingProducts: false });
+    }
   },
 
   addPincode: (pincode) => {
@@ -63,98 +118,92 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     }));
   },
 
-  addActivityLog: (log) => {
-    const newLog: ActivityLog = {
-      ...log,
-      id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+  triggerSimulatedDrop: async (productId) => {
+    const state = get();
+    const targetProduct = productId
+      ? state.products.find((p) => p.id === productId) || state.products[0]
+      : state.products.find((p) => !p.variants[0]?.isInStock) || state.products[0];
+
+    if (!targetProduct) return;
+
+    set({ isSimulatingDrop: true });
+
+    // 1. Update product to In Stock with 30 units
+    const updatedProducts = state.products.map((p) => {
+      if (p.id === targetProduct.id) {
+        return {
+          ...p,
+          variants: p.variants.map((v) => ({
+            ...v,
+            isInStock: true,
+            stockCount: 30,
+          })),
+        };
+      }
+      return p;
+    });
+
+    const dropEvent: RestockEvent = {
+      id: `drop_${Date.now()}`,
+      productId: targetProduct.id,
+      productName: targetProduct.title,
+      pincode: state.selectedPincode.pincode,
       timestamp: Date.now(),
+      unitsAdded: 30,
+      survivalDurationSecs: 180,
+      variantName: targetProduct.variants[0]?.name || 'Standard Pack',
     };
-    set((state) => ({
-      activityLogs: [newLog, ...state.activityLogs].slice(0, 50),
-    }));
+
+    set({
+      products: updatedProducts,
+      activeDropAlert: dropEvent,
+      isSimulatingDrop: false,
+      lastUpdated: Date.now(),
+    });
+
+    // 2. Play Emergency Alarm & Notification
+    await NotificationService.triggerEmergencyAlarm({
+      title: `⚡ FLASH DROP: ${targetProduct.title}`,
+      body: `30 units restocked for Pincode ${state.selectedPincode.pincode}! Auto-cart reserving now...`,
+      productId: targetProduct.id,
+      pincode: state.selectedPincode.pincode,
+      isEmergencyAlarm: true,
+    });
+
+    // 3. Headless Auto-Cart
+    if (targetProduct.autoCartEnabled) {
+      const cartResult = await AmulApiClient.instantAddToCart(
+        targetProduct.id,
+        targetProduct.variants[0]?.sku || targetProduct.id,
+        1
+      );
+
+      get().addActivityLog({
+        type: 'auto_cart' as any,
+        title: `Auto-Cart Locked: ${targetProduct.title}`,
+        description: `Reserved in ${cartResult.latencyMs}ms. Cart ID: ${cartResult.cartId}`,
+        pincode: state.selectedPincode.pincode,
+        status: 'success',
+      });
+    }
   },
 
   dismissDropAlert: () => {
     set({ activeDropAlert: null });
   },
 
-  triggerSimulatedDrop: async (targetProductId) => {
-    const state = get();
-    const target =
-      state.products.find((p) => p.id === targetProductId) ||
-      state.products.find((p) => p.id === 'amul-protein-lassi-plain') ||
-      state.products[0];
-
-    set({ isSimulatingDrop: true });
-
-    // 1. Update product to In Stock with limited units
-    const restockCount = Math.floor(Math.random() * 20) + 10;
-    set((s) => ({
-      products: s.products.map((p) =>
-        p.id === target.id
-          ? {
-              ...p,
-              variants: p.variants.map((v) => ({
-                ...v,
-                isInStock: true,
-                stockCount: restockCount,
-              })),
-            }
-          : p
-      ),
-      lastUpdated: Date.now(),
-    }));
-
-    const dropEvent: RestockEvent = {
-      id: `drop_${Date.now()}`,
-      productId: target.id,
-      productName: target.title,
-      pincode: state.selectedPincode.pincode,
+  addActivityLog: (log) => {
+    const newLog: ActivityLog = {
+      ...log,
+      id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
       timestamp: Date.now(),
-      unitsAdded: restockCount,
-      survivalDurationSecs: 165,
-      variantName: target.variants[0]?.name || 'Pack of 30',
     };
-
-    set({ activeDropAlert: dropEvent });
-
-    // 2. Add Activity Log
-    state.addActivityLog({
-      type: 'restock',
-      title: `⚡ FLASH DROP: ${target.title}`,
-      description: `${restockCount} units available at ${state.selectedPincode.label} (${state.selectedPincode.pincode}). Selling out fast!`,
-      status: 'warning',
-    });
-
-    // 3. Trigger Emergency Notification / Alarm
-    await NotificationService.triggerEmergencyAlarm({
-      title: `🚨 AMUL FLASH RESTOCK: ${target.title}`,
-      body: `${restockCount} units just dropped at ${state.selectedPincode.label}! Tap to checkout in < 3s.`,
-      productId: target.id,
-      pincode: state.selectedPincode.pincode,
-      isEmergencyAlarm: true,
-    });
-
-    // 4. Headless Auto-Cart Simulation if enabled
-    if (target.autoCartEnabled) {
-      const cartRes = await AmulApiClient.instantAddToCart(
-        target.id,
-        target.variants[0].id,
-        1
-      );
-      state.addActivityLog({
-        type: 'auto_cart',
-        title: `Headless Auto-Cart Reserved (${cartRes.latencyMs}ms)`,
-        description: `1x ${target.variants[0].name} safely locked in cart for your session.`,
-        status: 'success',
-      });
-    }
-
-    set({ isSimulatingDrop: false });
+    set((state) => ({
+      activityLogs: [newLog, ...state.activityLogs.slice(0, 49)],
+    }));
   },
 
   refreshStock: async () => {
-    set({ lastUpdated: Date.now() });
-    await new Promise((r) => setTimeout(r, 600));
+    await get().loadInitialData();
   },
 }));

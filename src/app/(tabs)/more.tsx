@@ -205,6 +205,18 @@ export default function MoreScreen() {
               </Text>
             </View>
           </View>
+
+          {/* Sign Out Button */}
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={async () => {
+              await useSessionStore.getState().logout();
+              router.replace('/login');
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.logoutButtonText}>Sign Out of Amul D2C Session</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -346,5 +358,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: Theme.colors.onSurface,
+  },
+  logoutButton: {
+    marginTop: 20,
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#DC2626',
   },
 });
