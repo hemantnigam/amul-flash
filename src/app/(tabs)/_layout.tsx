@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, LayoutGrid, User } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
@@ -18,21 +19,22 @@ export default function TabLayout() {
         tabBarActiveTintColor: '#2563EB',
         tabBarInactiveTintColor: '#64748B',
         tabBarStyle: {
-          height: 62,
-          paddingBottom: 8,
+          height: Platform.OS === 'ios' ? 86 : 68,
+          paddingBottom: Platform.OS === 'ios' ? 26 : 10,
           paddingTop: 8,
           backgroundColor: '#FFFFFF',
           borderTopColor: '#E2E8F0',
           borderTopWidth: 1,
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.04)',
           elevation: 8,
-          shadowColor: '#000000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.04,
-          shadowRadius: 8,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 2,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: '700',
+          marginTop: 2,
         },
       }}
     >
