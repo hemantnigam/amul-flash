@@ -11,13 +11,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, Filter, Sparkles, Check } from 'lucide-react-native';
+import { Search, Check, Package } from 'lucide-react-native';
 import { useStockStore } from '../../store/useStockStore';
 import { ProductCard } from '../../components/ProductCard';
 import { FlashCheckoutModal } from '../../components/FlashCheckoutModal';
 import { AmulProduct } from '../../types/amul';
 
-export default function ProductsScreen() {
+export default function CatalogScreen() {
   const router = useRouter();
   const {
     products,
@@ -52,18 +52,18 @@ export default function ProductsScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Explore Products</Text>
+        <Text style={styles.headerTitle}>Live Catalog</Text>
         <Text style={styles.headerSubtitle}>
-          Real-time catalog directly from shop.amul.com
+          Real-time D2C inventory across all Amul categories
         </Text>
 
         {/* Search & Stock Filter */}
         <View style={styles.searchRow}>
           <View style={styles.searchBar}>
-            <Search size={18} color="#64748B" />
+            <Search size={16} color="#94A3B8" />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search all Amul products..."
+              placeholder="Search in all categories..."
               placeholderTextColor="#94A3B8"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -71,11 +71,11 @@ export default function ProductsScreen() {
           </View>
 
           <TouchableOpacity
-            style={[styles.stockFilterButton, onlyInStock && styles.stockFilterButtonActive]}
+            style={[styles.stockFilterBtn, onlyInStock && styles.stockFilterBtnActive]}
             onPress={() => setOnlyInStock(!onlyInStock)}
             activeOpacity={0.8}
           >
-            {onlyInStock ? <Check size={14} color="#FFFFFF" /> : null}
+            {onlyInStock ? <Check size={12} color="#FFFFFF" /> : null}
             <Text style={[styles.stockFilterText, onlyInStock && styles.stockFilterTextActive]}>
               In Stock
             </Text>
@@ -83,7 +83,7 @@ export default function ProductsScreen() {
         </View>
       </View>
 
-      {/* Category Pills Slider */}
+      {/* Category Pills */}
       <View style={styles.categoryContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
           {categories.map((cat) => {
@@ -104,7 +104,7 @@ export default function ProductsScreen() {
         </ScrollView>
       </View>
 
-      {/* Product List */}
+      {/* Products List */}
       <ScrollView
         contentContainerStyle={styles.productsScroll}
         showsVerticalScrollIndicator={false}
@@ -113,7 +113,7 @@ export default function ProductsScreen() {
         {isLoadingProducts ? (
           <View style={styles.loadingBox}>
             <ActivityIndicator size="large" color="#2563EB" />
-            <Text style={styles.loadingText}>Loading {selectedCategory} products...</Text>
+            <Text style={styles.loadingText}>Fetching {selectedCategory} products...</Text>
           </View>
         ) : filteredProducts.length > 0 ? (
           <View style={styles.productsGrid}>
@@ -128,9 +128,10 @@ export default function ProductsScreen() {
           </View>
         ) : (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyTitle}>No items in this category</Text>
+            <Package size={40} color="#94A3B8" />
+            <Text style={styles.emptyTitle}>No products found</Text>
             <Text style={styles.emptySubtitle}>
-              Try unchecking the "In Stock" filter or selecting another category.
+              Try another category or switch off the "In Stock" filter.
             </Text>
           </View>
         )}
@@ -149,65 +150,65 @@ export default function ProductsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FAF8FF',
   },
   header: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 14,
+    paddingTop: 10,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
     color: '#0F172A',
   },
   headerSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748B',
     marginTop: 2,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   searchBar: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F1F5F9',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     gap: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     color: '#0F172A',
     fontWeight: '500',
   },
-  stockFilterButton: {
+  stockFilterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
     gap: 4,
   },
-  stockFilterButtonActive: {
+  stockFilterBtnActive: {
     backgroundColor: '#10B981',
     borderColor: '#10B981',
   },
   stockFilterText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: '#475569',
   },
@@ -216,30 +217,30 @@ const styles = StyleSheet.create({
   },
   categoryContainer: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
   categoryScroll: {
     paddingHorizontal: 16,
+    paddingVertical: 10,
     gap: 8,
   },
   categoryChip: {
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 999,
   },
   categoryChipSelected: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
+    backgroundColor: '#1D4ED8',
+    borderColor: '#1D4ED8',
   },
   categoryChipText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#334155',
+    color: '#475569',
   },
   categoryChipTextSelected: {
     color: '#FFFFFF',
@@ -251,32 +252,29 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   productsGrid: {
-    gap: 12,
+    gap: 2,
   },
   loadingBox: {
     paddingVertical: 60,
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#64748B',
-    fontWeight: '500',
   },
   emptyBox: {
     paddingVertical: 60,
-    paddingHorizontal: 24,
     alignItems: 'center',
     gap: 8,
   },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#0F172A',
   },
   emptySubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748B',
-    textAlign: 'center',
   },
 });

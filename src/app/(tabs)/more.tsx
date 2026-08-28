@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -12,20 +12,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   MapPin,
-  GitFork,
-  Boxes,
-  KeyRound,
-  BellRing,
-  LayoutGrid,
   ShieldCheck,
-  ChevronRight,
   Zap,
+  LogOut,
+  ChevronRight,
+  Sparkles,
+  Smartphone,
 } from 'lucide-react-native';
-import { Theme } from '../../constants/theme';
 import { useSessionStore } from '../../store/useSessionStore';
-import { NotificationService } from '../../services/notificationService';
+import { useStockStore } from '../../store/useStockStore';
+import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
 
-export default function MoreScreen() {
+export default function AccountScreen() {
   const router = useRouter();
   const {
     session,
@@ -33,192 +31,126 @@ export default function MoreScreen() {
     setHeartbeatEnabled,
     smsRetrieverEnabled,
     setSmsRetrieverEnabled,
+    logout,
   } = useSessionStore();
+  const { selectedPincode } = useStockStore();
 
-  const handleTestAlarm = async () => {
-    await NotificationService.triggerEmergencyAlarm({
-      title: '🚨 AMUL FLASH ALARM TEST',
-      body: 'Emergency restock siren audio & full-screen notification override working successfully!',
-      isEmergencyAlarm: true,
-    });
-    Alert.alert(
-      'Emergency Alarm Fired',
-      'High-priority alarm channel invoked with DND bypass flags & custom sound.',
-      [{ text: 'OK' }]
-    );
+  const [isPincodeModalVisible, setIsPincodeModalVisible] = useState(false);
+
+  const handleSignOut = () => {
+    Alert.alert('Sign Out', 'Are you sure you want to sign out of your Amul session?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
+          router.replace('/login');
+        },
+      },
+    ]);
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      {/* Header */}
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>More & Settings</Text>
-        <Text style={styles.headerSub}>Preferences, Session Keeper & Automation Rules</Text>
+        <Text style={styles.headerTitle}>Account & Settings</Text>
+        <Text style={styles.headerSub}>Active Amul D2C Session & Delivery Hub</Text>
       </View>
 
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Navigation Tiles Section */}
-        <Text style={styles.sectionHeader}>Strategy & Automation</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* User Card */}
+        <View style={styles.userCard}>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarLetter}>A</Text>
+          </View>
+          <View style={styles.userTextCol}>
+            <Text style={styles.userName}>Amul Member</Text>
+            <Text style={styles.userPhone}>
+              {session.mobile ? `+91 ${session.mobile}` : 'Signed in via Android Keystore'}
+            </Text>
+          </View>
+          <View style={styles.activePill}>
+            <View style={styles.greenDot} />
+            <Text style={styles.activePillText}>CONNECTED</Text>
+          </View>
+        </View>
+
+        {/* Primary Settings Group */}
+        <Text style={styles.groupHeading}>DELIVERY & RADAR</Text>
         <View style={styles.cardGroup}>
-          {/* Radius Radar */}
           <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => router.push('/locations')}
+            style={styles.cardRow}
+            onPress={() => setIsPincodeModalVisible(true)}
             activeOpacity={0.7}
           >
-            <View style={[styles.menuIconCircle, { backgroundColor: '#EFF6FF' }]}>
-              <MapPin size={20} color={Theme.colors.primary} />
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#EFF6FF' }]}>
+                <MapPin size={18} color="#2563EB" />
+              </View>
+              <View>
+                <Text style={styles.rowTitle}>Delivery Pincode</Text>
+                <Text style={styles.rowSub}>
+                  {selectedPincode.pincode} • {selectedPincode.label} (Hub: {selectedPincode.storeId})
+                </Text>
+              </View>
             </View>
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>Multi-Pincode Radius Radar</Text>
-              <Text style={styles.menuSubtitle}>
-                Cross-zone tracking across Home, Office & Gym
-              </Text>
-            </View>
-            <ChevronRight size={18} color={Theme.colors.secondary} />
-          </TouchableOpacity>
-
-          {/* Fallback Rules */}
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => router.push('/fallback')}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.menuIconCircle, { backgroundColor: '#FEF3C7' }]}>
-              <GitFork size={20} color={Theme.colors.statusWarningText} />
-            </View>
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>Fallback Variant & Basket Bundler</Text>
-              <Text style={styles.menuSubtitle}>
-                Auto-substitute SKUs & ₹1000 free shipping optimizer
-              </Text>
-            </View>
-            <ChevronRight size={18} color={Theme.colors.secondary} />
-          </TouchableOpacity>
-
-          {/* Refill Tracker */}
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => router.push('/refill')}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.menuIconCircle, { backgroundColor: '#DCFCE7' }]}>
-              <Boxes size={20} color={Theme.colors.statusSuccessText} />
-            </View>
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>Personal Refill & Expiry Tracker</Text>
-              <Text style={styles.menuSubtitle}>
-                Daily protein intake pace & supply countdown
-              </Text>
-            </View>
-            <ChevronRight size={18} color={Theme.colors.secondary} />
+            <ChevronRight size={18} color="#94A3B8" />
           </TouchableOpacity>
         </View>
 
-        {/* Amul D2C Session Management */}
-        <Text style={styles.sectionHeader}>Amul D2C Cloud Session</Text>
+        {/* Automation Settings */}
+        <Text style={styles.groupHeading}>AUTOMATION & BACKGROUND</Text>
         <View style={styles.cardGroup}>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => router.push('/login')}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.menuIconCircle, { backgroundColor: '#F3E8FF' }]}>
-              <KeyRound size={20} color="#7E22CE" />
-            </View>
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>Amul Account & Token Persistence</Text>
-              <Text style={styles.menuSubtitle}>
-                {session.isLoggedIn
-                  ? `Logged in (+91 ${session.mobile}) • Android Keystore active`
-                  : 'Not authenticated • Tap to login'}
-              </Text>
-            </View>
-            <ChevronRight size={18} color={Theme.colors.secondary} />
-          </TouchableOpacity>
-
-          {/* 4h Heartbeat Switch */}
+          {/* Heartbeat Switch */}
           <View style={styles.switchRow}>
-            <View style={styles.switchTextContainer}>
-              <Text style={styles.switchTitle}>Background Session Keeper (4h Daemon)</Text>
-              <Text style={styles.switchSubtitle}>
-                Silent heartbeat via expo-task-manager to prevent checkout session expiry
-              </Text>
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#F0FDF4' }]}>
+                <Zap size={18} color="#16A34A" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>Auto Session Keeper</Text>
+                <Text style={styles.rowSub}>Maintains valid Amul checkout session in background</Text>
+              </View>
             </View>
             <Switch
               value={heartbeatEnabled}
               onValueChange={setHeartbeatEnabled}
-              trackColor={{ true: Theme.colors.primaryContainer, false: '#D1D5DB' }}
+              trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
             />
           </View>
 
           {/* SMS Retriever Switch */}
-          <View style={styles.switchRow}>
-            <View style={styles.switchTextContainer}>
-              <Text style={styles.switchTitle}>Zero-Click SMS OTP Retriever</Text>
-              <Text style={styles.switchSubtitle}>
-                Google Play Services SmsRetriever API auto-extract in &lt;300ms
-              </Text>
+          <View style={[styles.switchRow, { borderBottomWidth: 0 }]}>
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#FFF7ED' }]}>
+                <Smartphone size={18} color="#EA580C" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>Instant SMS Auto-Fill</Text>
+                <Text style={styles.rowSub}>Zero-latency OTP autofill during stock drops</Text>
+              </View>
             </View>
             <Switch
               value={smsRetrieverEnabled}
               onValueChange={setSmsRetrieverEnabled}
-              trackColor={{ true: Theme.colors.primaryContainer, false: '#D1D5DB' }}
+              trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
             />
           </View>
         </View>
 
-        {/* Notifications & Widgets */}
-        <Text style={styles.sectionHeader}>Emergency Alarms & Widgets</Text>
-        <View style={styles.cardGroup}>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={handleTestAlarm}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.menuIconCircle, { backgroundColor: '#FEE2E2' }]}>
-              <BellRing size={20} color={Theme.colors.statusDangerText} />
-            </View>
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>Test Emergency Restock Siren</Text>
-              <Text style={styles.menuSubtitle}>
-                Fires @notifee alarm channel with full-screen audio override
-              </Text>
-            </View>
-            <Zap size={18} color={Theme.colors.statusDangerText} />
-          </TouchableOpacity>
-
-          {/* Glanceable Home Screen Widget Card */}
-          <View style={styles.widgetPreviewBox}>
-            <View style={styles.widgetHeader}>
-              <LayoutGrid size={16} color={Theme.colors.primary} />
-              <Text style={styles.widgetHeaderTitle}>Android Glanceable Widget Preview</Text>
-            </View>
-            <View style={styles.mockWidgetPill}>
-              <View style={styles.widgetPulse} />
-              <Text style={styles.mockWidgetText}>
-                Amul Lassi (Rose): 14 in Stock • Bangalore (560034)
-              </Text>
-            </View>
-          </View>
-
-          {/* Sign Out Button */}
-          <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={async () => {
-              await useSessionStore.getState().logout();
-              router.replace('/login');
-            }}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.logoutButtonText}>Sign Out of Amul D2C Session</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Sign Out Button */}
+        <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut} activeOpacity={0.8}>
+          <LogOut size={16} color="#DC2626" />
+          <Text style={styles.logoutButtonText}>Sign Out of Amul Account</Text>
+        </TouchableOpacity>
       </ScrollView>
+
+      {/* Pincode Modal */}
+      <PincodeSelectorModal
+        visible={isPincodeModalVisible}
+        onClose={() => setIsPincodeModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -226,78 +158,130 @@ export default function MoreScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Theme.colors.surfaceContainerLowest,
+    backgroundColor: '#FAF8FF',
   },
   header: {
-    paddingHorizontal: Theme.spacing.containerMargin,
-    paddingTop: Theme.spacing.md,
-    paddingBottom: Theme.spacing.md,
-    backgroundColor: Theme.colors.surfaceContainerLowest,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Theme.colors.outlineVariant,
+    borderBottomColor: '#F1F5F9',
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: Theme.colors.onSurface,
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0F172A',
   },
   headerSub: {
-    fontSize: 13,
-    color: Theme.colors.secondary,
+    fontSize: 12,
+    color: '#64748B',
     marginTop: 2,
   },
-  container: {
-    flex: 1,
-    backgroundColor: Theme.colors.background,
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 40,
   },
-  contentContainer: {
-    padding: Theme.spacing.containerMargin,
-    paddingBottom: 36,
-  },
-  sectionHeader: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Theme.colors.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: 18,
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  cardGroup: {
-    backgroundColor: Theme.colors.surfaceContainerLowest,
-    borderRadius: Theme.radius.xl,
-    borderWidth: 1,
-    borderColor: Theme.colors.outlineVariant,
-    overflow: 'hidden',
-    ...Theme.shadows.card,
-  },
-  menuItem: {
+  userCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: Theme.colors.outlineVariant,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+    marginBottom: 20,
     gap: 12,
   },
-  menuIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  avatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#1D4ED8',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  menuTextContainer: {
+  avatarLetter: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  userTextCol: {
     flex: 1,
   },
-  menuTitle: {
+  userName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  userPhone: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  activePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    gap: 4,
+  },
+  greenDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  activePillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#047857',
+  },
+  groupHeading: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  cardGroup: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+    overflow: 'hidden',
+    marginBottom: 18,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+  },
+  rowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  iconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: Theme.colors.onSurface,
+    color: '#0F172A',
   },
-  menuSubtitle: {
+  rowSub: {
     fontSize: 12,
-    color: Theme.colors.onSurfaceVariant,
+    color: '#64748B',
     marginTop: 2,
   },
   switchRow: {
@@ -306,68 +290,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Theme.colors.outlineVariant,
-    gap: 12,
-  },
-  switchTextContainer: {
-    flex: 1,
-  },
-  switchTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Theme.colors.onSurface,
-  },
-  switchSubtitle: {
-    fontSize: 12,
-    color: Theme.colors.secondary,
-    marginTop: 2,
-  },
-  widgetPreviewBox: {
-    padding: 14,
-    backgroundColor: Theme.colors.surfaceContainerLow,
-  },
-  widgetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 8,
-  },
-  widgetHeaderTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Theme.colors.onSurface,
-  },
-  mockWidgetPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Theme.colors.surfaceContainerLowest,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: Theme.radius.full,
-    borderWidth: 1,
-    borderColor: Theme.colors.outlineVariant,
-    gap: 8,
-  },
-  widgetPulse: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Theme.colors.statusSuccessText,
-  },
-  mockWidgetText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Theme.colors.onSurface,
+    borderBottomColor: '#F1F5F9',
   },
   logoutButton: {
-    marginTop: 20,
-    backgroundColor: '#FEE2E2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    paddingVertical: 14,
-    borderRadius: 14,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 14,
+    paddingVertical: 14,
+    gap: 8,
+    marginTop: 10,
   },
   logoutButtonText: {
     fontSize: 14,

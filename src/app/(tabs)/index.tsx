@@ -7,8 +7,8 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  FlatList,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -16,25 +16,21 @@ import {
   Search,
   MapPin,
   Flame,
-  Sparkles,
   Zap,
-  SlidersHorizontal,
+  Bell,
+  Check,
   ChevronRight,
   Package,
 } from 'lucide-react-native';
-import { Theme } from '../../constants/theme';
 import { useStockStore } from '../../store/useStockStore';
-import { useSessionStore } from '../../store/useSessionStore';
 import { ProductCard } from '../../components/ProductCard';
 import { DropAlertBanner } from '../../components/DropAlertBanner';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
 import { FlashCheckoutModal } from '../../components/FlashCheckoutModal';
-import { DropSimulatorModal } from '../../components/DropSimulatorModal';
 import { AmulProduct } from '../../types/amul';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { session } = useSessionStore();
   const {
     products,
     categories,
@@ -45,12 +41,12 @@ export default function HomeScreen() {
     setSelectedCategory,
     triggerSimulatedDrop,
     dismissDropAlert,
+    toggleAutoCartForProduct,
     refreshStock,
   } = useStockStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isPincodeModalVisible, setIsPincodeModalVisible] = useState(false);
-  const [isSimulatorVisible, setIsSimulatorVisible] = useState(false);
   const [selectedProductForCheckout, setSelectedProductForCheckout] = useState<AmulProduct | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -68,47 +64,34 @@ export default function HomeScreen() {
     );
   });
 
-  const inStockCount = products.filter((p) => p.variants.some((v) => v.isInStock)).length;
+  const heroProduct = filteredProducts[0] || products[0];
+  const gridProducts = filteredProducts.slice(1);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {/* Top Header */}
       <View style={styles.header}>
-        <View style={styles.brandRow}>
-          <View style={styles.logoBadge}>
-            <Text style={styles.brandTitleAmul}>Amul</Text>
-            <View style={styles.flashBadge}>
-              <Zap size={12} color="#FFFFFF" />
-              <Text style={styles.flashText}>FLASH</Text>
-            </View>
+        <View style={styles.topRow}>
+          <View style={styles.brandTitleCol}>
+            <Text style={styles.brandTitle}>Amul Flash</Text>
+            <Text style={styles.brandSubtitle}>Protein & D2C Tracker</Text>
           </View>
 
-          {/* Quick Actions */}
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.simDropButton}
-              onPress={() => setIsSimulatorVisible(true)}
-              activeOpacity={0.8}
-            >
-              <Flame size={14} color="#EA580C" />
-              <Text style={styles.simDropText}>Sim Drop</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.locationPill}
-              onPress={() => setIsPincodeModalVisible(true)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.radarLiveDot} />
-              <MapPin size={13} color="#2563EB" />
-              <Text style={styles.locationText}>{selectedPincode.pincode}</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Location Pill */}
+          <TouchableOpacity
+            style={styles.locationPill}
+            onPress={() => setIsPincodeModalVisible(true)}
+            activeOpacity={0.8}
+          >
+            <MapPin size={13} color="#2563EB" />
+            <Text style={styles.locationText}>{selectedPincode.pincode} • {selectedPincode.label}</Text>
+            <View style={styles.greenLiveDot} />
+          </TouchableOpacity>
         </View>
 
-        {/* Search Bar */}
+        {/* Search Input */}
         <View style={styles.searchBar}>
-          <Search size={18} color="#64748B" />
+          <Search size={16} color="#94A3B8" />
           <TextInput
             style={styles.searchInput}
             placeholder="Search protein, lassi, whey, organic..."
@@ -118,7 +101,7 @@ export default function HomeScreen() {
           />
           {searchQuery ? (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Text style={styles.clearSearchText}>Clear</Text>
+              <Text style={styles.clearText}>Clear</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -129,7 +112,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={['#2563EB']} />}
       >
-        {/* Active Emergency Flash Drop Banner */}
+        {/* Emergency Drop Alert Banner */}
         {activeDropAlert && (
           <DropAlertBanner
             alert={activeDropAlert}
@@ -141,77 +124,139 @@ export default function HomeScreen() {
           />
         )}
 
-        {/* Live All-Categories Horizontal Chips */}
-        <View style={styles.categorySection}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Browse Amul D2C Catalog</Text>
-            <Text style={styles.categoryCountBadge}>{categories.length} Categories</Text>
-          </View>
+        {/* Horizontal Category Pill Bar */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
+          {categories.map((cat) => {
+            const isSelected = selectedCategory === cat.slug;
+            return (
+              <TouchableOpacity
+                key={cat.id}
+                style={[styles.categoryChip, isSelected && styles.categoryChipSelected]}
+                onPress={() => setSelectedCategory(cat.slug)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.categoryChipText, isSelected && styles.categoryChipTextSelected]}>
+                  {cat.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
-            {categories.map((cat) => {
-              const isSelected = selectedCategory === cat.slug;
-              return (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={[styles.categoryChip, isSelected && styles.categoryChipSelected]}
-                  onPress={() => setSelectedCategory(cat.slug)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.categoryChipText, isSelected && styles.categoryChipTextSelected]}>
-                    {cat.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-
-        {/* Live Status Bar */}
-        <View style={styles.inventoryStatusCard}>
-          <View style={styles.statusLeft}>
-            <View style={styles.pulseGreenCircle} />
-            <Text style={styles.statusSummaryText}>
-              <Text style={styles.statusBold}>{inStockCount} of {products.length} items</Text> available in {selectedPincode.label} ({selectedPincode.pincode})
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.radiusLink}
-            onPress={() => router.push('/locations')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.radiusLinkText}>Radius Radar</Text>
-            <ChevronRight size={14} color="#2563EB" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Products Stream */}
         {isLoadingProducts ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#2563EB" />
-            <Text style={styles.loadingText}>Fetching live inventory from Amul...</Text>
+            <Text style={styles.loadingText}>Fetching live catalog from Amul...</Text>
           </View>
         ) : filteredProducts.length > 0 ? (
-          <View style={styles.productsGrid}>
-            {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onPress={() => router.push(`/product/${product.id}`)}
-                onQuickBuy={() => setSelectedProductForCheckout(product)}
-              />
-            ))}
+          <View style={styles.mainContent}>
+            {/* Hero Featured Product Card */}
+            {heroProduct && (
+              <TouchableOpacity
+                style={styles.heroCard}
+                onPress={() => router.push(`/product/${heroProduct.id}`)}
+                activeOpacity={0.9}
+              >
+                <View style={styles.heroImageWrapper}>
+                  <Image source={{ uri: heroProduct.imageUrl }} style={styles.heroImage} resizeMode="contain" />
+                  <View style={styles.heroStockBadge}>
+                    <View
+                      style={[
+                        styles.heroPulseDot,
+                        { backgroundColor: heroProduct.variants[0]?.isInStock ? '#10B981' : '#EF4444' },
+                      ]}
+                    />
+                    <Text style={styles.heroStockText}>
+                      {heroProduct.variants[0]?.isInStock
+                        ? `LIVE IN STOCK (${heroProduct.variants[0]?.stockCount || 50} units)`
+                        : 'OUT OF STOCK'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.heroInfo}>
+                  <View style={styles.heroTitleRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.heroTitle} numberOfLines={1}>
+                        {heroProduct.title}
+                      </Text>
+                      {heroProduct.nutrition?.proteinGrams ? (
+                        <View style={styles.macroRow}>
+                          <View style={styles.heroMacroBadge}>
+                            <Text style={styles.heroMacroText}>
+                              ⚡ {heroProduct.nutrition.proteinGrams}g Protein
+                            </Text>
+                          </View>
+                          <Text style={styles.heroCalText}>• {heroProduct.nutrition.calories} kcal</Text>
+                        </View>
+                      ) : null}
+                    </View>
+
+                    {/* Track Toggle */}
+                    <TouchableOpacity
+                      style={[
+                        styles.heroTrackBtn,
+                        heroProduct.autoCartEnabled && styles.heroTrackBtnActive,
+                      ]}
+                      onPress={() => toggleAutoCartForProduct(heroProduct.id)}
+                    >
+                      <Bell size={13} color={heroProduct.autoCartEnabled ? '#1D4ED8' : '#64748B'} />
+                      <Text
+                        style={[
+                          styles.heroTrackBtnText,
+                          heroProduct.autoCartEnabled && styles.heroTrackBtnTextActive,
+                        ]}
+                      >
+                        {heroProduct.autoCartEnabled ? 'Tracking' : 'Track'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.heroBottomRow}>
+                    <View style={styles.heroPriceCol}>
+                      <Text style={styles.heroPrice}>₹{heroProduct.defaultPrice}</Text>
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.heroBuyButton}
+                      onPress={() => setSelectedProductForCheckout(heroProduct)}
+                      activeOpacity={0.8}
+                    >
+                      <Zap size={14} color="#FFFFFF" />
+                      <Text style={styles.heroBuyText}>+ BUY NOW</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            {/* Section Heading */}
+            {gridProducts.length > 0 && (
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionHeading}>More in {selectedCategory.toUpperCase()}</Text>
+                <Text style={styles.sectionCountText}>{gridProducts.length} items</Text>
+              </View>
+            )}
+
+            {/* Products List with Track Toggles */}
+            <View style={styles.productsList}>
+              {gridProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onPress={() => router.push(`/product/${product.id}`)}
+                  onQuickBuy={() => setSelectedProductForCheckout(product)}
+                />
+              ))}
+            </View>
           </View>
         ) : (
           <View style={styles.emptyContainer}>
-            <Package size={48} color="#94A3B8" />
+            <Package size={44} color="#94A3B8" />
             <Text style={styles.emptyTitle}>No products found</Text>
             <Text style={styles.emptySubtitle}>
-              Try selecting another category or switching your delivery pincode.
+              Try another category or switch your delivery pincode.
             </Text>
-            <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
-              <Text style={styles.retryButtonText}>Refresh Stock</Text>
-            </TouchableOpacity>
           </View>
         )}
       </ScrollView>
@@ -220,11 +265,6 @@ export default function HomeScreen() {
       <PincodeSelectorModal
         visible={isPincodeModalVisible}
         onClose={() => setIsPincodeModalVisible(false)}
-      />
-
-      <DropSimulatorModal
-        visible={isSimulatorVisible}
-        onClose={() => setIsSimulatorVisible(false)}
       />
 
       <FlashCheckoutModal
@@ -239,107 +279,74 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FAF8FF',
   },
   header: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 14,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
-  brandRow: {
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 10,
   },
-  logoBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  brandTitleAmul: {
-    fontSize: 24,
+  brandTitleCol: {},
+  brandTitle: {
+    fontSize: 22,
     fontWeight: '900',
-    color: '#1D4ED8',
+    color: '#0037B0',
     letterSpacing: -0.5,
+    fontStyle: 'italic',
   },
-  flashBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FF6B00',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    gap: 2,
-  },
-  flashText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  simDropButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FFF7ED',
-    borderWidth: 1,
-    borderColor: '#FED7AA',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  simDropText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#EA580C',
+  brandSubtitle: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+    marginTop: -2,
   },
   locationPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#EFF6FF',
+    gap: 6,
+    backgroundColor: '#F3F2FE',
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: '#E2E1ED',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
   },
-  radarLiveDot: {
+  locationText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1A1B23',
+  },
+  greenLiveDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: '#10B981',
   },
-  locationText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#1E40AF',
-  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F1F5F9',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     gap: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     color: '#0F172A',
     fontWeight: '500',
   },
-  clearSearchText: {
+  clearText: {
     fontSize: 12,
     color: '#2563EB',
     fontWeight: '700',
@@ -347,144 +354,211 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 40,
   },
-  categorySection: {
-    marginTop: 14,
-    marginBottom: 10,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginBottom: 10,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  categoryCountBadge: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
-  },
   categoryScroll: {
     paddingHorizontal: 16,
+    paddingVertical: 12,
     gap: 8,
   },
   categoryChip: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingHorizontal: 16,
-    paddingVertical: 9,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: 999,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
   },
   categoryChipSelected: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
-    shadowColor: '#2563EB',
-    shadowOpacity: 0.25,
+    backgroundColor: '#1D4ED8',
+    borderColor: '#1D4ED8',
   },
   categoryChipText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#334155',
+    color: '#475569',
   },
   categoryChipTextSelected: {
     color: '#FFFFFF',
     fontWeight: '700',
   },
-  inventoryStatusCard: {
-    marginHorizontal: 16,
-    marginVertical: 8,
+  mainContent: {
+    paddingHorizontal: 16,
+  },
+  heroCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
+    marginBottom: 20,
+  },
+  heroImageWrapper: {
+    height: 180,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroStockBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 6,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.05)',
   },
-  statusLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
+  heroPulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
-  pulseGreenCircle: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
-  },
-  statusSummaryText: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  statusBold: {
-    fontWeight: '700',
+  heroStockText: {
+    fontSize: 10,
+    fontWeight: '800',
     color: '#0F172A',
   },
-  radiusLink: {
+  heroInfo: {
+    padding: 16,
+  },
+  heroTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  heroTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  macroRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 6,
+    marginTop: 4,
   },
-  radiusLinkText: {
-    fontSize: 12,
+  heroMacroBadge: {
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  heroMacroText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#15803D',
+  },
+  heroCalText: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  heroTrackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+  },
+  heroTrackBtnActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+  },
+  heroTrackBtnText: {
+    fontSize: 11,
     fontWeight: '700',
-    color: '#2563EB',
+    color: '#64748B',
   },
-  productsGrid: {
-    paddingHorizontal: 16,
-    gap: 12,
-    marginTop: 6,
+  heroTrackBtnTextActive: {
+    color: '#1D4ED8',
+  },
+  heroBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  heroPriceCol: {},
+  heroPrice: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  heroBuyButton: {
+    backgroundColor: '#0037B0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
+    gap: 6,
+  },
+  heroBuyText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  sectionHeading: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: 0.3,
+  },
+  sectionCountText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  productsList: {
+    gap: 2,
   },
   loadingContainer: {
     paddingVertical: 60,
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#64748B',
-    fontWeight: '500',
   },
   emptyContainer: {
     paddingVertical: 60,
-    paddingHorizontal: 24,
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   emptyTitle: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '700',
     color: '#0F172A',
   },
   emptySubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  retryButton: {
-    marginTop: 12,
-    backgroundColor: '#2563EB',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
   },
 });

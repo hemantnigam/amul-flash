@@ -1,26 +1,30 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, PackageSearch, TrendingUp, History, Menu } from 'lucide-react-native';
-import { Theme } from '../../constants/theme';
+import { Home, LayoutGrid, User } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Theme.colors.primaryContainer,
-        tabBarInactiveTintColor: Theme.colors.secondary,
+        tabBarActiveTintColor: '#2563EB',
+        tabBarInactiveTintColor: '#64748B',
         tabBarStyle: {
-          height: 60,
+          height: 62,
           paddingBottom: 8,
           paddingTop: 8,
-          backgroundColor: Theme.colors.surfaceContainerLowest,
-          borderTopColor: Theme.colors.outlineVariant,
+          backgroundColor: '#FFFFFF',
+          borderTopColor: '#E2E8F0',
           borderTopWidth: 1,
+          elevation: 8,
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.04,
+          shadowRadius: 8,
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
+          fontWeight: '700',
         },
       }}
     >
@@ -34,29 +38,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="products"
         options={{
-          title: 'Products',
-          tabBarIcon: ({ color, size }) => <PackageSearch size={size || 22} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="insights"
-        options={{
-          title: 'Insights',
-          tabBarIcon: ({ color, size }) => <TrendingUp size={size || 22} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="activity"
-        options={{
-          title: 'Activity',
-          tabBarIcon: ({ color, size }) => <History size={size || 22} color={color} />,
+          title: 'Catalog',
+          tabBarIcon: ({ color, size }) => <LayoutGrid size={size || 22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="more"
         options={{
-          title: 'More',
-          tabBarIcon: ({ color, size }) => <Menu size={size || 22} color={color} />,
+          title: 'Account',
+          tabBarIcon: ({ color, size }) => <User size={size || 22} color={color} />,
         }}
       />
     </Tabs>
