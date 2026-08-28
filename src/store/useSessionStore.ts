@@ -32,6 +32,7 @@ interface SessionState {
   updateAddress: (addressId: string, addressData: Partial<AmulUserAddress>) => Promise<boolean>;
   deleteAddress: (addressId: string) => Promise<boolean>;
   setDefaultAddress: (addressId: string) => Promise<void>;
+  addToCart: (productId: string, sku: string, quantity?: number) => Promise<boolean>;
   setHeartbeatEnabled: (enabled: boolean) => void;
   setSmsRetrieverEnabled: (enabled: boolean) => void;
   updateLastHeartbeat: () => void;
@@ -246,6 +247,26 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         defaultAddressId: addressId,
       },
     }));
+  },
+
+  addToCart: async (productId: string, sku: string, quantity: number = 1): Promise<boolean> => {
+    const { session } = get();
+    try {
+      const res = await AmulApiClient.instantAddToCart(
+        productId,
+        sku,
+        quantity,
+        session.sessionCookie
+      );
+      if (res.success) {
+        // Trigger live user data sync
+        await get().loadUserData();
+        return true;
+      }
+    } catch (e) {
+      console.warn('addToCart action note:', e);
+    }
+    return false;
   },
 
   setHeartbeatEnabled: (enabled) => {

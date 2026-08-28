@@ -11,6 +11,7 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -31,11 +32,15 @@ import {
   ShoppingCart,
   User,
   X,
+  RefreshCw,
+  ExternalLink,
 } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
 import { useStockStore } from '../../store/useStockStore';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
-import { AmulUserAddress } from '../../types/amul';
+import { AmulCheckoutModal } from '../../components/AmulCheckoutModal';
+import { AmulUserAddress, AmulProduct } from '../../types/amul';
+import { INITIAL_PRODUCTS } from '../../constants/products';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -54,6 +59,7 @@ export default function AccountScreen() {
     addAddress,
     deleteAddress,
     setDefaultAddress,
+    loadUserData,
     logout,
   } = useSessionStore();
 
@@ -78,6 +84,16 @@ export default function AccountScreen() {
   const [addrZip, setAddrZip] = useState('110044');
   const [addrType, setAddrType] = useState<'home' | 'office'>('home');
   const [isSavingAddress, setIsSavingAddress] = useState(false);
+
+  // Cart Checkout & Sync State
+  const [isCheckoutModalVisible, setIsCheckoutModalVisible] = useState(false);
+  const [isSyncingCart, setIsSyncingCart] = useState(false);
+
+  const handleSyncCart = async () => {
+    setIsSyncingCart(true);
+    await loadUserData();
+    setIsSyncingCart(false);
+  };
 
   const handleSaveProfile = async () => {
     setIsSavingProfile(true);
@@ -190,25 +206,127 @@ export default function AccountScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Live Amul Cloud Cart (if any items) */}
-        {cart && cart.itemsCount > 0 && (
-          <View style={styles.cartBanner}>
-            <View style={styles.cartBannerLeft}>
-              <View style={styles.cartIconCircle}>
-                <ShoppingCart size={16} color="#FFFFFF" />
+        {/* Amul Cloud Cart Section */}
+        <View style={styles.sectionHeaderRow}>
+          <View style={styles.sectionTitleRow}>
+            <ShoppingCart size={16} color="#2563EB" />
+            <Text style={styles.groupHeading}>
+              AMUL CLOUD CART ({cart?.itemsCount || 0})
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.syncCartHeaderBtn}
+            onPress={handleSyncCart}
+            disabled={isSyncingCart}
+            activeOpacity={0.7}
+          >
+            {isSyncingCart ? (
+              <ActivityIndicator size="small" color="#2563EB" />
+            ) : (
+              <>
+                <RefreshCw size={12} color="#2563EB" />
+                <Text style={styles.syncCartHeaderText}>Sync Cart</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {cart && cart.items && cart.items.length > 0 ? (
+          <View style={styles.cartDetailCard}>
+            {/* Cart Items List */}
+            {cart.items.map((item, idx) => (
+              <View
+                key={item.id || idx}
+                style={[
+                  styles.cartItemRow,
+                  idx < cart.items.length - 1 && styles.cartItemBorder,
+                ]}
+              >
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={styles.cartItemThumb}
+                  resizeMode="contain"
+                />
+                <View style={styles.cartItemInfo}>
+                  <Text style={styles.cartItemTitle} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text style={styles.cartItemSku}>SKU: {item.sku}</Text>
+                  <View style={styles.cartItemBottom}>
+                    <View style={styles.cartQtyBadge}>
+                      <Text style={styles.cartQtyText}>Qty: {item.quantity}</Text>
+                    </View>
+                    <Text style={styles.cartItemPrice}>₹{item.price * item.quantity}</Text>
+                  </View>
+                </View>
               </View>
-              <View>
-                <Text style={styles.cartBannerTitle}>Active Amul Cart ({cart.itemsCount} items)</Text>
-                <Text style={styles.cartBannerSub}>₹{cart.total} reserved in session</Text>
+            ))}
+
+            {/* Cart Bill Summary */}
+            <View style={styles.cartSummaryBox}>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Subtotal ({cart.itemsCount} items)</Text>
+                <Text style={styles.summaryValue}>₹{cart.subtotal || cart.total}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Amul D2C Shipping</Text>
+                <Text style={[styles.summaryValue, { color: '#059669' }]}>FREE</Text>
+              </View>
+              <View style={styles.summaryDivider} />
+              <View style={styles.summaryRow}>
+                <Text style={styles.totalLabel}>Total Payable</Text>
+                <Text style={styles.totalValue}>₹{cart.total}</Text>
               </View>
             </View>
-            <TouchableOpacity
-              style={styles.cartCheckoutBtn}
-              onPress={() => router.push('/(tabs)')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.cartCheckoutText}>View Cart</Text>
-            </TouchableOpacity>
+
+            {/* 2 Dedicated Action Options */}
+            <View style={styles.cartActionsRow}>
+              <TouchableOpacity
+                style={styles.checkoutCartBtn}
+                onPress={() => setIsCheckoutModalVisible(true)}
+                activeOpacity={0.85}
+              >
+                <ShoppingCart size={15} color="#FFFFFF" />
+                <Text style={styles.checkoutCartText}>Proceed to Amul Checkout</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.refreshLiveBtn}
+                onPress={handleSyncCart}
+                disabled={isSyncingCart}
+                activeOpacity={0.7}
+              >
+                <RefreshCw size={13} color="#1D4ED8" />
+                <Text style={styles.refreshLiveText}>Refresh & Sync</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.emptyCartCard}>
+            <View style={styles.emptyCartIconBox}>
+              <ShoppingCart size={28} color="#94A3B8" />
+            </View>
+            <Text style={styles.emptyCartTitle}>Your Amul Cloud Cart is empty</Text>
+            <Text style={styles.emptyCartSub}>
+              Items added to cart will reserve stock in your active Amul session.
+            </Text>
+            <View style={styles.emptyCartActions}>
+              <TouchableOpacity
+                style={styles.syncEmptyBtn}
+                onPress={handleSyncCart}
+                disabled={isSyncingCart}
+                activeOpacity={0.8}
+              >
+                {isSyncingCart ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <RefreshCw size={14} color="#FFFFFF" />
+                    <Text style={styles.syncEmptyText}>Fetch & Sync Cart from Amul</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -587,6 +705,13 @@ export default function AccountScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Official Amul Checkout Modal */}
+      <AmulCheckoutModal
+        visible={isCheckoutModalVisible}
+        product={INITIAL_PRODUCTS[0]}
+        onClose={() => setIsCheckoutModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -675,45 +800,204 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2563EB',
   },
-  cartBanner: {
-    backgroundColor: '#1D4ED8',
-    borderRadius: 14,
-    padding: 12,
+  syncCartHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 6,
+  },
+  syncCartHeaderText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#2563EB',
+  },
+  cartDetailCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#DBEAFE',
+    marginBottom: 20,
+    shadowColor: '#2563EB',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  cartItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 12,
+  },
+  cartItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  cartItemThumb: {
+    width: 48,
+    height: 48,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+  },
+  cartItemInfo: {
+    flex: 1,
+  },
+  cartItemTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  cartItemSku: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  cartItemBottom: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginTop: 4,
   },
-  cartBannerLeft: {
+  cartQtyBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  cartQtyText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#334155',
+  },
+  cartItemPrice: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0037B0',
+  },
+  cartSummaryBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 2,
+  },
+  summaryLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  summaryValue: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 6,
+  },
+  totalLabel: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  totalValue: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0037B0',
+  },
+  cartActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  checkoutCartBtn: {
+    flex: 1,
+    backgroundColor: '#1D4ED8',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-  },
-  cartIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 10,
   },
-  cartBannerTitle: {
+  checkoutCartText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
   },
-  cartBannerSub: {
-    color: '#BFDBFE',
-    fontSize: 11,
-  },
-  cartCheckoutBtn: {
-    backgroundColor: '#FFFFFF',
+  refreshLiveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
   },
-  cartCheckoutText: {
+  refreshLiveText: {
+    fontSize: 12,
+    fontWeight: '800',
     color: '#1D4ED8',
+  },
+  emptyCartCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 20,
+  },
+  emptyCartIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  emptyCartTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  emptyCartSub: {
+    fontSize: 11,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 14,
+  },
+  emptyCartActions: {
+    width: '100%',
+  },
+  syncEmptyBtn: {
+    backgroundColor: '#2563EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+    width: '100%',
+  },
+  syncEmptyText: {
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '800',
   },

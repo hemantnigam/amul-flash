@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Switch,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -20,8 +21,11 @@ import {
   MapPin,
   CheckCircle2,
   ShoppingCart,
+  Plus,
+  Minus,
 } from 'lucide-react-native';
 import { useStockStore } from '../../store/useStockStore';
+import { useSessionStore } from '../../store/useSessionStore';
 import { StockBadge } from '../../components/StockBadge';
 import { AmulCheckoutModal } from '../../components/AmulCheckoutModal';
 
@@ -29,15 +33,59 @@ export default function ProductDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { products, toggleAutoCartForProduct, selectedPincode } = useStockStore();
+  const { cart, addToCart } = useSessionStore();
 
   const product = products.find((p) => p.id === id) || products[0];
   const primaryVariant = product?.variants?.[0];
   const [isCheckoutModalVisible, setIsCheckoutModalVisible] = useState(false);
 
+  // Cart quantity state (1 to max 5)
+  const [quantity, setQuantity] = useState(1);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [addedSuccess, setAddedSuccess] = useState(false);
+
+  useEffect(() => {
+    // Check if this product is already in the active Amul cart
+    if (cart && product) {
+      const existingItem = cart.items.find(
+        (it) => it.productId === product.id || it.sku === (primaryVariant?.sku || product.id)
+      );
+      if (existingItem && existingItem.quantity > 0) {
+        setQuantity(Math.min(existingItem.quantity, 5));
+        setAddedSuccess(true);
+      }
+    }
+  }, [cart, product, primaryVariant]);
+
   if (!product) return null;
 
   const isInStock = primaryVariant?.isInStock;
   const isTracked = product.autoCartEnabled ?? true;
+  const primarySku = primaryVariant?.sku || product.id;
+
+  const handleIncrement = () => {
+    if (quantity < 5) {
+      setQuantity((prev) => prev + 1);
+    }
+  };
+
+  const handleDecrement = () => {
+    if (quantity > 1) {
+      setQuantity((prev) => prev - 1);
+    }
+  };
+
+  const handleAddToCart = async () => {
+    setIsAddingToCart(true);
+    const success = await addToCart(product.id, primarySku, quantity);
+    setIsAddingToCart(false);
+    if (success) {
+      setAddedSuccess(true);
+      setTimeout(() => setAddedSuccess(false), 3000);
+    }
+  };
+
+  const totalPrice = product.defaultPrice * quantity;
 
   return (
     <View style={styles.screenContainer}>
@@ -71,26 +119,92 @@ export default function ProductDetailsScreen() {
           </View>
         </View>
 
-        {/* Dedicated Track Switch Card */}
+        {/* 1. Track Switch Card (Renamed to Track) */}
         <View style={styles.trackCard}>
           <View style={styles.trackLeft}>
             <View style={[styles.trackIconBox, isTracked ? styles.trackIconActive : styles.trackIconInactive]}>
               <Bell size={20} color={isTracked ? '#1D4ED8' : '#64748B'} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.trackTitle}>Track Drop & Auto-Cart</Text>
+              <Text style={styles.trackTitle}>Track</Text>
               <Text style={styles.trackSub}>
                 {isTracked
-                  ? 'Active: Alarm will ring & auto-cart instantly when restocked'
+                  ? 'Active: Real-time notification alerts enabled for stock drops'
                   : 'Disabled: Toggle on to get notified on stock drops'}
               </Text>
             </View>
           </View>
           <Switch
             value={isTracked}
-            onValueChange={() => toggleAutoCartForProduct(product.id)}
+            onValueChange={() => toggleAutoCartForProduct(product.id, product)}
             trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
           />
+        </View>
+
+        {/* 2. Amul Cart Option Card with Max 5 Stepper */}
+        <View style={styles.cartOptionCard}>
+          <View style={styles.cartOptionHeader}>
+            <View style={styles.cartOptionTitleRow}>
+              <ShoppingCart size={18} color="#2563EB" />
+              <Text style={styles.cartOptionTitle}>Amul Cloud Cart</Text>
+            </View>
+            <Text style={styles.cartMaxLabel}>Max 5 units</Text>
+          </View>
+
+          <View style={styles.stepperActionRow}>
+            {/* Quantity Stepper (1 to 5) */}
+            <View style={styles.stepperContainer}>
+              <TouchableOpacity
+                style={[styles.stepBtn, quantity <= 1 && styles.stepBtnDisabled]}
+                onPress={handleDecrement}
+                disabled={quantity <= 1}
+                activeOpacity={0.7}
+              >
+                <Minus size={16} color={quantity <= 1 ? '#94A3B8' : '#0F172A'} />
+              </TouchableOpacity>
+
+              <View style={styles.qtyDisplay}>
+                <Text style={styles.qtyText}>{quantity}</Text>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.stepBtn, quantity >= 5 && styles.stepBtnDisabled]}
+                onPress={handleIncrement}
+                disabled={quantity >= 5}
+                activeOpacity={0.7}
+              >
+                <Plus size={16} color={quantity >= 5 ? '#94A3B8' : '#0F172A'} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Add to Cart Button */}
+            <TouchableOpacity
+              style={[styles.addToCartBtn, isAddingToCart && styles.addToCartBtnDisabled]}
+              onPress={handleAddToCart}
+              disabled={isAddingToCart}
+              activeOpacity={0.85}
+            >
+              {isAddingToCart ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <ShoppingCart size={15} color="#FFFFFF" />
+                  <Text style={styles.addToCartBtnText}>
+                    {addedSuccess ? '✓ In Amul Cart' : `Add ${quantity} to Cart`}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {addedSuccess && (
+            <View style={styles.cartFeedbackRow}>
+              <CheckCircle2 size={13} color="#10B981" />
+              <Text style={styles.cartFeedbackText}>
+                {quantity} {quantity === 1 ? 'pack' : 'packs'} reserved in your Amul Cloud Cart
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Nutrition Macro Facts (if available) */}
@@ -147,8 +261,8 @@ export default function ProductDetailsScreen() {
       {/* Bottom Sticky Action */}
       <View style={styles.bottomBar}>
         <View style={styles.bottomPriceCol}>
-          <Text style={styles.bottomTotalLabel}>Total Price</Text>
-          <Text style={styles.bottomTotalPrice}>₹{product.defaultPrice}</Text>
+          <Text style={styles.bottomTotalLabel}>Total ({quantity} {quantity === 1 ? 'item' : 'items'})</Text>
+          <Text style={styles.bottomTotalPrice}>₹{totalPrice}</Text>
         </View>
 
         <TouchableOpacity
@@ -181,27 +295,27 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 110,
   },
   imageCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    height: 240,
+    padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
-    position: 'relative',
-    marginBottom: 14,
   },
   productImage: {
-    width: '80%',
-    height: '80%',
+    width: '100%',
+    height: 220,
   },
   stockBadgeFloat: {
     position: 'absolute',
-    top: 12,
-    left: 12,
+    top: 14,
+    left: 14,
   },
   infoCard: {
     backgroundColor: '#FFFFFF',
@@ -215,37 +329,39 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: '#0F172A',
+    lineHeight: 24,
   },
   categorySubtext: {
     fontSize: 12,
     color: '#64748B',
     fontWeight: '600',
-    marginTop: 2,
-    marginBottom: 12,
+    marginTop: 4,
   },
   priceRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
+    marginTop: 12,
+    gap: 2,
   },
   priceSymbol: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontWeight: '800',
+    color: '#0037B0',
   },
   priceValue: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '900',
-    color: '#0F172A',
+    color: '#0037B0',
+    marginRight: 10,
   },
   pincodeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
     backgroundColor: '#EFF6FF',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
-    marginLeft: 'auto',
+    gap: 4,
   },
   pincodeText: {
     fontSize: 11,
@@ -292,6 +408,113 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#64748B',
     marginTop: 2,
+  },
+  cartOptionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    marginBottom: 12,
+  },
+  cartOptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  cartOptionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cartOptionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  cartMaxLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  stepperActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  stepperContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 2,
+  },
+  stepBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  stepBtnDisabled: {
+    backgroundColor: '#F1F5F9',
+    opacity: 0.5,
+  },
+  qtyDisplay: {
+    width: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qtyText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  addToCartBtn: {
+    flex: 1,
+    backgroundColor: '#1D4ED8',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 6,
+  },
+  addToCartBtnDisabled: {
+    opacity: 0.6,
+  },
+  addToCartBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  cartFeedbackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  cartFeedbackText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#065F46',
   },
   card: {
     backgroundColor: '#FFFFFF',
