@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -37,7 +38,16 @@ export default function AccountScreen() {
 
   const [isPincodeModalVisible, setIsPincodeModalVisible] = useState(false);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const confirmed = window.confirm('Are you sure you want to sign out of your Amul session?');
+      if (confirmed) {
+        await logout();
+        router.replace('/login');
+      }
+      return;
+    }
+
     Alert.alert('Sign Out', 'Are you sure you want to sign out of your Amul session?', [
       { text: 'Cancel', style: 'cancel' },
       {
