@@ -27,6 +27,7 @@ export default function TrackedScreen() {
   const { session, isInitialized } = useSessionStore();
   const {
     products,
+    trackedProductsMap,
     refreshStock,
     isLoadingProducts,
   } = useStockStore();
@@ -38,8 +39,8 @@ export default function TrackedScreen() {
     return null;
   }
 
-  // Filter only products that the user has tracked / auto-cart enabled
-  const trackedProducts = products.filter((p) => p.autoCartEnabled);
+  // Read all products that the user has tracked across all categories
+  const trackedProducts = Object.values(trackedProductsMap);
   const inStockTracked = trackedProducts.filter((p) => p.variants.some((v) => v.isInStock));
 
   const onRefresh = async () => {

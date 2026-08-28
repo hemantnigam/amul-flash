@@ -156,7 +156,7 @@ export default function LoginScreen() {
                   <View style={styles.iconCircle}>
                     <Smartphone size={20} color={Theme.colors.primary} />
                   </View>
-                  <View>
+                  <View style={styles.cardHeaderTextCol}>
                     <Text style={styles.cardTitle}>Mobile Verification</Text>
                     <Text style={styles.cardSubtitle}>
                       Enter your phone number to receive an Amul OTP
@@ -204,7 +204,7 @@ export default function LoginScreen() {
                   <View style={[styles.iconCircle, { backgroundColor: '#ECFDF5' }]}>
                     <CheckCircle2 size={20} color="#10B981" />
                   </View>
-                  <View>
+                  <View style={styles.cardHeaderTextCol}>
                     <Text style={styles.cardTitle}>Enter 6-Digit OTP</Text>
                     <Text style={styles.cardSubtitle}>
                       Sent to +91 {mobile}
@@ -326,28 +326,34 @@ const styles = StyleSheet.create({
   brandContainer: {
     alignItems: 'center',
     marginBottom: 28,
+    width: '100%',
   },
   logoBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
   brandTitleAmul: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: '900',
     color: '#0037B0',
-    letterSpacing: -0.5,
     fontStyle: 'italic',
+    letterSpacing: 0,
+    paddingRight: 6,
+    includeFontPadding: false,
   },
   flashBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FF6B00',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
     borderRadius: 8,
-    gap: 2,
+    gap: 3,
   },
   flashText: {
     color: '#FFFFFF',
@@ -360,6 +366,8 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     fontWeight: '600',
+    paddingHorizontal: 16,
+    lineHeight: 18,
   },
   authCard: {
     width: '100%',
@@ -380,6 +388,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     marginBottom: 20,
+    width: '100%',
+  },
+  cardHeaderTextCol: {
+    flex: 1,
+    flexShrink: 1,
   },
   iconCircle: {
     width: 42,
@@ -388,6 +401,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   cardTitle: {
     fontSize: 17,
@@ -398,6 +412,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     marginTop: 2,
+    lineHeight: 17,
+    flexWrap: 'wrap',
   },
   inputContainer: {
     flexDirection: 'row',

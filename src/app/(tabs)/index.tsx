@@ -21,6 +21,7 @@ import {
   Check,
   ChevronRight,
   Package,
+  ShoppingCart,
 } from 'lucide-react-native';
 import { useStockStore } from '../../store/useStockStore';
 import { useSessionStore } from '../../store/useSessionStore';
@@ -230,14 +231,21 @@ export default function HomeScreen() {
                       <Text style={styles.heroPrice}>₹{heroProduct.defaultPrice}</Text>
                     </View>
 
-                    <TouchableOpacity
-                      style={styles.heroBuyButton}
-                      onPress={() => setSelectedProductForCheckout(heroProduct)}
-                      activeOpacity={0.8}
-                    >
-                      <Zap size={14} color="#FFFFFF" />
-                      <Text style={styles.heroBuyText}>+ BUY NOW</Text>
-                    </TouchableOpacity>
+                    {heroProduct.variants[0]?.isInStock ? (
+                      <TouchableOpacity
+                        style={styles.heroBuyButton}
+                        onPress={() => setSelectedProductForCheckout(heroProduct)}
+                        activeOpacity={0.8}
+                      >
+                        <ShoppingCart size={14} color="#FFFFFF" />
+                        <Text style={styles.heroBuyText}>Buy on Amul</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={styles.heroAutoTrackBadge}>
+                        <Bell size={13} color="#D97706" />
+                        <Text style={styles.heroAutoTrackText}>Auto-Notifies on Drop</Text>
+                      </View>
+                    )}
                   </View>
                 </View>
               </TouchableOpacity>
@@ -530,6 +538,22 @@ const styles = StyleSheet.create({
   heroBuyText: {
     color: '#FFFFFF',
     fontSize: 13,
+    fontWeight: '800',
+  },
+  heroAutoTrackBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    gap: 5,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  heroAutoTrackText: {
+    color: '#B45309',
+    fontSize: 11,
     fontWeight: '800',
   },
   sectionHeaderRow: {

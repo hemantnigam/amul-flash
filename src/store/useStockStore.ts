@@ -15,6 +15,7 @@ interface StockStoreState {
   isSimulatingDrop: boolean;
   isLoadingProducts: boolean;
   lastUpdated: number;
+  trackedProductsMap: Record<string, AmulProduct>;
 
   // Actions
   loadInitialData: () => Promise<void>;
@@ -22,12 +23,20 @@ interface StockStoreState {
   setSelectedPincode: (pincode: PincodeLocation) => Promise<void>;
   addPincode: (pincode: PincodeLocation) => void;
   removePincode: (pincodeStr: string) => void;
-  toggleAutoCartForProduct: (productId: string) => void;
+  toggleAutoCartForProduct: (productId: string, productObj?: AmulProduct) => void;
   triggerSimulatedDrop: (productId?: string) => Promise<void>;
   dismissDropAlert: () => void;
   addActivityLog: (log: Omit<ActivityLog, 'id' | 'timestamp'>) => void;
   refreshStock: () => Promise<void>;
 }
+
+// Initial tracked map from default high protein products
+const initialTrackedMap: Record<string, AmulProduct> = {};
+INITIAL_PRODUCTS.forEach((p) => {
+  if (p.autoCartEnabled) {
+    initialTrackedMap[p.id] = p;
+  }
+});
 
 export const useStockStore = create<StockStoreState>((set, get) => ({
   products: INITIAL_PRODUCTS,
@@ -40,20 +49,27 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
   isSimulatingDrop: false,
   isLoadingProducts: false,
   lastUpdated: Date.now(),
+  trackedProductsMap: initialTrackedMap,
 
   loadInitialData: async () => {
     set({ isLoadingProducts: true });
     try {
-      // 1. Fetch all 16 live categories
+      // 1. Fetch live categories
       const liveCategories = await AmulApiClient.fetchCategories();
       set({ categories: liveCategories.length > 0 ? liveCategories : DEFAULT_CATEGORIES });
 
-      // 2. Fetch live products for default category (protein)
+      // 2. Fetch live products for selected category
       const substoreId = get().selectedPincode.storeId || '66505ff5145c16635e6cc74d';
       const liveProducts = await AmulApiClient.fetchStoreProducts(get().selectedCategory, substoreId);
 
+      const trackedMap = get().trackedProductsMap;
+      const hydratedProducts = liveProducts.map((p) => ({
+        ...p,
+        autoCartEnabled: trackedMap[p.id] !== undefined ? true : p.autoCartEnabled,
+      }));
+
       set({
-        products: liveProducts,
+        products: hydratedProducts,
         isLoadingProducts: false,
         lastUpdated: Date.now(),
       });
@@ -68,8 +84,15 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     try {
       const substoreId = get().selectedPincode.storeId || '66505ff5145c16635e6cc74d';
       const liveProducts = await AmulApiClient.fetchStoreProducts(categorySlug, substoreId);
+
+      const trackedMap = get().trackedProductsMap;
+      const hydratedProducts = liveProducts.map((p) => ({
+        ...p,
+        autoCartEnabled: trackedMap[p.id] !== undefined ? true : p.autoCartEnabled,
+      }));
+
       set({
-        products: liveProducts,
+        products: hydratedProducts,
         isLoadingProducts: false,
         lastUpdated: Date.now(),
       });
@@ -89,10 +112,15 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       status: 'info',
     });
 
-    // Re-fetch products for new location cluster
     try {
       const liveProducts = await AmulApiClient.fetchStoreProducts(get().selectedCategory, pincode.storeId);
-      set({ products: liveProducts, isLoadingProducts: false });
+      const trackedMap = get().trackedProductsMap;
+      const hydratedProducts = liveProducts.map((p) => ({
+        ...p,
+        autoCartEnabled: trackedMap[p.id] !== undefined ? true : p.autoCartEnabled,
+      }));
+
+      set({ products: hydratedProducts, isLoadingProducts: false });
     } catch (e) {
       set({ isLoadingProducts: false });
     }
@@ -110,12 +138,30 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     }));
   },
 
-  toggleAutoCartForProduct: (productId) => {
-    set((state) => ({
-      products: state.products.map((p) =>
-        p.id === productId ? { ...p, autoCartEnabled: !p.autoCartEnabled } : p
-      ),
-    }));
+  toggleAutoCartForProduct: (productId, productObj) => {
+    set((state) => {
+      const isCurrentlyTracked = !!state.trackedProductsMap[productId];
+      const newTrackedMap = { ...state.trackedProductsMap };
+
+      if (isCurrentlyTracked) {
+        delete newTrackedMap[productId];
+      } else {
+        const targetProduct =
+          productObj || state.products.find((p) => p.id === productId);
+        if (targetProduct) {
+          newTrackedMap[productId] = { ...targetProduct, autoCartEnabled: true };
+        }
+      }
+
+      const updatedProducts = state.products.map((p) =>
+        p.id === productId ? { ...p, autoCartEnabled: !isCurrentlyTracked } : p
+      );
+
+      return {
+        trackedProductsMap: newTrackedMap,
+        products: updatedProducts,
+      };
+    });
   },
 
   triggerSimulatedDrop: async (productId) => {
