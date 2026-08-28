@@ -128,5 +128,75 @@ export interface AmulSession {
   expiresAt: number;
   isLoggedIn: boolean;
   lastHeartbeat: number;
+  userId?: string;
+  userName?: string;
   defaultAddressId?: string;
+}
+
+export interface AmulUserProfile {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  defaultAddressId?: string;
+  createdOn?: string;
+}
+
+export interface AmulUserAddress {
+  id: string;
+  userId: string;
+  fullName: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  addressType: 'home' | 'office' | 'other';
+  isDefault: boolean;
+  createdOn?: string;
+}
+
+export interface AmulOrderItem {
+  id: string;
+  name: string;
+  sku: string;
+  price: number;
+  quantity: number;
+  image?: string;
+}
+
+export interface AmulOrder {
+  id: string;
+  orderNumber: string;
+  status: 'confirmed' | 'dispatched' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'pending';
+  totalAmount: number;
+  subtotal: number;
+  shipping: number;
+  items: AmulOrderItem[];
+  itemsCount: number;
+  shippingAddress?: Partial<AmulUserAddress>;
+  createdAt: number | string;
+  trackingNumber?: string;
+  paymentMethod?: string;
+}
+
+export interface AmulCartItem {
+  id: string;
+  productId: string;
+  title: string;
+  sku: string;
+  price: number;
+  quantity: number;
+  imageUrl?: string;
+}
+
+export interface AmulCart {
+  id: string;
+  userId: string;
+  items: AmulCartItem[];
+  itemsCount: number;
+  subtotal: number;
+  total: number;
 }

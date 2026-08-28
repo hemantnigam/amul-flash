@@ -36,7 +36,8 @@ export const FlashCheckoutModal: React.FC<FlashCheckoutModalProps> = ({
   onClose,
 }) => {
   const { selectedPincode, addActivityLog } = useStockStore();
-  const { session } = useSessionStore();
+  const { session, addresses } = useSessionStore();
+  const activeAddress = addresses.find((a) => a.isDefault || a.id === session.defaultAddressId) || addresses[0];
 
   const [selectedAppId, setSelectedAppId] = useState<string>('gpay');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -154,9 +155,13 @@ export const FlashCheckoutModal: React.FC<FlashCheckoutModalProps> = ({
           <View style={styles.addressPill}>
             <MapPin size={16} color="#2563EB" />
             <View style={styles.addressTextCol}>
-              <Text style={styles.addressLabel}>Delivery Location</Text>
-              <Text style={styles.addressValue} numberOfLines={1}>
-                {selectedPincode.label} ({selectedPincode.pincode}) • Hub: {selectedPincode.storeId}
+              <Text style={styles.addressLabel}>
+                Delivery Address ({activeAddress ? activeAddress.addressType.toUpperCase() : 'DEFAULT'})
+              </Text>
+              <Text style={styles.addressValue} numberOfLines={2}>
+                {activeAddress
+                  ? `${activeAddress.fullName}, ${activeAddress.address}, ${activeAddress.city} - ${activeAddress.zip}`
+                  : `${selectedPincode.label} (${selectedPincode.pincode})`}
               </Text>
             </View>
           </View>
