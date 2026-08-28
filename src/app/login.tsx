@@ -242,7 +242,14 @@ export default function LoginScreen() {
                       Resend code in {resendTimer}s
                     </Text>
                   ) : (
-                    <TouchableOpacity onPress={handleSendOTP} disabled={!canResend}>
+                    <TouchableOpacity
+                      onPress={async () => {
+                        setResendTimer(30);
+                        setCanResend(false);
+                        await handleSendOTP();
+                      }}
+                      activeOpacity={0.7}
+                    >
                       <Text style={styles.resendLinkText}>Resend OTP Code</Text>
                     </TouchableOpacity>
                   )}
