@@ -7,23 +7,31 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Platform,
-  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { WebView } from 'react-native-webview';
 import * as WebBrowser from 'expo-web-browser';
 import {
   ShieldCheck,
   X,
   ExternalLink,
   Lock,
-  RefreshCw,
   ArrowLeft,
   CheckCircle2,
 } from 'lucide-react-native';
 import { AmulProduct } from '../types/amul';
 import { useSessionStore } from '../store/useSessionStore';
 import { AmulApiClient } from '../services/amulApi';
+
+// Safely resolve native WebView only on Android / iOS
+let NativeWebView: any = null;
+if (Platform.OS !== 'web') {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    NativeWebView = require('react-native-webview').WebView;
+  } catch (e) {
+    console.warn('Native WebView not available:', e);
+  }
+}
 
 interface AmulCheckoutModalProps {
   visible: boolean;
@@ -41,7 +49,6 @@ export const AmulCheckoutModal: React.FC<AmulCheckoutModalProps> = ({
   const { session, loadUserData } = useSessionStore();
   const [isPreReserving, setIsPreReserving] = useState(true);
   const [reservationMessage, setReservationMessage] = useState('Reserving item on Amul Cloud...');
-  const [webViewKey, setWebViewKey] = useState(1);
 
   useEffect(() => {
     let isMounted = true;
@@ -64,7 +71,7 @@ export const AmulCheckoutModal: React.FC<AmulCheckoutModalProps> = ({
             setReservationMessage('Redirecting to Official Amul Checkout...');
             setTimeout(() => {
               if (isMounted) setIsPreReserving(false);
-            }, 500);
+            }, 400);
           }
         } catch (e) {
           console.warn('Pre-reserve note:', e);
@@ -87,7 +94,7 @@ export const AmulCheckoutModal: React.FC<AmulCheckoutModalProps> = ({
   };
 
   const handleOpenExternal = () => {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
       window.open(CHECKOUT_URL, '_blank');
     } else {
       WebBrowser.openBrowserAsync(CHECKOUT_URL, {
@@ -135,7 +142,7 @@ export const AmulCheckoutModal: React.FC<AmulCheckoutModalProps> = ({
           </Text>
         </View>
 
-        {/* Content Body: Pre-loader OR WebView / Browser */}
+        {/* Content Body: Pre-loader OR Web Card OR Native WebView */}
         {isPreReserving ? (
           <View style={styles.loadingContainer}>
             <View style={styles.loadingCard}>
@@ -144,7 +151,7 @@ export const AmulCheckoutModal: React.FC<AmulCheckoutModalProps> = ({
               <Text style={styles.loadingSub}>{reservationMessage}</Text>
             </View>
           </View>
-        ) : Platform.OS === 'web' ? (
+        ) : Platform.OS === 'web' || !NativeWebView ? (
           <View style={styles.webContainer}>
             <View style={styles.webCard}>
               <CheckCircle2 size={44} color="#10B981" />
@@ -168,8 +175,7 @@ export const AmulCheckoutModal: React.FC<AmulCheckoutModalProps> = ({
             </View>
           </View>
         ) : (
-          <WebView
-            key={webViewKey}
+          <NativeWebView
             source={{
               uri: CHECKOUT_URL,
               headers: {
