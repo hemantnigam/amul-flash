@@ -43,12 +43,17 @@ export default function HomeScreen() {
     dismissDropAlert,
     toggleAutoCartForProduct,
     refreshStock,
+    loadInitialData,
   } = useStockStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isPincodeModalVisible, setIsPincodeModalVisible] = useState(false);
   const [selectedProductForCheckout, setSelectedProductForCheckout] = useState<AmulProduct | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  React.useEffect(() => {
+    loadInitialData();
+  }, []);
 
   const onRefresh = async () => {
     setIsRefreshing(true);

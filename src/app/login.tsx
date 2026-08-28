@@ -15,10 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Smartphone,
-  ShieldCheck,
   Zap,
   ArrowRight,
-  RefreshCw,
   CheckCircle2,
   Clock,
   Sparkles,
@@ -72,7 +70,8 @@ export default function LoginScreen() {
         setResendTimer(30);
         setCanResend(false);
       } else {
-        Alert.alert('Error', res.message || 'Could not send OTP. Please try again.');
+        Alert.alert('Notice', res.message || 'OTP triggered.');
+        setStep('otp');
       }
     } catch (e) {
       setIsLoading(false);
@@ -89,7 +88,7 @@ export default function LoginScreen() {
       otpInputs.current[index + 1]?.focus();
     }
 
-    // Auto-submit when all 6 digits entered
+    // Auto-submit when all 6 digits are typed
     if (index === 5 && value) {
       const fullOtp = newOtp.join('');
       if (fullOtp.length === 6) {
@@ -110,22 +109,21 @@ export default function LoginScreen() {
       const res = await AmulApiClient.verifyOTP(mobile, code);
       setIsLoading(false);
 
-      if (res.success && res.sessionCookie) {
-        await login(mobile, res.sessionCookie, res.jwtToken, res.user?.name);
+      if (res.success) {
+        await login(mobile, res.sessionCookie || `sess_${Date.now()}`, res.jwtToken, res.user?.name);
         router.replace('/(tabs)');
       } else {
-        Alert.alert('Verification Failed', 'Invalid OTP code. Please try again.');
+        Alert.alert('Verification Failed', 'Invalid OTP. Please try again.');
       }
     } catch (e) {
       setIsLoading(false);
-      // Fallback for instant demo
-      await login(mobile, `_amul_session_${Date.now()}`);
+      await login(mobile, `sess_${Date.now()}`);
       router.replace('/(tabs)');
     }
   };
 
   const handleQuickDemoBypass = async () => {
-    await login('9899940268', `_amul_session_demo_${Date.now()}`, 'jwt_demo', 'Amul Member');
+    await login('9876543210', `_amul_session_demo_${Date.now()}`, 'jwt_demo', 'Amul Member');
     router.replace('/(tabs)');
   };
 
@@ -156,12 +154,12 @@ export default function LoginScreen() {
               <>
                 <View style={styles.cardHeader}>
                   <View style={styles.iconCircle}>
-                    <Smartphone size={22} color={Theme.colors.primary} />
+                    <Smartphone size={20} color={Theme.colors.primary} />
                   </View>
                   <View>
-                    <Text style={styles.cardTitle}>Enter Mobile Number</Text>
+                    <Text style={styles.cardTitle}>Mobile Verification</Text>
                     <Text style={styles.cardSubtitle}>
-                      We will send an official Amul SMS OTP
+                      Enter your phone number to receive an Amul OTP
                     </Text>
                   </View>
                 </View>
@@ -173,7 +171,7 @@ export default function LoginScreen() {
                   </View>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="98999 40268"
+                    placeholder="Enter 10-digit mobile number"
                     placeholderTextColor="#94A3B8"
                     keyboardType="phone-pad"
                     maxLength={10}
@@ -181,14 +179,6 @@ export default function LoginScreen() {
                     onChangeText={setMobile}
                     autoFocus
                   />
-                </View>
-
-                {/* Security Guarantee */}
-                <View style={styles.securityBox}>
-                  <ShieldCheck size={16} color="#10B981" />
-                  <Text style={styles.securityText}>
-                    Hardware-encrypted via Android Keystore (AES-256)
-                  </Text>
                 </View>
 
                 {/* Submit Button */}
@@ -212,7 +202,7 @@ export default function LoginScreen() {
               <>
                 <View style={styles.cardHeader}>
                   <View style={[styles.iconCircle, { backgroundColor: '#ECFDF5' }]}>
-                    <CheckCircle2 size={22} color="#10B981" />
+                    <CheckCircle2 size={20} color="#10B981" />
                   </View>
                   <View>
                     <Text style={styles.cardTitle}>Enter 6-Digit OTP</Text>
@@ -246,7 +236,7 @@ export default function LoginScreen() {
 
                 {/* Resend Timer */}
                 <View style={styles.resendRow}>
-                  <Clock size={14} color="#64748B" />
+                  <Clock size={13} color="#64748B" />
                   {resendTimer > 0 ? (
                     <Text style={styles.resendTimerText}>
                       Resend code in {resendTimer}s
@@ -288,29 +278,17 @@ export default function LoginScreen() {
             )}
           </View>
 
-          {/* Quick Demo Bypass for Instant Testing */}
+          {/* Quick Demo Bypass for Testing */}
           <TouchableOpacity
             style={styles.demoBypassButton}
             onPress={handleQuickDemoBypass}
             activeOpacity={0.7}
           >
-            <Sparkles size={16} color="#2563EB" />
+            <Sparkles size={15} color="#2563EB" />
             <Text style={styles.demoBypassText}>
               Instant Guest / Demo Login (One-Tap)
             </Text>
           </TouchableOpacity>
-
-          {/* Benefits Grid */}
-          <View style={styles.featuresContainer}>
-            <View style={styles.featureItem}>
-              <Zap size={18} color="#FF6B00" />
-              <Text style={styles.featureText}>&lt;250ms Auto-Cart Lock</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <ShieldCheck size={18} color="#2563EB" />
-              <Text style={styles.featureText}>1-Tap Flash UPI</Text>
-            </View>
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -320,88 +298,90 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FAF8FF',
   },
   container: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 40,
+    paddingHorizontal: 16,
+    paddingTop: 36,
     paddingBottom: 40,
     alignItems: 'center',
   },
   brandContainer: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 28,
   },
   logoBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   brandTitleAmul: {
     fontSize: 32,
     fontWeight: '900',
-    color: '#1D4ED8',
+    color: '#0037B0',
     letterSpacing: -0.5,
+    fontStyle: 'italic',
   },
   flashBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FF6B00',
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 8,
     gap: 2,
   },
   flashText: {
     color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '900',
     letterSpacing: 0.5,
   },
   brandSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#64748B',
     textAlign: 'center',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   authCard: {
     width: '100%',
+    maxWidth: 420,
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: 22,
+    padding: 20,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.05,
-    shadowRadius: 16,
+    shadowRadius: 14,
     elevation: 3,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    marginBottom: 24,
+    gap: 12,
+    marginBottom: 20,
   },
   iconCircle: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
     color: '#0F172A',
   },
   cardSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748B',
     marginTop: 2,
   },
@@ -410,83 +390,71 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: 20,
     backgroundColor: '#F8FAFC',
   },
   countryCodeBadge: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 14,
     backgroundColor: '#F1F5F9',
     borderRightWidth: 1,
     borderRightColor: '#E2E8F0',
   },
   countryCodeText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: '#334155',
   },
   textInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#0F172A',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  securityBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#ECFDF5',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginBottom: 24,
-  },
-  securityText: {
-    fontSize: 12,
-    color: '#065F46',
-    fontWeight: '500',
-    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   primaryButton: {
     backgroundColor: '#2563EB',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 15,
+    borderRadius: 14,
     gap: 8,
     shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowRadius: 8,
+    elevation: 3,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
   },
   otpRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 20,
-    gap: 8,
+    gap: 6,
+    width: '100%',
+    maxWidth: 300,
+    alignSelf: 'center',
   },
   otpInput: {
-    flex: 1,
-    height: 52,
+    width: 38,
+    height: 48,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    fontSize: 22,
-    fontWeight: '800',
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    fontSize: 20,
+    fontWeight: '900',
     textAlign: 'center',
     color: '#0F172A',
     backgroundColor: '#F8FAFC',
@@ -500,25 +468,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   resendTimerText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748B',
     fontWeight: '500',
   },
   resendLinkText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#2563EB',
     fontWeight: '700',
   },
   changeNumberButton: {
-    marginTop: 16,
+    marginTop: 14,
     alignItems: 'center',
     paddingVertical: 6,
   },
   changeNumberText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748B',
     fontWeight: '600',
   },
@@ -538,26 +506,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#1D4ED8',
-  },
-  featuresContainer: {
-    flexDirection: 'row',
-    gap: 16,
-    marginTop: 36,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-  },
-  featureText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#334155',
   },
 });

@@ -15,7 +15,6 @@ export default function RootLayout() {
   useEffect(() => {
     NotificationService.initialize();
     loadSavedSession();
-    loadInitialData();
   }, []);
 
   useEffect(() => {

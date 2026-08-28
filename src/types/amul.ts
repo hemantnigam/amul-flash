@@ -51,10 +51,10 @@ export interface AmulCategory {
 export interface AmulProduct {
   id: string;
   title: string;
-  category: 'lassi' | 'buttermilk' | 'whey' | 'paneer' | 'specialty';
+  category: ProductCategory;
   flavor?: string;
   imageUrl: string;
-  nutrition: NutritionInfo;
+  nutrition?: NutritionInfo;
   defaultPrice: number;
   variants: ProductVariant[];
   description: string;

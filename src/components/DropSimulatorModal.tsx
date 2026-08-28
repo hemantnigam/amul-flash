@@ -68,7 +68,7 @@ export const DropSimulatorModal: React.FC<DropSimulatorModalProps> = ({
                   <View style={styles.prodItemInfo}>
                     <Text style={styles.prodItemTitle}>{p.title}</Text>
                     <Text style={styles.prodItemSub}>
-                      {p.nutrition.proteinGrams}g Protein • ₹{p.defaultPrice}
+                      {p.nutrition?.proteinGrams ? `${p.nutrition.proteinGrams}g Protein • ` : ''}₹{p.defaultPrice}
                     </Text>
                   </View>
                   {p.autoCartEnabled && (
