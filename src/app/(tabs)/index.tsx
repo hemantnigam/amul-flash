@@ -32,7 +32,7 @@ import { AmulProduct } from '../../types/amul';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { session } = useSessionStore();
+  const { session, isInitialized } = useSessionStore();
   const {
     products,
     categories,
@@ -58,6 +58,10 @@ export default function HomeScreen() {
       loadInitialData();
     }
   }, [session.isLoggedIn]);
+
+  if (!isInitialized || !session.isLoggedIn) {
+    return null;
+  }
 
   const onRefresh = async () => {
     setIsRefreshing(true);

@@ -1,8 +1,16 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Home, LayoutGrid, User } from 'lucide-react-native';
+import { useSessionStore } from '../../store/useSessionStore';
 
 export default function TabLayout() {
+  const { session, isInitialized } = useSessionStore();
+
+  // If user is not logged in or auth is still checking, do not render dashboard tabs
+  if (!isInitialized || !session.isLoggedIn) {
+    return null;
+  }
+
   return (
     <Tabs
       screenOptions={{
