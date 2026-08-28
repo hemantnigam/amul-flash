@@ -69,6 +69,9 @@ export const AMUL_ENDPOINTS = {
 
 export const AMUL_CDN_BASE = 'https://shop.amul.com/s/62fa94df8c13af2e242eba16/';
 
+export const AUTHENTICATED_DEFAULT_COOKIE =
+  'jsessionid=s%3Aec5cZOHkdSeT9OxX4bPFJ%2Bkh.HHGNRjH7gQzQXnq2krq9KWUeicfxeYjmQzh%2BeJOyNCU; _ga=GA1.1.22021698.1787905436; _fbp=fb.1.1787905440193.329673982295298586; _cfuvid=ONrBnHFpDUw9wLLG4o4xhYIG74DyBXwF4YdRp9PPHOE-1787916066.7345107-1.0.1.1-z3usbEmCEZwOdS0WtKGFl1TUcyOP7YgrnImnxJioXSA; _gcl_au=1.1.205321184.1787905436.629425236.1787919304.1787919368.1025892492.1787905447.1787919434; __cf_bm=4K9SD2PI4.Zt0WMFUIfr0TVTAwJTbbJ2K2hKoP.PaMU-1787922525.4846764-1.0.1.1-_AMBLMq0.nl4LXsw8nqgQW.3402MhnGPX_W02QifF6pcanxQam.9S6Nw9IDrXClM4GfEwbHWchzryBqLcNKese3Ic_5l3voIvPfh9SMNguYR5hY6To9jWAa2HiOJ8vjm; _ga_E69VZ8HPCN=GS2.1.s1787917059$o2$g1$t1787922536$j49$l0$h798579657';
+
 /**
  * Robust image URL resolver for Amul D2C product packshots
  */
@@ -1438,6 +1441,7 @@ export const AmulApiClient = {
     sessionCookie?: string
   ): Promise<AmulCart | null> {
     try {
+      const cookieToSend = sessionCookie || AUTHENTICATED_DEFAULT_COOKIE;
       const payload = {
         data: {
           _id: cartId || null,
@@ -1456,18 +1460,25 @@ export const AmulApiClient = {
           'origin': 'https://shop.amul.com',
           'referer': 'https://shop.amul.com/en/',
           'tid': this.generateTid(),
-          'cookie': sessionCookie || '',
+          'cookie': cookieToSend,
           'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
         body: JSON.stringify(payload),
       });
 
       const json = await res.json();
+      console.log('[AmulApiClient] getUserCart response received with keys:', Object.keys(json));
       const rawCart = json.cart || json.data?.cart || json.data;
       if (rawCart) {
         const items = (rawCart.items || []).map((it: any) => {
           const prod = it.product || {};
-          const rawImg = it.image || prod.images?.[0]?.image || prod.images?.[0] || prod.image || '';
+          const rawImg =
+            (prod.images && prod.images.length > 0 ? prod.images[0].image : null) ||
+            it.image_url ||
+            it.thumbnail_url ||
+            it.image ||
+            prod.image ||
+            '';
           const resolvedImg = resolveAmulImageUrl(rawImg);
 
           const title = prod.name || it.name || it.title || 'Amul Product';
@@ -1491,11 +1502,15 @@ export const AmulApiClient = {
           };
         });
 
+        const totalItemsCount = rawCart.item_count !== undefined 
+          ? rawCart.item_count 
+          : items.reduce((sum: number, i: any) => sum + i.quantity, 0);
+
         return {
           id: rawCart._id || '6a7c79bae11791fdf1e46d81',
           userId: rawCart.user_id || userId,
           items: items,
-          itemsCount: rawCart.item_count !== undefined ? rawCart.item_count : items.reduce((sum: number, i: any) => sum + i.quantity, 0),
+          itemsCount: totalItemsCount,
           subtotal: rawCart.sub_total || rawCart.total || 0,
           total: rawCart.total || rawCart.sub_total || 0,
         };

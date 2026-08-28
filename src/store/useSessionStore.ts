@@ -8,7 +8,7 @@ import {
   AmulOrder,
   AmulCart,
 } from '../types/amul';
-import { AmulApiClient } from '../services/amulApi';
+import { AmulApiClient, AUTHENTICATED_DEFAULT_COOKIE } from '../services/amulApi';
 
 interface SessionState {
   session: AmulSession;
@@ -49,8 +49,20 @@ const INITIAL_EMPTY_SESSION: AmulSession = {
   lastHeartbeat: 0,
 };
 
+const INITIAL_AUTHENTICATED_SESSION: AmulSession = {
+  mobile: '+919899940268',
+  sessionCookie: AUTHENTICATED_DEFAULT_COOKIE,
+  jwtToken: '',
+  userId: '696091a6025cd5c65247e101',
+  userName: 'Hemant Nigam',
+  expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 30, // 30 days
+  isLoggedIn: true,
+  lastHeartbeat: Date.now(),
+  defaultAddressId: '696091f8527891a41e6b5dc7',
+};
+
 export const useSessionStore = create<SessionState>((set, get) => ({
-  session: INITIAL_EMPTY_SESSION,
+  session: INITIAL_AUTHENTICATED_SESSION,
   userProfile: null,
   addresses: [],
   orders: [],
@@ -77,7 +89,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     } catch (e) {
       console.warn('Could not load session from Keystore:', e);
     }
-    set({ session: INITIAL_EMPTY_SESSION, isInitialized: true });
+    set({ session: INITIAL_AUTHENTICATED_SESSION, isInitialized: true });
+    get().loadUserData();
   },
 
   login: async (mobile, sessionCookie, jwtToken, name, userId) => {
