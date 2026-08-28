@@ -80,6 +80,20 @@ export default function RootLayout() {
             headerTitleStyle: { fontWeight: '800' },
           }}
         />
+        <Stack.Screen
+          name="cart"
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="orders"
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
       </Stack>
     </SafeAreaProvider>
   );

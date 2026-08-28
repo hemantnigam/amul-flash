@@ -86,16 +86,6 @@ export default function AccountScreen() {
   const [addrType, setAddrType] = useState<'home' | 'office'>('home');
   const [isSavingAddress, setIsSavingAddress] = useState(false);
 
-  // Cart Checkout & Sync State
-  const [isCheckoutModalVisible, setIsCheckoutModalVisible] = useState(false);
-  const [isSyncingCart, setIsSyncingCart] = useState(false);
-
-  const handleSyncCart = async () => {
-    setIsSyncingCart(true);
-    await loadUserData();
-    setIsSyncingCart(false);
-  };
-
   const handleSaveProfile = async () => {
     setIsSavingProfile(true);
     await updateUserProfile({
@@ -193,8 +183,8 @@ export default function AccountScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isLoadingUserData || isSyncingCart}
-            onRefresh={handleSyncCart}
+            refreshing={isLoadingUserData}
+            onRefresh={loadUserData}
             tintColor="#2563EB"
             colors={['#2563EB']}
           />
@@ -225,131 +215,73 @@ export default function AccountScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Amul Cloud Cart Section */}
-        <View style={styles.sectionHeaderRow}>
-          <View style={styles.sectionTitleRow}>
-            <ShoppingCart size={16} color="#2563EB" />
-            <Text style={styles.groupHeading}>
-              AMUL CLOUD CART ({cart?.itemsCount || 0})
-            </Text>
-          </View>
+        {/* Section 1: My Amul Shopping (Cart & Orders) */}
+        <Text style={styles.groupHeading}>MY AMUL SHOPPING</Text>
+        <View style={styles.cardGroup}>
+          {/* Cart Navigation Option */}
           <TouchableOpacity
-            style={styles.syncCartHeaderBtn}
-            onPress={handleSyncCart}
-            disabled={isSyncingCart}
+            style={styles.cardRow}
+            onPress={() => router.push('/cart')}
             activeOpacity={0.7}
           >
-            {isSyncingCart ? (
-              <ActivityIndicator size="small" color="#2563EB" />
-            ) : (
-              <>
-                <RefreshCw size={12} color="#2563EB" />
-                <Text style={styles.syncCartHeaderText}>Sync Cart</Text>
-              </>
-            )}
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#EFF6FF' }]}>
+                <ShoppingCart size={18} color="#2563EB" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={styles.titleBadgeRow}>
+                  <Text style={styles.rowTitle}>Cart</Text>
+                  {cart && (cart.itemsCount || cart.items.length) > 0 && (
+                    <View style={styles.countBadge}>
+                      <Text style={styles.countBadgeText}>
+                        {cart.itemsCount || cart.items.length}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.rowSub}>
+                  {cart && cart.items.length > 0
+                    ? `${cart.itemsCount || cart.items.length} items reserved • ₹${cart.total}`
+                    : 'View and manage items in your cart'}
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color="#94A3B8" />
+          </TouchableOpacity>
+
+          {/* Orders Navigation Option */}
+          <TouchableOpacity
+            style={[styles.cardRow, { borderBottomWidth: 0 }]}
+            onPress={() => router.push('/orders')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#F0FDF4' }]}>
+                <Package size={18} color="#059669" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={styles.titleBadgeRow}>
+                  <Text style={styles.rowTitle}>Orders</Text>
+                  {orders.length > 0 && (
+                    <View style={[styles.countBadge, { backgroundColor: '#DCFCE7' }]}>
+                      <Text style={[styles.countBadgeText, { color: '#15803D' }]}>
+                        {orders.length}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.rowSub}>
+                  {orders.length > 0
+                    ? `${orders.length} past orders • Track courier shipments`
+                    : 'View past orders and tracking status'}
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color="#94A3B8" />
           </TouchableOpacity>
         </View>
 
-        {cart && cart.items && cart.items.length > 0 ? (
-          <View style={styles.cartDetailCard}>
-            {/* Cart Items List */}
-            {cart.items.map((item, idx) => (
-              <View
-                key={item.id || idx}
-                style={[
-                  styles.cartItemRow,
-                  idx < cart.items.length - 1 && styles.cartItemBorder,
-                ]}
-              >
-                <Image
-                  source={{ uri: item.imageUrl }}
-                  style={styles.cartItemThumb}
-                  resizeMode="contain"
-                />
-                <View style={styles.cartItemInfo}>
-                  <Text style={styles.cartItemTitle} numberOfLines={1}>
-                    {item.title}
-                  </Text>
-                  <Text style={styles.cartItemSku}>SKU: {item.sku}</Text>
-                  <View style={styles.cartItemBottom}>
-                    <View style={styles.cartQtyBadge}>
-                      <Text style={styles.cartQtyText}>Qty: {item.quantity}</Text>
-                    </View>
-                    <Text style={styles.cartItemPrice}>₹{item.price * item.quantity}</Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-
-            {/* Cart Bill Summary */}
-            <View style={styles.cartSummaryBox}>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Subtotal ({cart.itemsCount} items)</Text>
-                <Text style={styles.summaryValue}>₹{cart.subtotal || cart.total}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Amul D2C Shipping</Text>
-                <Text style={[styles.summaryValue, { color: '#059669' }]}>FREE</Text>
-              </View>
-              <View style={styles.summaryDivider} />
-              <View style={styles.summaryRow}>
-                <Text style={styles.totalLabel}>Total Payable</Text>
-                <Text style={styles.totalValue}>₹{cart.total}</Text>
-              </View>
-            </View>
-
-            {/* 2 Dedicated Action Options */}
-            <View style={styles.cartActionsRow}>
-              <TouchableOpacity
-                style={styles.checkoutCartBtn}
-                onPress={() => setIsCheckoutModalVisible(true)}
-                activeOpacity={0.85}
-              >
-                <ShoppingCart size={15} color="#FFFFFF" />
-                <Text style={styles.checkoutCartText}>Proceed to Amul Checkout</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.refreshLiveBtn}
-                onPress={handleSyncCart}
-                disabled={isSyncingCart}
-                activeOpacity={0.7}
-              >
-                <RefreshCw size={13} color="#1D4ED8" />
-                <Text style={styles.refreshLiveText}>Refresh & Sync</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.emptyCartCard}>
-            <View style={styles.emptyCartIconBox}>
-              <ShoppingCart size={28} color="#94A3B8" />
-            </View>
-            <Text style={styles.emptyCartTitle}>Your Amul Cloud Cart is empty</Text>
-            <Text style={styles.emptyCartSub}>
-              Items added to cart will reserve stock in your active Amul session.
-            </Text>
-            <View style={styles.emptyCartActions}>
-              <TouchableOpacity
-                style={styles.syncEmptyBtn}
-                onPress={handleSyncCart}
-                disabled={isSyncingCart}
-                activeOpacity={0.8}
-              >
-                {isSyncingCart ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <RefreshCw size={14} color="#FFFFFF" />
-                    <Text style={styles.syncEmptyText}>Fetch & Sync Cart from Amul</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {/* Section 1: Saved Delivery Addresses */}
+        {/* Section 2: Saved Delivery Addresses */}
         <View style={styles.sectionHeaderRow}>
           <View style={styles.sectionTitleRow}>
             <MapPin size={16} color="#2563EB" />
@@ -412,83 +344,6 @@ export default function AccountScreen() {
                       <Text style={styles.setDefaultText}>Set as Default Delivery Address</Text>
                     </TouchableOpacity>
                   )}
-                </View>
-              );
-            })
-          )}
-        </View>
-
-        {/* Section 2: Order History */}
-        <View style={styles.sectionHeaderRow}>
-          <View style={styles.sectionTitleRow}>
-            <Package size={16} color="#2563EB" />
-            <Text style={styles.groupHeading}>ORDER HISTORY ({orders.length})</Text>
-          </View>
-        </View>
-
-        <View style={styles.ordersList}>
-          {orders.length === 0 ? (
-            <View style={styles.emptyAddressCard}>
-              <Text style={styles.emptyText}>No past orders yet.</Text>
-            </View>
-          ) : (
-            orders.map((order) => {
-              const statusColor =
-                order.status === 'delivered'
-                  ? '#059669'
-                  : order.status === 'out_for_delivery'
-                  ? '#2563EB'
-                  : '#D97706';
-              const statusBg =
-                order.status === 'delivered'
-                  ? '#ECFDF5'
-                  : order.status === 'out_for_delivery'
-                  ? '#EFF6FF'
-                  : '#FFFBEB';
-
-              return (
-                <View key={order.id} style={styles.orderCard}>
-                  <View style={styles.orderTopRow}>
-                    <View>
-                      <Text style={styles.orderIdText}>{order.orderNumber}</Text>
-                      <Text style={styles.orderDateText}>
-                        {typeof order.createdAt === 'string'
-                          ? new Date(order.createdAt).toLocaleDateString('en-IN', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })
-                          : new Date(order.createdAt).toLocaleDateString('en-IN')}
-                      </Text>
-                    </View>
-                    <View style={[styles.orderStatusPill, { backgroundColor: statusBg }]}>
-                      <Text style={[styles.orderStatusText, { color: statusColor }]}>
-                        {order.status.replace('_', ' ').toUpperCase()}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.orderDivider} />
-
-                  {/* Order Items */}
-                  {order.items.map((it, idx) => (
-                    <View key={idx} style={styles.orderItemRow}>
-                      <Text style={styles.orderItemName} numberOfLines={1}>
-                        {it.name}
-                      </Text>
-                      <Text style={styles.orderItemQty}>x{it.quantity}</Text>
-                    </View>
-                  ))}
-
-                  <View style={styles.orderBottomRow}>
-                    <View style={styles.courierRow}>
-                      <Truck size={13} color="#64748B" />
-                      <Text style={styles.courierText}>
-                        {order.trackingNumber ? `Track: ${order.trackingNumber}` : 'Standard Delivery'}
-                      </Text>
-                    </View>
-                    <Text style={styles.orderTotalText}>Total: ₹{order.totalAmount}</Text>
-                  </View>
                 </View>
               );
             })
@@ -724,13 +579,6 @@ export default function AccountScreen() {
           </View>
         </View>
       </Modal>
-
-      {/* Official Amul Checkout Modal */}
-      <AmulCheckoutModal
-        visible={isCheckoutModalVisible}
-        product={INITIAL_PRODUCTS[0]}
-        onClose={() => setIsCheckoutModalVisible(false)}
-      />
     </SafeAreaView>
   );
 }
@@ -819,206 +667,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2563EB',
   },
-  syncCartHeaderBtn: {
+  titleBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 6,
-  },
-  syncCartHeaderText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#2563EB',
-  },
-  cartDetailCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1.5,
-    borderColor: '#DBEAFE',
-    marginBottom: 20,
-    shadowColor: '#2563EB',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  cartItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    gap: 12,
-  },
-  cartItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  cartItemThumb: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-  },
-  cartItemInfo: {
-    flex: 1,
-  },
-  cartItemTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  cartItemSku: {
-    fontSize: 10,
-    color: '#64748B',
-    marginTop: 1,
-  },
-  cartItemBottom: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  cartQtyBadge: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  cartQtyText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#334155',
-  },
-  cartItemPrice: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#0037B0',
-  },
-  cartSummaryBox: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 12,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 2,
-  },
-  summaryLabel: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '600',
-  },
-  summaryValue: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  summaryDivider: {
-    height: 1,
-    backgroundColor: '#E2E8F0',
-    marginVertical: 6,
-  },
-  totalLabel: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#0F172A',
-  },
-  totalValue: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#0037B0',
-  },
-  cartActionsRow: {
-    flexDirection: 'row',
     gap: 8,
   },
-  checkoutCartBtn: {
-    flex: 1,
-    backgroundColor: '#1D4ED8',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
+  countBadge: {
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
     borderRadius: 10,
   },
-  checkoutCartText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  refreshLiveBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-  },
-  refreshLiveText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#1D4ED8',
-  },
-  emptyCartCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 20,
-  },
-  emptyCartIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F8FAFC',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  emptyCartTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 4,
-  },
-  emptyCartSub: {
+  countBadgeText: {
     fontSize: 11,
-    color: '#64748B',
-    textAlign: 'center',
-    marginBottom: 14,
-  },
-  emptyCartActions: {
-    width: '100%',
-  },
-  syncEmptyBtn: {
-    backgroundColor: '#2563EB',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 10,
-    width: '100%',
-  },
-  syncEmptyText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '900',
+    color: '#1D4ED8',
   },
   sectionHeaderRow: {
     flexDirection: 'row',
