@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "674825408435",
+    "project_id": "amul-flash",
+    "storage_bucket": "amul-flash.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:674825408435:android:1f38a7a82ef6f43ce245c6",
+        "android_client_info": {
+          "package_name": "com.amul.flash"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSSRegb2xxE2mAgI0paRSv7PRyQJ_HAcI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
