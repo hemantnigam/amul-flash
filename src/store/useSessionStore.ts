@@ -148,10 +148,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       set({ orders });
 
       // 4. Fetch Cart
-      const cart = await AmulApiClient.getUserCart(undefined, profile?.id || uid, cookie);
-      if (cart) {
-        set({ cart });
-      }
+      const cart = await AmulApiClient.getUserCart(get().cart?.id || undefined, profile?.id || uid, cookie);
+      set({ cart: cart || null });
     } catch (e) {
       console.warn('Error loading user data:', e);
     } finally {

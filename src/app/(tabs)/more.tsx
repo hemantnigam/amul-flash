@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   TextInput,
   ActivityIndicator,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -166,6 +167,13 @@ export default function AccountScreen() {
     ]);
   };
 
+  // Auto-fetch fresh cart and profile data from Amul cloud on screen focus
+  useEffect(() => {
+    if (session.isLoggedIn) {
+      loadUserData();
+    }
+  }, [session.isLoggedIn]);
+
   const displayName = userProfile
     ? `${userProfile.firstName} ${userProfile.lastName}`.trim()
     : session.userName || 'Hemant Nigam';
@@ -180,7 +188,18 @@ export default function AccountScreen() {
         <Text style={styles.headerSub}>Connected to Amul D2C Cloud & Fulfillment Hub</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoadingUserData || isSyncingCart}
+            onRefresh={handleSyncCart}
+            tintColor="#2563EB"
+            colors={['#2563EB']}
+          />
+        }
+      >
         {/* User Profile Card */}
         <View style={styles.userCard}>
           <View style={styles.avatarCircle}>

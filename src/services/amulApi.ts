@@ -1440,7 +1440,7 @@ export const AmulApiClient = {
     try {
       const payload = {
         data: {
-          _id: cartId || '6a7c79bae11791fdf1e46d81',
+          _id: cartId || null,
           user_id: userId || '696091a6025cd5c65247e101',
         },
       };
@@ -1466,15 +1466,26 @@ export const AmulApiClient = {
       const rawCart = json.cart || json.data?.cart || json.data;
       if (rawCart) {
         const items = (rawCart.items || []).map((it: any) => {
-          const rawImg = it.image || it.product?.images?.[0]?.image || it.product?.image;
+          const prod = it.product || {};
+          const rawImg = it.image || prod.images?.[0]?.image || prod.images?.[0] || prod.image || '';
           const resolvedImg = resolveAmulImageUrl(rawImg);
+
+          const title = prod.name || it.name || it.title || 'Amul Product';
+          const sku = prod.sku || it.sku || prod.alias || 'SKU';
+          const price = it.price_with_discount !== undefined 
+            ? it.price_with_discount 
+            : prod.price !== undefined 
+            ? prod.price 
+            : it.price !== undefined 
+            ? it.price 
+            : (it.total && it.quantity ? it.total / it.quantity : 160);
 
           return {
             id: it._id || it.sku || `cart_it_${Date.now()}`,
-            productId: it.product_id || it.product?._id || it._id,
-            title: it.name || it.product?.name || 'Amul Product',
-            sku: it.sku || it.product?.sku || 'SKU',
-            price: it.price !== undefined ? it.price : (it.product?.price || 160),
+            productId: it.product_id || prod._id || it._id,
+            title: title,
+            sku: sku,
+            price: price,
             quantity: it.quantity || 1,
             imageUrl: resolvedImg,
           };
