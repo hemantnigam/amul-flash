@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { AmulProduct, AmulCategory, PincodeLocation, ActivityLog, RestockEvent } from '../types/amul';
-import { INITIAL_PINCODES, INITIAL_ACTIVITY_LOGS } from '../constants/products';
+import { INITIAL_PRODUCTS, INITIAL_PINCODES, INITIAL_ACTIVITY_LOGS } from '../constants/products';
 import { NotificationService } from '../services/notificationService';
 import { AmulApiClient, DEFAULT_CATEGORIES } from '../services/amulApi';
 
@@ -30,7 +30,7 @@ interface StockStoreState {
 }
 
 export const useStockStore = create<StockStoreState>((set, get) => ({
-  products: [],
+  products: INITIAL_PRODUCTS,
   categories: DEFAULT_CATEGORIES,
   selectedCategory: 'protein',
   pincodes: INITIAL_PINCODES,

@@ -2,7 +2,7 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Home, LayoutGrid, User } from 'lucide-react-native';
+import { Home, Radio, User } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
 
 export default function TabLayout() {
@@ -52,10 +52,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="products"
+        name="tracked"
         options={{
-          title: 'Catalog',
-          tabBarIcon: ({ color, size }) => <LayoutGrid size={size || 22} color={color} />,
+          title: 'Tracked',
+          tabBarIcon: ({ color, size }) => <Radio size={size || 22} color={color} />,
         }}
       />
       <Tabs.Screen

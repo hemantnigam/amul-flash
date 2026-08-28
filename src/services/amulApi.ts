@@ -53,6 +53,29 @@ export const AMUL_ENDPOINTS = {
   LOGIN: 'https://shop.amul.com/api/1/entity/ms.users/_/login?new_login_flow=1',
 };
 
+export const AMUL_CDN_BASE = 'https://shop.amul.com/s/62fa94df8c13af2e242eba16/';
+
+/**
+ * Robust image URL resolver for Amul D2C product packshots
+ */
+export function resolveAmulImageUrl(rawImage: any, fileBaseUrl: string = AMUL_CDN_BASE): string {
+  if (!rawImage) {
+    return 'https://shop.amul.com/s/62fa94df8c13af2e242eba16/66d15f3206e72f00e5bcef29/01-hero-image_multipack-30.png';
+  }
+  const img = typeof rawImage === 'object' ? rawImage.image || rawImage.url || '' : String(rawImage);
+  if (!img) {
+    return 'https://shop.amul.com/s/62fa94df8c13af2e242eba16/66d15f3206e72f00e5bcef29/01-hero-image_multipack-30.png';
+  }
+  if (img.startsWith('http://') || img.startsWith('https://')) {
+    return img;
+  }
+  if (img.startsWith('s/')) {
+    return `https://shop.amul.com/${img}`;
+  }
+  const base = fileBaseUrl.endsWith('/') ? fileBaseUrl : `${fileBaseUrl}/`;
+  return `${base}${img}`;
+}
+
 // Curated 16 Live Amul Categories
 export const DEFAULT_CATEGORIES: AmulCategory[] = [
   { id: 'protein', name: 'High Protein', slug: 'protein' },
@@ -72,99 +95,115 @@ export const DEFAULT_CATEGORIES: AmulCategory[] = [
   { id: 'milk-powders', name: 'Milk Powders', slug: 'milk-powders' },
 ];
 
-const CATEGORY_PRODUCTS_FALLBACK: Record<string, AmulProduct[]> = {
+export const CATEGORY_PRODUCTS_FALLBACK: Record<string, AmulProduct[]> = {
   protein: [
     {
-      id: 'amul-protein-lassi-rose',
-      title: 'Amul High Protein Lassi (Rose)',
+      id: 'amul-protein-lassi-plain',
+      title: 'Amul High Protein Plain Lassi (200 mL | Pack of 30)',
       category: 'protein',
-      flavor: 'Rose',
-      imageUrl: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&q=80',
-      description: '15g high-quality milk protein per pack with traditional rose flavor. Zero added sugar.',
+      flavor: 'Plain',
+      imageUrl: 'https://shop.amul.com/s/62fa94df8c13af2e242eba16/66d15f3206e72f00e5bcef29/01-hero-image_multipack-30.png',
+      description: '15g high-quality milk protein per pack with traditional rich flavor. Zero added sugar.',
       nutrition: { proteinGrams: 15, calories: 110, carbsGrams: 8, fatGrams: 1.5, servingSize: '200ml' },
-      defaultPrice: 45,
+      defaultPrice: 750,
       isPopular: true,
       autoCartEnabled: true,
-      variants: [{ id: 'lassi-rose', name: '200ml Pack', packSize: '200ml', packCount: 1, price: 45, isInStock: true, stockCount: 307, sku: 'HPALR01' }],
+      variants: [{ id: 'lassi-30', name: '200ml x 30 Packs', packSize: '200ml x 30', packCount: 30, price: 750, isInStock: true, stockCount: 307, sku: 'HPALR01_30' }],
     },
     {
       id: 'amul-whey-protein-32g',
-      title: 'Amul Whey Protein Powder (Unflavoured 32g)',
+      title: 'Amul Whey Protein Powder (Unflavoured 32g | Pack of 30)',
       category: 'protein',
       flavor: 'Natural',
-      imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400&q=80',
+      imageUrl: 'https://shop.amul.com/s/62fa94df8c13af2e242eba16/6523d269b4624b6c91f32572/01-hero-image_amul-whey-protein-960g.png',
       description: 'Pure 32g Whey protein isolate per sachet. Single-origin Indian dairy whey with supreme bioavailability.',
       nutrition: { proteinGrams: 32, calories: 140, carbsGrams: 2, fatGrams: 0.5, servingSize: '34g sachet' },
-      defaultPrice: 1200,
+      defaultPrice: 1999,
       isPopular: true,
       autoCartEnabled: true,
-      variants: [{ id: 'whey-30-sachets', name: 'Pack of 30 Sachets (1kg)', packSize: '34g x 30', packCount: 30, price: 1200, isInStock: true, stockCount: 52, sku: 'AMUL-WHEY-30' }],
+      variants: [{ id: 'whey-30-sachets', name: 'Pack of 30 Sachets (960g)', packSize: '32g x 30', packCount: 30, price: 1999, isInStock: true, stockCount: 52, sku: 'AMUL-WHEY-30' }],
     },
     {
-      id: 'amul-protein-buttermilk',
-      title: 'Amul High Protein Buttermilk (Chaas)',
+      id: 'amul-choco-whey-protein',
+      title: 'Amul Chocolate Whey Protein (34g | Pack of 60 Sachets)',
       category: 'protein',
-      flavor: 'Spiced Jeera',
-      imageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&q=80',
-      description: '15g pure dairy protein with traditional Indian spices like cumin, ginger, and green chilli.',
-      nutrition: { proteinGrams: 15, calories: 85, carbsGrams: 4, fatGrams: 0.8, servingSize: '200ml' },
-      defaultPrice: 35,
+      flavor: 'Rich Chocolate',
+      imageUrl: 'https://shop.amul.com/s/62fa94df8c13af2e242eba16/6a4e217e31d9dc76fdbd8ce5/01-hero-image_amul-whey-protein-204kg.png',
+      description: '34g premium chocolate whey protein with natural cocoa extract and zero artificial sweeteners.',
+      nutrition: { proteinGrams: 34, calories: 155, carbsGrams: 3, fatGrams: 1.0, servingSize: '34g sachet' },
+      defaultPrice: 3899,
       isPopular: true,
       autoCartEnabled: true,
-      variants: [{ id: 'buttermilk-single', name: '200ml Tetra Pack', packSize: '200ml', packCount: 1, price: 35, isInStock: true, stockCount: 180, sku: 'AMUL-CHAAS-15G' }],
+      variants: [{ id: 'choco-whey-60', name: 'Pack of 60 Sachets (2.04kg)', packSize: '34g x 60', packCount: 60, price: 3899, isInStock: true, stockCount: 34, sku: 'AMUL-WHEY-CHOC-60' }],
     },
     {
       id: 'amul-high-protein-paneer',
-      title: 'Amul High Protein Paneer (Low Fat)',
+      title: 'Amul High Protein Paneer (400g | Pack of 2)',
       category: 'protein',
       flavor: 'Fresh Malai',
-      imageUrl: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=400&q=80',
-      description: '50g pure casein and whey protein per 200g block. Made from ultra-filtered pasteurized skimmed milk.',
+      imageUrl: 'https://shop.amul.com/s/62fa94df8c13af2e242eba16/671b30a3caec6f032c8154ed/01-hero-image_amul-high-protein-paneer-400g.png',
+      description: '100g pure casein and whey protein per block. Made from ultra-filtered pasteurized skimmed milk.',
       nutrition: { proteinGrams: 50, calories: 280, carbsGrams: 6, fatGrams: 5.0, servingSize: '200g block' },
-      defaultPrice: 85,
+      defaultPrice: 170,
       isPopular: true,
       autoCartEnabled: true,
-      variants: [{ id: 'paneer-200g', name: '200g Fresh Pack', packSize: '200g', packCount: 1, price: 85, isInStock: true, stockCount: 95, sku: 'AMUL-PANEER-50G' }],
+      variants: [{ id: 'paneer-400g', name: '400g x 2 Packs', packSize: '400g x 2', packCount: 2, price: 170, isInStock: true, stockCount: 95, sku: 'AMUL-PANEER-50G' }],
+    },
+    {
+      id: 'amul-protein-buttermilk',
+      title: 'Amul High Protein Buttermilk (200 mL | Pack of 30)',
+      category: 'protein',
+      flavor: 'Spiced Jeera',
+      imageUrl: 'https://shop.amul.com/s/62fa94df8c13af2e242eba16/641a9c5dd94fc09d55a79318/01-hero-image_-multipack-30.png',
+      description: '15g pure dairy protein with traditional Indian spices like cumin, ginger, and green chilli.',
+      nutrition: { proteinGrams: 15, calories: 85, carbsGrams: 4, fatGrams: 0.8, servingSize: '200ml' },
+      defaultPrice: 600,
+      isPopular: true,
+      autoCartEnabled: true,
+      variants: [{ id: 'buttermilk-30', name: '200ml x 30 Packs', packSize: '200ml x 30', packCount: 30, price: 600, isInStock: true, stockCount: 180, sku: 'AMUL-CHAAS-15G' }],
+    },
+    {
+      id: 'amul-kool-protein-chocolate',
+      title: 'Amul Kool Protein Milkshake Chocolate (180 mL | Pack of 8)',
+      category: 'protein',
+      flavor: 'Chocolate',
+      imageUrl: 'https://shop.amul.com/s/62fa94df8c13af2e242eba16/6891949ed2419bd45fff586b/01-hero-image-multipack.png',
+      description: '15g milk protein with rich Dutch cocoa in ready-to-drink aseptic packs.',
+      nutrition: { proteinGrams: 15, calories: 120, carbsGrams: 7, fatGrams: 2.0, servingSize: '180ml' },
+      defaultPrice: 320,
+      isPopular: true,
+      autoCartEnabled: true,
+      variants: [{ id: 'kool-choco-8', name: '180ml x 8 Packs', packSize: '180ml x 8', packCount: 8, price: 320, isInStock: true, stockCount: 88, sku: 'KOOL-PROT-CHOC-8' }],
     },
   ],
   organic: [
     {
       id: 'amul-organic-cashews',
-      title: 'Amul Organic Goan Cashews (W240)',
+      title: 'Amul Organic Goan Cashews (250g)',
       category: 'organic',
-      imageUrl: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=400&q=80',
+      imageUrl: 'https://shop.amul.com/s/62fa94df8c13af2e242eba16/6a660f285378a5f93225dba2/01-hero-image_amul-organic-cashews-250g.png',
       description: 'Certified organic jumbo cashews directly sourced from organic certified farms.',
       defaultPrice: 500,
       isPopular: true,
       variants: [{ id: 'cashew-250', name: '250g Pack', packSize: '250g', packCount: 1, price: 500, isInStock: true, stockCount: 40, sku: 'ORG-CSH-250' }],
     },
     {
-      id: 'amul-organic-tur-dal',
-      title: 'Amul Organic Unpolished Tur Dal',
+      id: 'amul-organic-peanuts',
+      title: 'Amul Organic Peanuts (500g)',
       category: 'organic',
-      imageUrl: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&q=80',
-      description: '100% natural organic unpolished pigeon pea pulses rich in dietary fiber.',
-      defaultPrice: 195,
+      imageUrl: 'https://shop.amul.com/s/62fa94df8c13af2e242eba16/6937b6013e52e683c1fa3c20/01-hero-image_amul-organic-peanuts-500g.png',
+      description: '100% natural organic unpolished raw peanuts rich in healthy fats and plant protein.',
+      defaultPrice: 160,
       isPopular: true,
-      variants: [{ id: 'tur-dal-1kg', name: '1kg Pouch', packSize: '1kg', packCount: 1, price: 195, isInStock: true, stockCount: 75, sku: 'ORG-DAL-1KG' }],
+      variants: [{ id: 'peanuts-500g', name: '500g Pouch', packSize: '500g', packCount: 1, price: 160, isInStock: true, stockCount: 110, sku: 'ORG-PNT-500G' }],
     },
   ],
   ghee: [
     {
-      id: 'amul-gir-cow-ghee',
-      title: 'Amul Gir Cow A2 Ghee (500mL Glass Jar)',
-      category: 'ghee',
-      imageUrl: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=400&q=80',
-      description: 'Traditional Bilona method churned pure Gir Cow A2 ghee with golden granular aroma.',
-      defaultPrice: 700,
-      isPopular: true,
-      variants: [{ id: 'gir-ghee-500', name: '500mL Glass Jar', packSize: '500ml', packCount: 1, price: 700, isInStock: true, stockCount: 65, sku: 'GHEE-GIR-500' }],
-    },
-    {
       id: 'amul-pure-ghee-pouch',
       title: 'Amul Pure Cow Ghee (1 Litre Pouch)',
       category: 'ghee',
-      imageUrl: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=400&q=80',
+      imageUrl: 'https://shop.amul.com/s/62fa94df8c13af2e242eba16/69e9d30baf683aa56d636a3d/01-hero-image_amul-condensed-milk-210g-2-packs.png',
       description: 'Classic rich aroma pure milk fat ghee, essential for Indian cooking.',
       defaultPrice: 580,
       isPopular: true,
@@ -174,23 +213,23 @@ const CATEGORY_PRODUCTS_FALLBACK: Record<string, AmulProduct[]> = {
   chocolates: [
     {
       id: 'amul-hazelnut-dark-choco',
-      title: 'Amul Hazelnut Dark Chocolate (150g Pack of 2)',
+      title: 'Amul Hazelnut Dark Chocolate (150g | Pack of 2)',
       category: 'chocolates',
-      imageUrl: 'https://images.unsplash.com/photo-1549007994-cb92caebd54b?w=400&q=80',
+      imageUrl: 'https://shop.amul.com/s/62fa94df8c13af2e242eba16/699813f9de141f2d194e776f/01-hero-image_amul-hazelnut-dark-chocolate-carton-150g-pack-of-2.png',
       description: '55% rich cocoa dark chocolate packed with crunchy Turkish roasted hazelnuts.',
       defaultPrice: 440,
       isPopular: true,
       variants: [{ id: 'hazelnut-choco-2', name: '150g x 2 Packs', packSize: '300g', packCount: 2, price: 440, isInStock: true, stockCount: 45, sku: 'CHOCO-HAZEL-2' }],
     },
     {
-      id: 'amul-single-origin-ecuador',
-      title: 'Amul Single Origin Ecuador 75% Dark',
+      id: 'amul-bitter-90-choco',
+      title: 'Amul Bitter 90% Dark Chocolate (150g | Pack of 2)',
       category: 'chocolates',
-      imageUrl: 'https://images.unsplash.com/photo-1549007994-cb92caebd54b?w=400&q=80',
-      description: 'Single-origin fine Ecuadorian cocoa with floral notes and robust bitter undertones.',
-      defaultPrice: 250,
+      imageUrl: 'https://shop.amul.com/s/62fa94df8c13af2e242eba16/699812303cd00635dfee3ce4/01-hero-image_amul-bitter-90-carton-150g-pack-of-2.png',
+      description: 'Extra dark 90% cocoa bar for true chocolate connoisseurs.',
+      defaultPrice: 460,
       isPopular: true,
-      variants: [{ id: 'ecuador-75', name: '125g Bar', packSize: '125g', packCount: 1, price: 250, isInStock: true, stockCount: 88, sku: 'CHOCO-ECUADOR-75' }],
+      variants: [{ id: 'bitter-90-2', name: '150g x 2 Packs', packSize: '300g', packCount: 2, price: 460, isInStock: true, stockCount: 60, sku: 'CHOCO-BITTER-90' }],
     },
   ],
 };
@@ -292,7 +331,7 @@ export const AmulApiClient = {
         filterParam = `&filters[0][field]=categories&filters[0][value][0]=${categorySlug}&filters[0][operator]=in&filters[0][original]=1`;
       }
 
-      const url = `${AMUL_ENDPOINTS.PRODUCTS}?fields[name]=1&fields[brand]=1&fields[categories]=1&fields[collections]=1&fields[alias]=1&fields[sku]=1&fields[price]=1&fields[compare_price]=1&fields[original_price]=1&fields[images]=1&fields[available]=1&fields[inventory_quantity]=1&fields[variants]=1${filterParam}&limit=32&substore=${substoreId}&v=6`;
+      const url = `${AMUL_ENDPOINTS.PRODUCTS}?fields[name]=1&fields[brand]=1&fields[categories]=1&fields[collections]=1&fields[alias]=1&fields[sku]=1&fields[price]=1&fields[compare_price]=1&fields[original_price]=1&fields[images]=1&fields[image]=1&fields[available]=1&fields[inventory_quantity]=1&fields[variants]=1${filterParam}&limit=32&substore=${substoreId}&v=6`;
 
       const res = await fetch(url, {
         headers: {
@@ -313,16 +352,19 @@ export const AmulApiClient = {
           const stockCount = item.inventory_quantity !== undefined ? item.inventory_quantity : isAvailable ? 50 : 0;
           const isProtein = item.name.toLowerCase().includes('protein') || item.name.toLowerCase().includes('whey');
 
+          const rawImg = item.images?.[0] || item.image;
+          const resolvedImg = resolveAmulImageUrl(rawImg, json.fileBaseUrl);
+
           return {
             id: item.sku || item.alias || item._id,
             title: item.name,
             category: categorySlug,
             flavor: item.name.includes('|') ? item.name.split('|')[1]?.trim() : 'Natural',
-            imageUrl: item.images?.[0] || 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&q=80',
+            imageUrl: resolvedImg,
             description: `Authentic Amul D2C Product. SKU: ${item.sku || item.alias}`,
             nutrition: isProtein
               ? {
-                  proteinGrams: item.name.toLowerCase().includes('whey') ? 24 : item.name.toLowerCase().includes('paneer') ? 50 : 15,
+                  proteinGrams: item.name.toLowerCase().includes('whey') ? 32 : item.name.toLowerCase().includes('paneer') ? 50 : 15,
                   calories: 110,
                   carbsGrams: 5,
                   fatGrams: 1.5,
@@ -363,7 +405,6 @@ export const AmulApiClient = {
     console.log(`[AmulApiClient] Triggering Send OTP API for: ${formattedPhone}`);
 
     try {
-      // 1. Trigger isUserRegistered call
       await fetch(AMUL_ENDPOINTS.IS_USER_REGISTERED, {
         method: 'PUT',
         headers: {
@@ -378,10 +419,9 @@ export const AmulApiClient = {
           'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
         body: JSON.stringify({ data: { phone: formattedPhone } }),
-      }).catch((err) => console.log('[AmulApiClient] isUserRegistered fetch attempt:', err.message));
+      }).catch((err) => console.log('[AmulApiClient] isUserRegistered note:', err.message));
 
-      // 2. Trigger sendOtp call
-      const res = await fetch(AMUL_ENDPOINTS.SEND_OTP, {
+      await fetch(AMUL_ENDPOINTS.SEND_OTP, {
         method: 'PUT',
         headers: {
           'accept': 'application/json, text/plain, */*',
