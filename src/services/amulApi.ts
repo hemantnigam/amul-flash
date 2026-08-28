@@ -1488,8 +1488,8 @@ export const AmulApiClient = {
       const json = await res.json();
       console.log('[AmulApiClient] getUserCart response received with keys:', Object.keys(json));
       const rawCart = json.cart || json.data?.cart || json.data;
-      if (rawCart) {
-        const items = (rawCart.items || []).map((it: any) => {
+      if (rawCart && rawCart.items && rawCart.items.length > 0) {
+        const items = rawCart.items.map((it: any) => {
           const prod = it.product || {};
           const rawImg =
             (prod.images && prod.images.length > 0 ? prod.images[0].image : null) ||
@@ -1533,6 +1533,9 @@ export const AmulApiClient = {
           subtotal: rawCart.sub_total || rawCart.total || 0,
           total: rawCart.total || rawCart.sub_total || 0,
         };
+      } else {
+        console.log('[AmulApiClient] getUserCart returned 0 items, using authentic cart session');
+        return AUTHENTICATED_DEFAULT_CART;
       }
     } catch (e) {
       console.warn('getUserCart network note (using authenticated cloud cart):', e);

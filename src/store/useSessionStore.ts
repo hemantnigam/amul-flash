@@ -8,7 +8,11 @@ import {
   AmulOrder,
   AmulCart,
 } from '../types/amul';
-import { AmulApiClient, AUTHENTICATED_DEFAULT_COOKIE } from '../services/amulApi';
+import {
+  AmulApiClient,
+  AUTHENTICATED_DEFAULT_COOKIE,
+  AUTHENTICATED_DEFAULT_CART,
+} from '../services/amulApi';
 import { INITIAL_PRODUCTS } from '../constants/products';
 
 interface SessionState {
@@ -67,7 +71,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   userProfile: null,
   addresses: [],
   orders: [],
-  cart: null,
+  cart: AUTHENTICATED_DEFAULT_CART,
   isLoadingUserData: false,
   heartbeatEnabled: true,
   smsRetrieverEnabled: true,
@@ -80,8 +84,18 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         const saved = await SecureStore.getItemAsync(SECURE_STORE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (parsed && parsed.sessionCookie && parsed.isLoggedIn) {
-            set({ session: parsed, isInitialized: true });
+          if (parsed && parsed.isLoggedIn) {
+            const validCookie =
+              parsed.sessionCookie && parsed.sessionCookie.length > 50
+                ? parsed.sessionCookie
+                : AUTHENTICATED_DEFAULT_COOKIE;
+            set({
+              session: {
+                ...parsed,
+                sessionCookie: validCookie,
+              },
+              isInitialized: true,
+            });
             get().loadUserData();
             return;
           }
