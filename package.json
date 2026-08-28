@@ -47,11 +47,12 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "start": "expo start",
+    "start": "node scripts/dev-proxy.mjs & expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web",
+    "web": "node scripts/dev-proxy.mjs & expo start --web",
+    "proxy": "node scripts/dev-proxy.mjs",
     "lint": "expo lint"
   },
   "private": true

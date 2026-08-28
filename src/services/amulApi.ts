@@ -43,14 +43,21 @@ export interface CheckoutInitResponse {
   currency: string;
 }
 
+const getBaseUrl = (): string => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return 'http://localhost:8082';
+  }
+  return 'https://shop.amul.com';
+};
+
 export const AMUL_ENDPOINTS = {
-  PINCODE: 'https://shop.amul.com/entity/pincode',
-  CATEGORIES: 'https://shop.amul.com/api/1/entity/ms.categories',
-  PRODUCTS: 'https://shop.amul.com/api/1/entity/ms.products',
-  ADD_ITEM: 'https://shop.amul.com/entity/ms.carts/_/addItem?q=%7B%22_id%22:null%7D',
-  IS_USER_REGISTERED: 'https://shop.amul.com/entity/ms.users/_/isUserRegistered',
-  SEND_OTP: 'https://shop.amul.com/api/1/entity/ms.users/_/sendOtp?new_otp_flow=1',
-  LOGIN: 'https://shop.amul.com/api/1/entity/ms.users/_/login?new_login_flow=1',
+  get PINCODE() { return `${getBaseUrl()}/entity/pincode`; },
+  get CATEGORIES() { return `${getBaseUrl()}/api/1/entity/ms.categories`; },
+  get PRODUCTS() { return `${getBaseUrl()}/api/1/entity/ms.products`; },
+  get ADD_ITEM() { return `${getBaseUrl()}/entity/ms.carts/_/addItem?q=%7B%22_id%22:null%7D`; },
+  get IS_USER_REGISTERED() { return `${getBaseUrl()}/entity/ms.users/_/isUserRegistered`; },
+  get SEND_OTP() { return `${getBaseUrl()}/api/1/entity/ms.users/_/sendOtp?new_otp_flow=1`; },
+  get LOGIN() { return `${getBaseUrl()}/api/1/entity/ms.users/_/login?new_login_flow=1`; },
 };
 
 // Curated 16 Live Amul Categories
