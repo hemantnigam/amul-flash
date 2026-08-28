@@ -10,7 +10,6 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
   const { session, isInitialized, loadSavedSession } = useSessionStore();
-  const { loadInitialData } = useStockStore();
 
   useEffect(() => {
     NotificationService.initialize();

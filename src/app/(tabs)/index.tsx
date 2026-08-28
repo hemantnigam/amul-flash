@@ -23,6 +23,7 @@ import {
   Package,
 } from 'lucide-react-native';
 import { useStockStore } from '../../store/useStockStore';
+import { useSessionStore } from '../../store/useSessionStore';
 import { ProductCard } from '../../components/ProductCard';
 import { DropAlertBanner } from '../../components/DropAlertBanner';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
@@ -31,6 +32,7 @@ import { AmulProduct } from '../../types/amul';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { session } = useSessionStore();
   const {
     products,
     categories,
@@ -52,8 +54,10 @@ export default function HomeScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   React.useEffect(() => {
-    loadInitialData();
-  }, []);
+    if (session.isLoggedIn) {
+      loadInitialData();
+    }
+  }, [session.isLoggedIn]);
 
   const onRefresh = async () => {
     setIsRefreshing(true);
