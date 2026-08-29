@@ -78,26 +78,29 @@ export default function LocationsScreen() {
         </Text>
       </View>
 
-      {/* Cross-Zone Suggestion Card */}
-      <View style={styles.suggestionCard}>
-        <View style={styles.suggHeader}>
-          <MapPin size={16} color={Theme.colors.primary} />
-          <Text style={styles.suggTitle}>Cross-Zone Routing Alert</Text>
-        </View>
-        <Text style={styles.suggBody}>
-          Amul Protein Lassi (Rose) is <Text style={{ color: Theme.colors.statusSuccessText, fontWeight: '700' }}>IN STOCK</Text> at your Office pincode (560066, 4.8 km away).
-        </Text>
-        <TouchableOpacity
-          style={styles.suggActionBtn}
-          onPress={() => {
-            const office = pincodes.find((p) => p.label === 'Office') || pincodes[1];
-            if (office) setSelectedPincode(office);
-          }}
-        >
-          <Text style={styles.suggActionText}>Switch to Office for Instant Checkout</Text>
-          <ArrowRight size={14} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
+      {/* Dynamic Cross-Zone Suggestion Card */}
+      {(() => {
+        const alternateHub = pincodes.find((p) => p.pincode !== selectedPincode.pincode);
+        if (!alternateHub) return null;
+        return (
+          <View style={styles.suggestionCard}>
+            <View style={styles.suggHeader}>
+              <MapPin size={16} color={Theme.colors.primary} />
+              <Text style={styles.suggTitle}>Cross-Zone Routing Alert</Text>
+            </View>
+            <Text style={styles.suggBody}>
+              Switch active hub to <Text style={{ color: Theme.colors.primary, fontWeight: '700' }}>{alternateHub.label} ({alternateHub.pincode})</Text> to check regional stock availability.
+            </Text>
+            <TouchableOpacity
+              style={styles.suggActionBtn}
+              onPress={() => setSelectedPincode(alternateHub)}
+            >
+              <Text style={styles.suggActionText}>Switch to {alternateHub.label}</Text>
+              <ArrowRight size={14} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        );
+      })()}
 
       {/* Active Pincodes List */}
       <Text style={styles.sectionTitle}>Active Monitored Locations</Text>

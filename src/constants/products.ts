@@ -1,10 +1,14 @@
 import { PincodeLocation, ActivityLog, RestockEvent } from '../types/amul';
 
 export const INITIAL_PINCODES: PincodeLocation[] = [
-  { pincode: '110044', label: 'South Delhi', address: 'Okhla Phase 1, South Delhi', storeId: '66505ff5145c16635e6cc74d', isDefault: true, serviceable: true },
-  { pincode: '560001', label: 'Bengaluru Central', address: 'MG Road, Central Bengaluru', storeId: '66505ff5145c16635e6cc74d', isDefault: false, serviceable: true },
-  { pincode: '400050', label: 'Mumbai Bandra', address: 'Bandra West, Mumbai Metro', storeId: '66505ff5145c16635e6cc74d', isDefault: false, serviceable: true },
-  { pincode: '122001', label: 'Gurugram Cyber City', address: 'DLF Cyber City, Gurugram', storeId: '66505ff5145c16635e6cc74d', isDefault: false, serviceable: true },
+  {
+    pincode: '110044',
+    label: 'Primary Delivery Hub',
+    address: 'Amul Serviceable Zone (110044)',
+    storeId: '66505ff5145c16635e6cc74d',
+    isDefault: true,
+    serviceable: true,
+  },
 ];
 
 export const INITIAL_ACTIVITY_LOGS: ActivityLog[] = [
