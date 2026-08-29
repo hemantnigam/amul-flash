@@ -142,18 +142,30 @@ export default function LocationsScreen() {
               </TouchableOpacity>
 
               <View style={styles.cardActions}>
-                {isSelected ? (
+                {isSelected && (
                   <View style={styles.activeCheck}>
                     <Check size={16} color="#FFFFFF" />
                   </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.deleteBtn}
-                    onPress={() => removePincode(item.pincode)}
-                  >
-                    <Trash2 size={16} color={Theme.colors.secondary} />
-                  </TouchableOpacity>
                 )}
+                <TouchableOpacity
+                  style={styles.deleteBtn}
+                  onPress={() => {
+                    Alert.alert(
+                      'Remove Delivery Hub',
+                      `Remove ${item.pincode} (${item.label}) from monitored hubs?`,
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Remove',
+                          style: 'destructive',
+                          onPress: () => removePincode(item.pincode),
+                        },
+                      ]
+                    );
+                  }}
+                >
+                  <Trash2 size={16} color="#EF4444" />
+                </TouchableOpacity>
               </View>
             </View>
           );

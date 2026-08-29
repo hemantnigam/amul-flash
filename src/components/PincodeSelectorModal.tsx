@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { AppText as Text } from './AppText';
 import { AppTextInput as TextInput } from './AppTextInput';
-import { MapPin, Check, Plus, X, Navigation } from 'lucide-react-native';
+import { MapPin, Check, Plus, X, Navigation, Trash2 } from 'lucide-react-native';
 import { Theme } from '../constants/theme';
 import { useStockStore } from '../store/useStockStore';
 import { PincodeLocation } from '../types/amul';
@@ -25,7 +25,7 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
   visible,
   onClose,
 }) => {
-  const { pincodes, selectedPincode, setSelectedPincode, addPincode } = useStockStore();
+  const { pincodes, selectedPincode, setSelectedPincode, addPincode, removePincode } = useStockStore();
   const [newPincode, setNewPincode] = useState('');
   const [newLabel, setNewLabel] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -106,11 +106,22 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
                         {item.address}
                       </Text>
                     </View>
-                    {isSelected && (
-                      <View style={styles.checkIcon}>
-                        <Check size={18} color="#FFFFFF" />
-                      </View>
-                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      {isSelected && (
+                        <View style={styles.checkIcon}>
+                          <Check size={18} color="#FFFFFF" />
+                        </View>
+                      )}
+                      <TouchableOpacity
+                        style={{ padding: 6 }}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          removePincode(item.pincode);
+                        }}
+                      >
+                        <Trash2 size={16} color="#94A3B8" />
+                      </TouchableOpacity>
+                    </View>
                   </TouchableOpacity>
                 );
               })}

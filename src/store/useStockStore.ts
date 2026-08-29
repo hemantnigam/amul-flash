@@ -183,9 +183,17 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
   },
 
   removePincode: (pincodeStr) => {
-    set((state) => ({
-      pincodes: state.pincodes.filter((p) => p.pincode !== pincodeStr),
-    }));
+    set((state) => {
+      const remaining = state.pincodes.filter((p) => p.pincode !== pincodeStr);
+      let newSelected = state.selectedPincode;
+      if (state.selectedPincode.pincode === pincodeStr) {
+        newSelected = remaining.length > 0 ? remaining[0] : DEFAULT_USER_PINCODE;
+      }
+      return {
+        pincodes: remaining,
+        selectedPincode: newSelected,
+      };
+    });
   },
 
   syncPincodesFromAddresses: (addresses) => {
