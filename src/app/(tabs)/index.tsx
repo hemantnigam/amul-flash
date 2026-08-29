@@ -33,7 +33,7 @@ import { analyticsService } from '../../services/analyticsService';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { session, isInitialized } = useSessionStore();
+  const { session, isInitialized, addresses } = useSessionStore();
   const {
     products,
     allProductsMap,
@@ -48,6 +48,7 @@ export default function HomeScreen() {
     toggleAutoCartForProduct,
     refreshStock,
     loadInitialData,
+    syncPincodesFromAddresses,
   } = useStockStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,6 +61,12 @@ export default function HomeScreen() {
       loadInitialData(session.sessionCookie);
     }
   }, [session.isLoggedIn, session.sessionCookie]);
+
+  React.useEffect(() => {
+    if (addresses && addresses.length > 0) {
+      syncPincodesFromAddresses(addresses);
+    }
+  }, [addresses]);
 
   if (!isInitialized || !session.isLoggedIn) {
     return null;

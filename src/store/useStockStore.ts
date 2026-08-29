@@ -176,29 +176,38 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
   syncPincodesFromAddresses: (addresses) => {
     if (!addresses || addresses.length === 0) return;
-    const currentPincodes = get().pincodes;
-    const newItems: PincodeLocation[] = [];
+
+    const userPincodes: PincodeLocation[] = [];
 
     addresses.forEach((addr: any) => {
       const pin = addr.pincode || addr.zip || addr.postcode;
       if (pin && String(pin).trim().length === 6) {
         const pinStr = String(pin).trim();
-        const exists = currentPincodes.some((p) => p.pincode === pinStr);
+        const exists = userPincodes.some((p) => p.pincode === pinStr);
         if (!exists) {
-          newItems.push({
+          userPincodes.push({
             pincode: pinStr,
-            label: addr.name ? `${addr.name}'s Hub` : `${addr.city || 'Saved Address'} (${pinStr})`,
+            label: addr.name ? `${addr.name}'s Address` : `${addr.city || 'Saved Address'} (${pinStr})`,
             address: `${addr.addressLine1 || addr.address || 'Saved Delivery Address'}${addr.city ? ', ' + addr.city : ''}`,
             storeId: '66505ff5145c16635e6cc74d',
-            isDefault: addr.isDefault || false,
+            isDefault: addr.isDefault || userPincodes.length === 0,
             serviceable: true,
           });
         }
       }
     });
 
-    if (newItems.length > 0) {
-      set({ pincodes: [...currentPincodes, ...newItems] });
+    if (userPincodes.length > 0) {
+      const customPincodes = get().pincodes.filter(
+        (p) => !userPincodes.some((u) => u.pincode === p.pincode) && p.pincode !== '110044'
+      );
+      const combined = [...userPincodes, ...customPincodes];
+      const defaultPin = combined.find((p) => p.isDefault) || combined[0];
+
+      set({
+        pincodes: combined,
+        selectedPincode: defaultPin,
+      });
     }
   },
 
