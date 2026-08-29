@@ -5,6 +5,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { AppText as Text } from '../components/AppText';
 import { AppTextInput as TextInput } from '../components/AppTextInput';
@@ -62,11 +64,16 @@ export default function LocationsScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      showsVerticalScrollIndicator={false}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
     >
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
       {/* Radar Overview Hero */}
       <View style={styles.radarHero}>
         <View style={styles.radarIconBadge}>
@@ -181,7 +188,8 @@ export default function LocationsScreen() {
           <Text style={styles.addBtnText}>Add to Radar Monitor</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

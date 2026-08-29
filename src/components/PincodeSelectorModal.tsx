@@ -5,6 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import { AppText as Text } from './AppText';
 import { AppTextInput as TextInput } from './AppTextInput';
@@ -53,109 +56,117 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.modalContent}>
-          {/* Header */}
-          <View style={styles.modalHeader}>
-            <View style={styles.titleRow}>
-              <Navigation size={20} color={Theme.colors.primary} />
-              <Text style={styles.modalTitle}>Select Delivery Pincode</Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={20} color={Theme.colors.secondary} />
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.subtext}>
-            Amul allocates high-protein inventory by regional warehouse clusters.
-          </Text>
-
-          {/* List of Saved Pincodes */}
-          <FlatList
-            data={pincodes}
-            keyExtractor={(item) => item.pincode}
-            renderItem={({ item }) => {
-              const isSelected = item.pincode === selectedPincode?.pincode;
-              return (
-                <TouchableOpacity
-                  style={[styles.pincodeItem, isSelected && styles.pincodeItemSelected]}
-                  onPress={() => handleSelect(item)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.pincodeInfo}>
-                    <View style={styles.labelRow}>
-                      <Text style={styles.itemLabel}>{item.label}</Text>
-                      <View style={styles.pincodeBadge}>
-                        <Text style={styles.pincodeBadgeText}>{item.pincode}</Text>
-                      </View>
-                      {item.distanceKm !== undefined && item.distanceKm > 0 && (
-                        <Text style={styles.distanceText}>({item.distanceKm} km away)</Text>
-                      )}
-                    </View>
-                    <Text style={styles.addressText} numberOfLines={1}>
-                      {item.address}
-                    </Text>
-                  </View>
-                  {isSelected && (
-                    <View style={styles.checkIcon}>
-                      <Check size={18} color="#FFFFFF" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            }}
-            contentContainerStyle={styles.listContainer}
-          />
-
-          {/* Add Pincode Toggle */}
-          {!showAddForm ? (
-            <TouchableOpacity
-              style={styles.addToggleBtn}
-              onPress={() => setShowAddForm(true)}
-            >
-              <Plus size={18} color={Theme.colors.primary} />
-              <Text style={styles.addToggleText}>Add Another Pincode to Radar</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.addForm}>
-              <TextInput
-                style={styles.input}
-                placeholder="6-Digit Pincode (e.g. 560034)"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="numeric"
-                maxLength={6}
-                value={newPincode}
-                onChangeText={setNewPincode}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Label (e.g. Home, Office, Gym)"
-                placeholderTextColor="#9CA3AF"
-                value={newLabel}
-                onChangeText={setNewLabel}
-              />
-              <View style={styles.formActionRow}>
-                <TouchableOpacity
-                  style={styles.cancelBtn}
-                  onPress={() => setShowAddForm(false)}
-                >
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.saveBtn,
-                    newPincode.length !== 6 && styles.saveBtnDisabled,
-                  ]}
-                  onPress={handleAddLocation}
-                  disabled={newPincode.length !== 6}
-                >
-                  <Text style={styles.saveBtnText}>Track Pincode</Text>
-                </TouchableOpacity>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.modalContent}>
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <View style={styles.titleRow}>
+                <Navigation size={20} color={Theme.colors.primary} />
+                <Text style={styles.modalTitle}>Select Delivery Pincode</Text>
               </View>
+              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                <X size={20} color={Theme.colors.secondary} />
+              </TouchableOpacity>
             </View>
-          )}
+
+            <Text style={styles.subtext}>
+              Amul allocates high-protein inventory by regional warehouse clusters.
+            </Text>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 20 }}
+            >
+              {/* List of Saved Pincodes */}
+              {pincodes.map((item) => {
+                const isSelected = item.pincode === selectedPincode?.pincode;
+                return (
+                  <TouchableOpacity
+                    key={item.pincode}
+                    style={[styles.pincodeItem, isSelected && styles.pincodeItemSelected]}
+                    onPress={() => handleSelect(item)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.pincodeInfo}>
+                      <View style={styles.labelRow}>
+                        <Text style={styles.itemLabel}>{item.label}</Text>
+                        <View style={styles.pincodeBadge}>
+                          <Text style={styles.pincodeBadgeText}>{item.pincode}</Text>
+                        </View>
+                        {item.distanceKm !== undefined && item.distanceKm > 0 && (
+                          <Text style={styles.distanceText}>({item.distanceKm} km away)</Text>
+                        )}
+                      </View>
+                      <Text style={styles.addressText} numberOfLines={1}>
+                        {item.address}
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <View style={styles.checkIcon}>
+                        <Check size={18} color="#FFFFFF" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+
+              {/* Add Pincode Toggle */}
+              {!showAddForm ? (
+                <TouchableOpacity
+                  style={styles.addToggleBtn}
+                  onPress={() => setShowAddForm(true)}
+                >
+                  <Plus size={18} color={Theme.colors.primary} />
+                  <Text style={styles.addToggleText}>Add Another Pincode to Radar</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.addForm}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="6-Digit Pincode (e.g. 560034)"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="numeric"
+                    maxLength={6}
+                    value={newPincode}
+                    onChangeText={setNewPincode}
+                    autoFocus
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Label (e.g. Home, Office, Gym)"
+                    placeholderTextColor="#9CA3AF"
+                    value={newLabel}
+                    onChangeText={setNewLabel}
+                  />
+                  <View style={styles.formActionRow}>
+                    <TouchableOpacity
+                      style={styles.cancelBtn}
+                      onPress={() => setShowAddForm(false)}
+                    >
+                      <Text style={styles.cancelBtnText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.saveBtn,
+                        newPincode.length !== 6 && styles.saveBtnDisabled,
+                      ]}
+                      onPress={handleAddLocation}
+                      disabled={newPincode.length !== 6}
+                    >
+                      <Text style={styles.saveBtnText}>Track Pincode</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
