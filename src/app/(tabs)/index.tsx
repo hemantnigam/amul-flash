@@ -146,7 +146,11 @@ export default function HomeScreen() {
           >
             <MapPin size={13} color="#2563EB" />
             <Text style={styles.locationText}>
-              {selectedPincode?.pincode ? `${selectedPincode.pincode} • ${selectedPincode.label}` : 'Select Delivery Hub'}
+              {selectedPincode?.pincode
+                ? selectedPincode.label && !selectedPincode.label.includes(selectedPincode.pincode)
+                  ? `${selectedPincode.pincode} • ${selectedPincode.label}`
+                  : selectedPincode.label || selectedPincode.pincode
+                : 'Select Delivery Hub'}
             </Text>
             <View style={styles.greenLiveDot} />
           </TouchableOpacity>

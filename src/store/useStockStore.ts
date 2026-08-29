@@ -201,7 +201,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
         if (!exists) {
           userPincodes.push({
             pincode: pinStr,
-            label: addr.name ? `${addr.name}'s Address` : `${addr.city || 'Saved Address'} (${pinStr})`,
+            label: addr.name ? `${addr.name}'s Address` : (addr.city || 'Saved Address'),
             address: `${addr.addressLine1 || addr.address || 'Saved Delivery Address'}${addr.city ? ', ' + addr.city : ''}`,
             storeId: '66505ff5145c16635e6cc74d',
             isDefault: addr.isDefault || userPincodes.length === 0,
