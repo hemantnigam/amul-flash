@@ -33,12 +33,21 @@ interface StockStoreState {
   fetchAllCategoriesProducts: (sessionCookie?: string) => Promise<void>;
 }
 
+const DEFAULT_USER_PINCODE: PincodeLocation = {
+  pincode: '',
+  label: 'Select Location',
+  address: 'No location selected',
+  storeId: '66505ff5145c16635e6cc74d',
+  isDefault: true,
+  serviceable: true,
+};
+
 export const useStockStore = create<StockStoreState>((set, get) => ({
   products: [],
   categories: DEFAULT_CATEGORIES,
   selectedCategory: 'protein',
-  pincodes: INITIAL_PINCODES,
-  selectedPincode: INITIAL_PINCODES[0],
+  pincodes: [],
+  selectedPincode: DEFAULT_USER_PINCODE,
   activityLogs: [],
   activeDropAlert: null,
   isSimulatingDrop: false,
@@ -163,9 +172,14 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
   },
 
   addPincode: (pincode) => {
-    set((state) => ({
-      pincodes: [...state.pincodes, pincode],
-    }));
+    set((state) => {
+      const updated = [...state.pincodes, pincode];
+      const shouldSelect = !state.selectedPincode.pincode;
+      return {
+        pincodes: updated,
+        selectedPincode: shouldSelect ? pincode : state.selectedPincode,
+      };
+    });
   },
 
   removePincode: (pincodeStr) => {
