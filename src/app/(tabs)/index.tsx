@@ -28,6 +28,7 @@ import { useSessionStore } from '../../store/useSessionStore';
 import { ProductCard } from '../../components/ProductCard';
 import { DropAlertBanner } from '../../components/DropAlertBanner';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
+import { NotificationService } from '../../services/notificationService';
 import { AmulProduct } from '../../types/amul';
 import { analyticsService } from '../../services/analyticsService';
 
@@ -128,6 +129,10 @@ export default function HomeScreen() {
     }
   };
 
+  const handleTestNotification = async () => {
+    await triggerSimulatedDrop();
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {/* Top Header */}
@@ -168,6 +173,16 @@ export default function HomeScreen() {
             </TouchableOpacity>
           ) : null}
         </View>
+
+        {/* Temporary Notification Test Button */}
+        <TouchableOpacity
+          style={styles.testNotificationBtn}
+          onPress={handleTestNotification}
+          activeOpacity={0.8}
+        >
+          <Bell size={14} color="#FFFFFF" />
+          <Text style={styles.testNotificationText}>⚡ Tap to Test Live Restock Notification</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -562,5 +577,21 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     fontSize: 12,
     color: '#64748B',
+  },
+  testNotificationBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#2563EB',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    marginTop: 10,
+  },
+  testNotificationText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

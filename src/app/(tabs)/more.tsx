@@ -35,6 +35,7 @@ import {
   X,
   RefreshCw,
   ExternalLink,
+  BellRing,
 } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
 import { useStockStore } from '../../store/useStockStore';
@@ -58,7 +59,7 @@ export default function AccountScreen() {
     logout,
   } = useSessionStore();
 
-  const { selectedPincode } = useStockStore();
+  const { selectedPincode, highSirenEnabled, toggleHighSiren } = useStockStore();
 
   const [isPincodeModalVisible, setIsPincodeModalVisible] = useState(false);
 
@@ -276,6 +277,25 @@ export default function AccountScreen() {
               onValueChange={setHeartbeatEnabled}
               trackColor={{ false: '#E2E8F0', true: '#BFDBFE' }}
               thumbColor={heartbeatEnabled ? '#2563EB' : '#94A3B8'}
+            />
+          </View>
+
+          {/* High Siren Alert Switch */}
+          <View style={styles.switchRow}>
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#FEF2F2' }]}>
+                <BellRing size={18} color="#DC2626" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>High Siren Drop Alarm</Text>
+                <Text style={styles.rowSub}>Emergency alarm siren sound on restock drops</Text>
+              </View>
+            </View>
+            <Switch
+              value={highSirenEnabled}
+              onValueChange={toggleHighSiren}
+              trackColor={{ false: '#E2E8F0', true: '#BFDBFE' }}
+              thumbColor={highSirenEnabled ? '#2563EB' : '#94A3B8'}
             />
           </View>
 
