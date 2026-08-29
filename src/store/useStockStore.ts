@@ -24,6 +24,7 @@ interface StockStoreState {
   setSelectedPincode: (pincode: PincodeLocation, sessionCookie?: string) => Promise<void>;
   addPincode: (pincode: PincodeLocation) => void;
   removePincode: (pincodeStr: string) => void;
+  syncPincodesFromAddresses: (addresses: any[]) => void;
   toggleAutoCartForProduct: (productId: string, productObj?: AmulProduct) => void;
   triggerSimulatedDrop: (productId?: string) => Promise<void>;
   dismissDropAlert: () => void;
@@ -171,6 +172,34 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     set((state) => ({
       pincodes: state.pincodes.filter((p) => p.pincode !== pincodeStr),
     }));
+  },
+
+  syncPincodesFromAddresses: (addresses) => {
+    if (!addresses || addresses.length === 0) return;
+    const currentPincodes = get().pincodes;
+    const newItems: PincodeLocation[] = [];
+
+    addresses.forEach((addr: any) => {
+      const pin = addr.pincode || addr.zip || addr.postcode;
+      if (pin && String(pin).trim().length === 6) {
+        const pinStr = String(pin).trim();
+        const exists = currentPincodes.some((p) => p.pincode === pinStr);
+        if (!exists) {
+          newItems.push({
+            pincode: pinStr,
+            label: addr.name ? `${addr.name}'s Hub` : `${addr.city || 'Saved Address'} (${pinStr})`,
+            address: `${addr.addressLine1 || addr.address || 'Saved Delivery Address'}${addr.city ? ', ' + addr.city : ''}`,
+            storeId: '66505ff5145c16635e6cc74d',
+            isDefault: addr.isDefault || false,
+            serviceable: true,
+          });
+        }
+      }
+    });
+
+    if (newItems.length > 0) {
+      set({ pincodes: [...currentPincodes, ...newItems] });
+    }
   },
 
   toggleAutoCartForProduct: (productId, productObj) => {

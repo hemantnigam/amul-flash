@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -20,6 +20,7 @@ import {
 } from 'lucide-react-native';
 import { Theme } from '../constants/theme';
 import { useStockStore } from '../store/useStockStore';
+import { useSessionStore } from '../store/useSessionStore';
 import { PincodeLocation } from '../types/amul';
 import { analyticsService } from '../services/analyticsService';
 
@@ -30,11 +31,18 @@ export default function LocationsScreen() {
     setSelectedPincode,
     addPincode,
     removePincode,
-    products,
+    syncPincodesFromAddresses,
   } = useStockStore();
+  const { addresses } = useSessionStore();
 
   const [newPincode, setNewPincode] = useState('');
   const [newLabel, setNewLabel] = useState('');
+
+  useEffect(() => {
+    if (addresses && addresses.length > 0) {
+      syncPincodesFromAddresses(addresses);
+    }
+  }, [addresses]);
 
   const handleAdd = () => {
     if (newPincode.trim().length === 6) {
