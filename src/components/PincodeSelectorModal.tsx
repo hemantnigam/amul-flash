@@ -50,7 +50,6 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
       setNewPincode('');
       setNewLabel('');
       setShowAddForm(false);
-      onClose();
     }
   };
 
@@ -114,13 +113,14 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
                       )}
                       {!item.isSavedAddress && (
                         <TouchableOpacity
-                          style={{ padding: 6 }}
+                          style={styles.roundedDeleteBtn}
                           onPress={(e) => {
                             e.stopPropagation();
                             removePincode(item.pincode);
                           }}
+                          activeOpacity={0.7}
                         >
-                          <Trash2 size={16} color="#94A3B8" />
+                          <Trash2 size={14} color="#DC2626" />
                         </TouchableOpacity>
                       )}
                     </View>
@@ -282,6 +282,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
+  },
+  roundedDeleteBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
   },
   addToggleBtn: {
     flexDirection: 'row',

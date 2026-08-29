@@ -357,7 +357,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deleteBtn: {
-    padding: 6,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addCard: {
     backgroundColor: Theme.colors.surfaceContainerLowest,
