@@ -50,6 +50,8 @@ export interface AmulCategory {
 
 export interface AmulProduct {
   id: string;
+  rawId?: string;
+  sellerId?: string;
   title: string;
   category: ProductCategory;
   flavor?: string;
@@ -96,31 +98,6 @@ export interface ActivityLog {
   metadata?: Record<string, any>;
 }
 
-export interface FallbackRule {
-  primaryProductId: string;
-  fallbackProductIds: string[];
-  enabled: boolean;
-  autoSwitchOnDepletion: boolean;
-}
-
-export interface BasketBundlerSettings {
-  autoBundleForFreeShipping: boolean;
-  minimumOrderValue: number;
-  selectedAddonProductIds: string[];
-}
-
-export interface RefillItem {
-  id: string;
-  productId: string;
-  productName: string;
-  currentUnits: number;
-  dailyIntake: number; // units per day
-  warningDaysThreshold: number;
-  batchNumber: string;
-  expiryDate: string;
-  lastRestockedDate: string;
-}
-
 export interface AmulSession {
   mobile: string;
   sessionCookie: string;
@@ -141,11 +118,12 @@ export interface AmulUserProfile {
   email: string;
   defaultAddressId?: string;
   createdOn?: string;
+  cartId?: string;
 }
 
 export interface AmulUserAddress {
   id: string;
-  userId: string;
+  userId?: string;
   fullName: string;
   phone: string;
   address: string;
@@ -180,23 +158,4 @@ export interface AmulOrder {
   createdAt: number | string;
   trackingNumber?: string;
   paymentMethod?: string;
-}
-
-export interface AmulCartItem {
-  id: string;
-  productId: string;
-  title: string;
-  sku: string;
-  price: number;
-  quantity: number;
-  imageUrl?: string;
-}
-
-export interface AmulCart {
-  id: string;
-  userId: string;
-  items: AmulCartItem[];
-  itemsCount: number;
-  subtotal: number;
-  total: number;
 }

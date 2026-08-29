@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { AppText as Text } from './AppText';
 import { Zap, Clock, X, ShoppingBag } from 'lucide-react-native';
 import { Theme } from '../constants/theme';
 import { RestockEvent } from '../types/amul';
@@ -51,7 +52,7 @@ export const DropAlertBanner: React.FC<DropAlertBannerProps> = ({
 
       <Text style={styles.productTitle}>{alert.productName}</Text>
       <Text style={styles.detailText}>
-        {alert.unitsAdded} units dropped for Pincode {alert.pincode} • Auto-cart pre-reserved
+        {alert.unitsAdded} units dropped for Pincode {alert.pincode} • Live Stock Restocked
       </Text>
 
       <View style={styles.actionRow}>
@@ -60,8 +61,8 @@ export const DropAlertBanner: React.FC<DropAlertBannerProps> = ({
           onPress={() => onPayNow(alert)}
           activeOpacity={0.8}
         >
-          <ShoppingBag size={16} color="#FFFFFF" />
-          <Text style={styles.payNowText}>Checkout on Amul</Text>
+          <Zap size={16} color="#FFFFFF" />
+          <Text style={styles.payNowText}>View Restocked Item</Text>
         </TouchableOpacity>
       </View>
     </View>

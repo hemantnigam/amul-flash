@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Alert,
 } from 'react-native';
+import { AppText as Text } from '../components/AppText';
+import { AppTextInput as TextInput } from '../components/AppTextInput';
 import {
   MapPin,
   Plus,
@@ -21,6 +21,7 @@ import {
 import { Theme } from '../constants/theme';
 import { useStockStore } from '../store/useStockStore';
 import { PincodeLocation } from '../types/amul';
+import { analyticsService } from '../services/analyticsService';
 
 export default function LocationsScreen() {
   const {
@@ -40,7 +41,7 @@ export default function LocationsScreen() {
       const added: PincodeLocation = {
         pincode: newPincode.trim(),
         label: newLabel.trim() || `Location ${newPincode}`,
-        address: `Amul D2C Cluster for Pincode ${newPincode}`,
+        address: `Amul Cluster for Pincode ${newPincode}`,
         storeId: `STORE_${newPincode}`,
         serviceable: true,
         distanceKm: Math.floor(Math.random() * 8) + 2,
@@ -102,7 +103,10 @@ export default function LocationsScreen() {
             >
               <TouchableOpacity
                 style={styles.cardMain}
-                onPress={() => setSelectedPincode(item)}
+                onPress={() => {
+                  setSelectedPincode(item);
+                  analyticsService.logPincodeChange(item.pincode, item.label);
+                }}
                 activeOpacity={0.7}
               >
                 <View style={styles.titleRow}>

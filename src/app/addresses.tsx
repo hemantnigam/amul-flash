@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
   Modal,
-  TextInput,
   Alert,
   Platform,
 } from 'react-native';
+import { AppText as Text } from '../components/AppText';
+import { AppTextInput as TextInput } from '../components/AppTextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -47,15 +47,17 @@ export default function AddressesScreen() {
   // Add Address Modal State
   const [isAddAddressVisible, setIsAddAddressVisible] = useState(false);
   const [addrFullName, setAddrFullName] = useState(
-    userProfile ? `${userProfile.firstName} ${userProfile.lastName}`.trim() : 'Hemant Nigam'
+    userProfile && (userProfile.firstName || userProfile.lastName)
+      ? `${userProfile.firstName} ${userProfile.lastName}`.trim()
+      : (session.userName || '')
   );
   const [addrPhone, setAddrPhone] = useState(
-    userProfile?.phone || session.mobile || '+919899940268'
+    userProfile?.phone || session.mobile || ''
   );
   const [addrStreet, setAddrStreet] = useState('');
-  const [addrCity, setAddrCity] = useState('New Delhi');
-  const [addrState, setAddrState] = useState('Delhi');
-  const [addrZip, setAddrZip] = useState('110044');
+  const [addrCity, setAddrCity] = useState('');
+  const [addrState, setAddrState] = useState('');
+  const [addrZip, setAddrZip] = useState('');
   const [addrType, setAddrType] = useState<'home' | 'office'>('home');
   const [isSavingAddress, setIsSavingAddress] = useState(false);
 
@@ -77,15 +79,15 @@ export default function AddressesScreen() {
 
     setIsSavingAddress(true);
     const success = await addAddress({
-      fullName: addrFullName.trim(),
-      phone: addrPhone.trim(),
+      fullName: addrFullName.trim() || 'Amul Customer',
+      phone: addrPhone.trim() || session.mobile,
       address: addrStreet.trim(),
       city: addrCity.trim(),
       state: addrState.trim(),
       zip: addrZip.trim(),
       country: 'IN',
       addressType: addrType,
-      userId: userProfile?.id || session.userId || '696091a6025cd5c65247e101',
+      userId: userProfile?.id || session.userId || undefined,
       isDefault: addresses.length === 0,
     });
     setIsSavingAddress(false);
@@ -273,7 +275,7 @@ export default function AddressesScreen() {
                 style={[styles.modalInput, { height: 64, textAlignVertical: 'top' }]}
                 value={addrStreet}
                 onChangeText={setAddrStreet}
-                placeholder="e.g. G-50/10, Gali No 2A, Molarband Extn"
+                placeholder="e.g. Flat 402, Sunshine Apartments, MG Road"
                 placeholderTextColor="#94A3B8"
                 multiline
               />

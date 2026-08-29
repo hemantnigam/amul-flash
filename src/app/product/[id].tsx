@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   Switch,
-  Image,
   ActivityIndicator,
 } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import {
   Zap,
   ShieldCheck,
@@ -23,69 +24,46 @@ import {
   ShoppingCart,
   Plus,
   Minus,
+  Package,
+  ExternalLink,
+  Globe,
 } from 'lucide-react-native';
 import { useStockStore } from '../../store/useStockStore';
 import { useSessionStore } from '../../store/useSessionStore';
 import { StockBadge } from '../../components/StockBadge';
-import { AmulCheckoutModal } from '../../components/AmulCheckoutModal';
+import { analyticsService } from '../../services/analyticsService';
 
 export default function ProductDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { products, toggleAutoCartForProduct, selectedPincode } = useStockStore();
-  const { cart, addToCart } = useSessionStore();
 
   const product = products.find((p) => p.id === id) || products[0];
   const primaryVariant = product?.variants?.[0];
-  const [isCheckoutModalVisible, setIsCheckoutModalVisible] = useState(false);
-
-  // Cart quantity state (1 to max 5)
-  const [quantity, setQuantity] = useState(1);
-  const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [addedSuccess, setAddedSuccess] = useState(false);
-
-  useEffect(() => {
-    // Check if this product is already in the active Amul cart
-    if (cart && product) {
-      const existingItem = cart.items.find(
-        (it) => it.productId === product.id || it.sku === (primaryVariant?.sku || product.id)
-      );
-      if (existingItem && existingItem.quantity > 0) {
-        setQuantity(Math.min(existingItem.quantity, 5));
-        setAddedSuccess(true);
-      }
-    }
-  }, [cart, product, primaryVariant]);
 
   if (!product) return null;
 
   const isInStock = primaryVariant?.isInStock;
-  const isTracked = product.autoCartEnabled ?? true;
-  const primarySku = primaryVariant?.sku || product.id;
+  const isTracked = product.autoCartEnabled ?? false;
 
-  const handleIncrement = () => {
-    if (quantity < 5) {
-      setQuantity((prev) => prev + 1);
+  const [imageUri, setImageUri] = useState(product.imageUrl || '');
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    analyticsService.logScreenView('ProductDetails', product.title);
+    setImageUri(product.imageUrl || '');
+    setImageError(false);
+  }, [product.imageUrl, product.title]);
+
+  const handleOpenWebview = async () => {
+    let targetUrl = `https://shop.amul.com/en/browse/${product.category || 'protein'}`;
+    if (product.id && product.id.length > 3 && !product.id.startsWith('v_')) {
+      targetUrl = `https://shop.amul.com/en/product/${product.id}`;
     }
+    try {
+      await WebBrowser.openBrowserAsync(targetUrl);
+    } catch (e) {}
   };
-
-  const handleDecrement = () => {
-    if (quantity > 1) {
-      setQuantity((prev) => prev - 1);
-    }
-  };
-
-  const handleAddToCart = async () => {
-    setIsAddingToCart(true);
-    const success = await addToCart(product.id, primarySku, quantity);
-    setIsAddingToCart(false);
-    if (success) {
-      setAddedSuccess(true);
-      setTimeout(() => setAddedSuccess(false), 3000);
-    }
-  };
-
-  const totalPrice = product.defaultPrice * quantity;
 
   return (
     <View style={styles.screenContainer}>
@@ -96,7 +74,23 @@ export default function ProductDetailsScreen() {
       >
         {/* Product Image */}
         <View style={styles.imageCard}>
-          <Image source={{ uri: product.imageUrl }} style={styles.productImage} resizeMode="contain" />
+          {!imageUri || imageError ? (
+            <View style={{ alignItems: 'center', justifyContent: 'center', height: 220, backgroundColor: '#F8FAFC', borderRadius: 16, width: '100%' }}>
+              <Package size={56} color="#0284C7" />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0284C7', marginTop: 8 }}>Amul Packshot</Text>
+            </View>
+          ) : (
+            <Image
+              source={{ uri: imageUri }}
+              style={styles.productImage}
+              contentFit="contain"
+              transition={200}
+              cachePolicy="memory-disk"
+              onError={() => {
+                setImageError(true);
+              }}
+            />
+          )}
           <View style={styles.stockBadgeFloat}>
             <StockBadge isInStock={isInStock} stockCount={primaryVariant?.stockCount || 0} size="md" />
           </View>
@@ -106,7 +100,7 @@ export default function ProductDetailsScreen() {
         <View style={styles.infoCard}>
           <Text style={styles.productTitle}>{product.title}</Text>
           <Text style={styles.categorySubtext}>
-            {product.category?.toUpperCase()} • {product.flavor || 'D2C Direct'}
+            {product.category?.toUpperCase()} • {product.flavor || 'Amul Official'}
           </Text>
 
           <View style={styles.priceRow}>
@@ -114,130 +108,98 @@ export default function ProductDetailsScreen() {
             <Text style={styles.priceValue}>{product.defaultPrice}</Text>
             <View style={styles.pincodeBadge}>
               <MapPin size={12} color="#2563EB" />
-              <Text style={styles.pincodeText}>{selectedPincode.pincode} Hub</Text>
+              <Text style={styles.pincodeText}>{selectedPincode.label || selectedPincode.pincode}</Text>
             </View>
           </View>
         </View>
 
-        {/* 1. Track Switch Card (Renamed to Track) */}
-        <View style={styles.trackCard}>
-          <View style={styles.trackLeft}>
-            <View style={[styles.trackIconBox, isTracked ? styles.trackIconActive : styles.trackIconInactive]}>
-              <Bell size={20} color={isTracked ? '#1D4ED8' : '#64748B'} />
+        {/* Webview Open Button */}
+        <TouchableOpacity
+          style={styles.webLinkCard}
+          onPress={handleOpenWebview}
+          activeOpacity={0.8}
+        >
+          <View style={styles.webLinkLeft}>
+            <View style={styles.webLinkIconBox}>
+              <Globe size={18} color="#0037B0" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.trackTitle}>Track</Text>
-              <Text style={styles.trackSub}>
-                {isTracked
-                  ? 'Active: Real-time notification alerts enabled for stock drops'
-                  : 'Disabled: Toggle on to get notified on stock drops'}
-              </Text>
+              <Text style={styles.webLinkTitle}>View on Amul Website</Text>
+              <Text style={styles.webLinkSub}>Tap to open product page on shop.amul.com</Text>
             </View>
           </View>
-          <Switch
-            value={isTracked}
-            onValueChange={() => toggleAutoCartForProduct(product.id, product)}
-            trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
-          />
-        </View>
+          <ExternalLink size={16} color="#0037B0" />
+        </TouchableOpacity>
 
-        {/* 2. Amul Cart Option Card with Max 5 Stepper */}
-        <View style={styles.cartOptionCard}>
-          <View style={styles.cartOptionHeader}>
-            <View style={styles.cartOptionTitleRow}>
-              <ShoppingCart size={18} color="#2563EB" />
-              <Text style={styles.cartOptionTitle}>Amul Cloud Cart</Text>
-            </View>
-            <Text style={styles.cartMaxLabel}>Max 5 units</Text>
-          </View>
-
-          <View style={styles.stepperActionRow}>
-            {/* Quantity Stepper (1 to 5) */}
-            <View style={styles.stepperContainer}>
-              <TouchableOpacity
-                style={[styles.stepBtn, quantity <= 1 && styles.stepBtnDisabled]}
-                onPress={handleDecrement}
-                disabled={quantity <= 1}
-                activeOpacity={0.7}
-              >
-                <Minus size={16} color={quantity <= 1 ? '#94A3B8' : '#0F172A'} />
-              </TouchableOpacity>
-
-              <View style={styles.qtyDisplay}>
-                <Text style={styles.qtyText}>{quantity}</Text>
+        {/* Track Switch Card - Restock tracking active for Out of Stock items */}
+        {!isInStock ? (
+          <View style={styles.trackCard}>
+            <View style={styles.trackLeft}>
+              <View style={[styles.trackIconBox, isTracked ? styles.trackIconActive : styles.trackIconInactive]}>
+                <Bell size={20} color={isTracked ? '#1D4ED8' : '#64748B'} />
               </View>
-
-              <TouchableOpacity
-                style={[styles.stepBtn, quantity >= 5 && styles.stepBtnDisabled]}
-                onPress={handleIncrement}
-                disabled={quantity >= 5}
-                activeOpacity={0.7}
-              >
-                <Plus size={16} color={quantity >= 5 ? '#94A3B8' : '#0F172A'} />
-              </TouchableOpacity>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.trackTitle}>Track Restock Radar</Text>
+                <Text style={styles.trackSub}>
+                  {isTracked
+                    ? 'Active: Real-time notification alerts enabled for stock drops'
+                    : 'Toggle on to get notified instantly when this item restocks'}
+                </Text>
+              </View>
             </View>
-
-            {/* Add to Cart Button */}
-            <TouchableOpacity
-              style={[styles.addToCartBtn, isAddingToCart && styles.addToCartBtnDisabled]}
-              onPress={handleAddToCart}
-              disabled={isAddingToCart}
-              activeOpacity={0.85}
-            >
-              {isAddingToCart ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <>
-                  <ShoppingCart size={15} color="#FFFFFF" />
-                  <Text style={styles.addToCartBtnText}>
-                    {addedSuccess ? '✓ In Amul Cart' : `Add ${quantity} to Cart`}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+            <Switch
+              value={isTracked}
+              onValueChange={() => {
+                const nextState = !isTracked;
+                toggleAutoCartForProduct(product.id, product);
+                analyticsService.logTrackStock(product.id, product.title, nextState);
+              }}
+              trackColor={{ false: '#E2E8F0', true: '#BFDBFE' }}
+              thumbColor={isTracked ? '#2563EB' : '#94A3B8'}
+            />
           </View>
-
-          {addedSuccess && (
-            <View style={styles.cartFeedbackRow}>
-              <CheckCircle2 size={13} color="#10B981" />
-              <Text style={styles.cartFeedbackText}>
-                {quantity} {quantity === 1 ? 'pack' : 'packs'} reserved in your Amul Cloud Cart
-              </Text>
+        ) : (
+          <View style={[styles.trackCard, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}>
+            <View style={styles.trackLeft}>
+              <View style={[styles.trackIconBox, { backgroundColor: '#DCFCE7' }]}>
+                <CheckCircle2 size={20} color="#16A34A" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.trackTitle, { color: '#15803D' }]}>Item Currently In Stock</Text>
+                <Text style={[styles.trackSub, { color: '#166534' }]}>
+                  This product is available right now. Restock radar tracking is for out-of-stock items.
+                </Text>
+              </View>
             </View>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* Nutrition Macro Facts (if available) */}
         {product.nutrition?.proteinGrams ? (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Nutrition Breakdown per Serving</Text>
-            <Text style={styles.servingText}>Serving: {product.nutrition.servingSize}</Text>
-
+            <Text style={styles.cardTitle}>Nutritional Highlights</Text>
             <View style={styles.macroGrid}>
               <View style={styles.macroBox}>
-                <View style={[styles.macroIcon, { backgroundColor: '#FEF3C7' }]}>
-                  <Dumbbell size={16} color="#D97706" />
+                <View style={[styles.macroIcon, { backgroundColor: '#EFF6FF' }]}>
+                  <Flame size={16} color="#2563EB" />
                 </View>
                 <Text style={styles.macroValue}>{product.nutrition.proteinGrams}g</Text>
                 <Text style={styles.macroLabel}>Protein</Text>
               </View>
-
               <View style={styles.macroBox}>
-                <View style={[styles.macroIcon, { backgroundColor: '#FEE2E2' }]}>
-                  <Flame size={16} color="#DC2626" />
+                <View style={[styles.macroIcon, { backgroundColor: '#FFF7ED' }]}>
+                  <Dumbbell size={16} color="#EA580C" />
                 </View>
                 <Text style={styles.macroValue}>{product.nutrition.calories}</Text>
                 <Text style={styles.macroLabel}>Calories</Text>
               </View>
-
               <View style={styles.macroBox}>
-                <View style={[styles.macroIcon, { backgroundColor: '#EFF6FF' }]}>
-                  <Wheat size={16} color="#2563EB" />
+                <View style={[styles.macroIcon, { backgroundColor: '#FEF3C7' }]}>
+                  <Wheat size={16} color="#D97706" />
                 </View>
                 <Text style={styles.macroValue}>{product.nutrition.carbsGrams}g</Text>
                 <Text style={styles.macroLabel}>Carbs</Text>
               </View>
-
               <View style={styles.macroBox}>
                 <View style={[styles.macroIcon, { backgroundColor: '#F3E8FF' }]}>
                   <Droplet size={16} color="#7C3AED" />
@@ -253,34 +215,10 @@ export default function ProductDetailsScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Product Description</Text>
           <Text style={styles.descriptionText}>
-            {product.description || 'Authentic fresh Amul D2C product directly from GCMMF manufacturing hubs.'}
+            {product.description || 'Authentic fresh Amul product directly from GCMMF manufacturing centers.'}
           </Text>
         </View>
       </ScrollView>
-
-      {/* Bottom Sticky Action */}
-      <View style={styles.bottomBar}>
-        <View style={styles.bottomPriceCol}>
-          <Text style={styles.bottomTotalLabel}>Total ({quantity} {quantity === 1 ? 'item' : 'items'})</Text>
-          <Text style={styles.bottomTotalPrice}>₹{totalPrice}</Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.checkoutBtn}
-          onPress={() => setIsCheckoutModalVisible(true)}
-          activeOpacity={0.85}
-        >
-          <ShoppingCart size={18} color="#FFFFFF" />
-          <Text style={styles.checkoutBtnText}>Proceed to Amul Checkout</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Official Amul Checkout Modal */}
-      <AmulCheckoutModal
-        visible={isCheckoutModalVisible}
-        product={product}
-        onClose={() => setIsCheckoutModalVisible(false)}
-      />
     </View>
   );
 }
@@ -325,9 +263,46 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.06)',
     marginBottom: 12,
   },
+  webLinkCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1.5,
+    borderColor: '#DBE1FF',
+    marginBottom: 12,
+  },
+  webLinkLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    marginRight: 8,
+  },
+  webLinkIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  webLinkTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0037B0',
+  },
+  webLinkSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
   productTitle: {
     fontSize: 18,
     fontWeight: '800',
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
     color: '#0F172A',
     lineHeight: 24,
   },
@@ -335,6 +310,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     fontWeight: '600',
+    fontFamily: 'PlusJakartaSans_600SemiBold',
     marginTop: 4,
   },
   priceRow: {
@@ -346,11 +322,13 @@ const styles = StyleSheet.create({
   priceSymbol: {
     fontSize: 18,
     fontWeight: '800',
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
     color: '#0037B0',
   },
   priceValue: {
     fontSize: 26,
     fontWeight: '900',
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
     color: '#0037B0',
     marginRight: 10,
   },
@@ -366,6 +344,7 @@ const styles = StyleSheet.create({
   pincodeText: {
     fontSize: 11,
     fontWeight: '700',
+    fontFamily: 'PlusJakartaSans_700Bold',
     color: '#1D4ED8',
   },
   trackCard: {
@@ -402,11 +381,13 @@ const styles = StyleSheet.create({
   trackTitle: {
     fontSize: 14,
     fontWeight: '800',
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
     color: '#0F172A',
   },
   trackSub: {
     fontSize: 11,
     color: '#64748B',
+    fontFamily: 'PlusJakartaSans_500Medium',
     marginTop: 2,
   },
   cartOptionCard: {

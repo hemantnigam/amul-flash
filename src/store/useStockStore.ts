@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { AmulProduct, AmulCategory, PincodeLocation, ActivityLog, RestockEvent } from '../types/amul';
-import { INITIAL_PRODUCTS, INITIAL_PINCODES, INITIAL_ACTIVITY_LOGS } from '../constants/products';
+import { INITIAL_PINCODES } from '../constants/products';
 import { NotificationService } from '../services/notificationService';
 import { AmulApiClient, DEFAULT_CATEGORIES } from '../services/amulApi';
 
@@ -16,93 +16,128 @@ interface StockStoreState {
   isLoadingProducts: boolean;
   lastUpdated: number;
   trackedProductsMap: Record<string, AmulProduct>;
+  allProductsMap: Record<string, AmulProduct>;
 
   // Actions
-  loadInitialData: () => Promise<void>;
-  setSelectedCategory: (categorySlug: string) => Promise<void>;
-  setSelectedPincode: (pincode: PincodeLocation) => Promise<void>;
+  loadInitialData: (sessionCookie?: string) => Promise<void>;
+  setSelectedCategory: (categorySlug: string, sessionCookie?: string) => Promise<void>;
+  setSelectedPincode: (pincode: PincodeLocation, sessionCookie?: string) => Promise<void>;
   addPincode: (pincode: PincodeLocation) => void;
   removePincode: (pincodeStr: string) => void;
   toggleAutoCartForProduct: (productId: string, productObj?: AmulProduct) => void;
   triggerSimulatedDrop: (productId?: string) => Promise<void>;
   dismissDropAlert: () => void;
   addActivityLog: (log: Omit<ActivityLog, 'id' | 'timestamp'>) => void;
-  refreshStock: () => Promise<void>;
+  refreshStock: (sessionCookie?: string) => Promise<void>;
+  fetchAllCategoriesProducts: (sessionCookie?: string) => Promise<void>;
 }
 
-// Initial tracked map from default high protein products
-const initialTrackedMap: Record<string, AmulProduct> = {};
-INITIAL_PRODUCTS.forEach((p) => {
-  if (p.autoCartEnabled) {
-    initialTrackedMap[p.id] = p;
-  }
-});
-
 export const useStockStore = create<StockStoreState>((set, get) => ({
-  products: INITIAL_PRODUCTS,
+  products: [],
   categories: DEFAULT_CATEGORIES,
   selectedCategory: 'protein',
   pincodes: INITIAL_PINCODES,
   selectedPincode: INITIAL_PINCODES[0],
-  activityLogs: INITIAL_ACTIVITY_LOGS,
+  activityLogs: [],
   activeDropAlert: null,
   isSimulatingDrop: false,
   isLoadingProducts: false,
   lastUpdated: Date.now(),
-  trackedProductsMap: initialTrackedMap,
+  trackedProductsMap: {},
+  allProductsMap: {},
 
-  loadInitialData: async () => {
+  loadInitialData: async (sessionCookie?: string) => {
     set({ isLoadingProducts: true });
     try {
       // 1. Fetch live categories
-      const liveCategories = await AmulApiClient.fetchCategories();
-      set({ categories: liveCategories.length > 0 ? liveCategories : DEFAULT_CATEGORIES });
+      const liveCategories = await AmulApiClient.fetchCategories(sessionCookie);
+      const activeCategories = liveCategories.length > 0 ? liveCategories : DEFAULT_CATEGORIES;
+      set({ categories: activeCategories });
 
       // 2. Fetch live products for selected category
       const substoreId = get().selectedPincode.storeId || '66505ff5145c16635e6cc74d';
-      const liveProducts = await AmulApiClient.fetchStoreProducts(get().selectedCategory, substoreId);
+      const liveProducts = await AmulApiClient.fetchStoreProducts(get().selectedCategory, substoreId, sessionCookie);
 
       const trackedMap = get().trackedProductsMap;
       const hydratedProducts = liveProducts.map((p) => ({
         ...p,
-        autoCartEnabled: trackedMap[p.id] !== undefined ? true : p.autoCartEnabled,
+        autoCartEnabled: trackedMap[p.id] !== undefined ? Boolean(trackedMap[p.id]) : false,
       }));
+
+      const newAllMap = { ...get().allProductsMap };
+      hydratedProducts.forEach((p) => {
+        newAllMap[p.id] = p;
+      });
 
       set({
         products: hydratedProducts,
+        allProductsMap: newAllMap,
         isLoadingProducts: false,
         lastUpdated: Date.now(),
       });
+
+      // 3. Background pre-fetch remaining categories for global search
+      get().fetchAllCategoriesProducts(sessionCookie);
     } catch (e) {
-      console.warn('Initial data load error:', e);
       set({ isLoadingProducts: false });
     }
   },
 
-  setSelectedCategory: async (categorySlug: string) => {
+  setSelectedCategory: async (categorySlug: string, sessionCookie?: string) => {
     set({ selectedCategory: categorySlug, isLoadingProducts: true });
     try {
       const substoreId = get().selectedPincode.storeId || '66505ff5145c16635e6cc74d';
-      const liveProducts = await AmulApiClient.fetchStoreProducts(categorySlug, substoreId);
+      const liveProducts = await AmulApiClient.fetchStoreProducts(categorySlug, substoreId, sessionCookie);
 
       const trackedMap = get().trackedProductsMap;
       const hydratedProducts = liveProducts.map((p) => ({
         ...p,
-        autoCartEnabled: trackedMap[p.id] !== undefined ? true : p.autoCartEnabled,
+        autoCartEnabled: trackedMap[p.id] !== undefined ? Boolean(trackedMap[p.id]) : false,
       }));
+
+      const newAllMap = { ...get().allProductsMap };
+      hydratedProducts.forEach((p) => {
+        newAllMap[p.id] = p;
+      });
 
       set({
         products: hydratedProducts,
+        allProductsMap: newAllMap,
         isLoadingProducts: false,
         lastUpdated: Date.now(),
       });
     } catch (e) {
-      console.warn('Category change product load error:', e);
       set({ isLoadingProducts: false });
     }
   },
 
-  setSelectedPincode: async (pincode) => {
+  fetchAllCategoriesProducts: async (sessionCookie?: string) => {
+    try {
+      const substoreId = get().selectedPincode.storeId || '66505ff5145c16635e6cc74d';
+      const categories = get().categories || DEFAULT_CATEGORIES;
+      const trackedMap = get().trackedProductsMap;
+
+      // Pre-fetch top 6 popular categories in background
+      const priorityCats = categories.slice(0, 6);
+      for (const cat of priorityCats) {
+        if (cat.slug !== get().selectedCategory) {
+          const catProducts = await AmulApiClient.fetchStoreProducts(cat.slug, substoreId, sessionCookie);
+          if (catProducts && catProducts.length > 0) {
+            const updatedMap = { ...get().allProductsMap };
+            catProducts.forEach((p) => {
+              updatedMap[p.id] = {
+                ...p,
+                autoCartEnabled: trackedMap[p.id] !== undefined ? Boolean(trackedMap[p.id]) : false,
+              };
+            });
+            set({ allProductsMap: updatedMap });
+          }
+        }
+      }
+    } catch (e) {}
+  },
+
+  setSelectedPincode: async (pincode, sessionCookie?: string) => {
     set({ selectedPincode: pincode, isLoadingProducts: true, lastUpdated: Date.now() });
 
     get().addActivityLog({
@@ -113,7 +148,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     });
 
     try {
-      const liveProducts = await AmulApiClient.fetchStoreProducts(get().selectedCategory, pincode.storeId);
+      const liveProducts = await AmulApiClient.fetchStoreProducts(get().selectedCategory, pincode.storeId, sessionCookie);
       const trackedMap = get().trackedProductsMap;
       const hydratedProducts = liveProducts.map((p) => ({
         ...p,
@@ -210,28 +245,20 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     // 2. Play Emergency Alarm & Notification
     await NotificationService.triggerEmergencyAlarm({
       title: `⚡ FLASH DROP: ${targetProduct.title}`,
-      body: `30 units restocked for Pincode ${state.selectedPincode.pincode}! Auto-cart reserving now...`,
+      body: `30 units restocked for Pincode ${state.selectedPincode.pincode}! Stock live now!`,
       productId: targetProduct.id,
       pincode: state.selectedPincode.pincode,
       isEmergencyAlarm: true,
     });
 
-    // 3. Headless Auto-Cart
-    if (targetProduct.autoCartEnabled) {
-      const cartResult = await AmulApiClient.instantAddToCart(
-        targetProduct.id,
-        targetProduct.variants[0]?.sku || targetProduct.id,
-        1
-      );
-
-      get().addActivityLog({
-        type: 'auto_cart' as any,
-        title: `Auto-Cart Locked: ${targetProduct.title}`,
-        description: `Reserved in ${cartResult.latencyMs}ms. Cart ID: ${cartResult.cartId}`,
-        pincode: state.selectedPincode.pincode,
-        status: 'success',
-      });
-    }
+    // 3. Stock Tracker Log
+    get().addActivityLog({
+      type: 'restock',
+      title: `Stock Live: ${targetProduct.title}`,
+      description: `Restocked 30 units for Hub ${state.selectedPincode.pincode}`,
+      pincode: state.selectedPincode.pincode,
+      status: 'success',
+    });
   },
 
   dismissDropAlert: () => {
@@ -249,7 +276,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     }));
   },
 
-  refreshStock: async () => {
-    await get().loadInitialData();
+  refreshStock: async (sessionCookie?: string) => {
+    await get().loadInitialData(sessionCookie);
   },
 }));

@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   RefreshControl,
   Linking,
   Alert,
 } from 'react-native';
+import { AppText as Text } from '../components/AppText';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -67,7 +67,7 @@ export default function OrdersScreen() {
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Order History</Text>
           <Text style={styles.headerSubtitle}>
-            {orders.length} {orders.length === 1 ? 'order' : 'orders'} placed on Amul D2C
+            {orders.length} {orders.length === 1 ? 'order' : 'orders'} placed on Amul
           </Text>
         </View>
         <TouchableOpacity
@@ -159,7 +159,9 @@ export default function OrdersScreen() {
                             'https://shop.amul.com/s/62fa94df8c13af2e242eba16/66d15f3206e72f00e5bcef29/01-hero-image_multipack-30.png',
                         }}
                         style={styles.itemThumb}
-                        resizeMode="contain"
+                        contentFit="contain"
+                        transition={200}
+                        cachePolicy="memory-disk"
                       />
                       <View style={styles.itemInfo}>
                         <Text style={styles.itemTitle} numberOfLines={2}>
@@ -220,7 +222,7 @@ export default function OrdersScreen() {
             </View>
             <Text style={styles.emptyTitle}>No Orders Yet</Text>
             <Text style={styles.emptySubtitle}>
-              Orders placed on Amul D2C with your authenticated account will be tracked here in real-time.
+              Orders placed on Amul with your authenticated account will be tracked here in real-time.
             </Text>
             <TouchableOpacity
               style={styles.browseBtn}

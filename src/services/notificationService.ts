@@ -33,14 +33,10 @@ export const NotificationService = {
 
       // Request notification permissions
       await notifeeModule.requestPermission();
-    } catch (err) {
-      console.warn('Failed to initialize Notifee channels:', err);
-    }
+    } catch (err) {}
   },
 
   async triggerEmergencyAlarm(payload: NotificationPayload) {
-    console.log('[NotificationService] Triggering Emergency Alert:', payload);
-
     if (notifeeModule && Platform.OS !== 'web') {
       try {
         await notifeeModule.displayNotification({
@@ -55,23 +51,15 @@ export const NotificationService = {
             },
             actions: [
               {
-                title: '⚡ 1-Tap Pay',
+                title: '⚡ View Details',
                 pressAction: {
-                  id: 'flash_pay',
-                },
-              },
-              {
-                title: '🛒 View Cart',
-                pressAction: {
-                  id: 'view_cart',
+                  id: 'view_details',
                 },
               },
             ],
           },
         });
-      } catch (err) {
-        console.warn('Notifee display error:', err);
-      }
+      } catch (err) {}
     }
   },
 };

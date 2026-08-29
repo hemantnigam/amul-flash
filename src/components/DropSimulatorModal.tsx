@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import {
   Modal,
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { AppText as Text } from './AppText';
 import { Zap, BellRing, ShieldCheck, X, Sparkles, CheckCircle2 } from 'lucide-react-native';
 import { Theme } from '../constants/theme';
 import { useStockStore } from '../store/useStockStore';
@@ -50,7 +50,7 @@ export const DropSimulatorModal: React.FC<DropSimulatorModalProps> = ({
           </View>
 
           <Text style={styles.desc}>
-            Test flash drop behavior: Updates inventory state $\rightarrow$ executes headless auto-cart in &lt;300ms $\rightarrow$ triggers Notifee emergency audio alarm override.
+            Test flash drop behavior: Updates inventory state $\rightarrow$ triggers real-time stock alert in &lt;300ms $\rightarrow$ triggers Notifee emergency audio alarm override.
           </Text>
 
           {/* Target Product Selection */}
@@ -74,7 +74,7 @@ export const DropSimulatorModal: React.FC<DropSimulatorModalProps> = ({
                   {p.autoCartEnabled && (
                     <View style={styles.autoCartTag}>
                       <Zap size={10} color={Theme.colors.primary} />
-                      <Text style={styles.autoCartTagText}>Auto-Cart</Text>
+                      <Text style={styles.autoCartTagText}>Stock Radar</Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -102,7 +102,7 @@ export const DropSimulatorModal: React.FC<DropSimulatorModalProps> = ({
             ) : simComplete ? (
               <>
                 <CheckCircle2 size={18} color="#FFFFFF" />
-                <Text style={styles.simActionText}>Drop Triggered & Auto-Carted!</Text>
+                <Text style={styles.simActionText}>Restock Alert Triggered!</Text>
               </>
             ) : (
               <>

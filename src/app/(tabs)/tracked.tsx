@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -19,8 +19,6 @@ import {
 import { useStockStore } from '../../store/useStockStore';
 import { useSessionStore } from '../../store/useSessionStore';
 import { ProductCard } from '../../components/ProductCard';
-import { AmulCheckoutModal } from '../../components/AmulCheckoutModal';
-import { AmulProduct } from '../../types/amul';
 
 export default function TrackedScreen() {
   const router = useRouter();
@@ -32,7 +30,6 @@ export default function TrackedScreen() {
     isLoadingProducts,
   } = useStockStore();
 
-  const [selectedProductForCheckout, setSelectedProductForCheckout] = useState<AmulProduct | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   if (!isInitialized || !session.isLoggedIn) {
@@ -60,7 +57,7 @@ export default function TrackedScreen() {
               <Text style={styles.headerTitle}>Tracked Items</Text>
             </View>
             <Text style={styles.headerSub}>
-              Active Radar monitoring Amul D2C stock drops
+              Active Radar monitoring Amul stock drops
             </Text>
           </View>
         </View>
@@ -128,21 +125,11 @@ export default function TrackedScreen() {
                 key={product.id}
                 product={product}
                 onPress={() => router.push(`/product/${product.id}`)}
-                onQuickBuy={() => setSelectedProductForCheckout(product)}
               />
             ))}
           </View>
         )}
       </ScrollView>
-
-      {/* Official Amul Checkout Modal */}
-      {selectedProductForCheckout && (
-        <AmulCheckoutModal
-          visible={!!selectedProductForCheckout}
-          product={selectedProductForCheckout}
-          onClose={() => setSelectedProductForCheckout(null)}
-        />
-      )}
     </SafeAreaView>
   );
 }

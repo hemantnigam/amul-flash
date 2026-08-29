@@ -1,26 +1,21 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import {
   AmulSession,
   AmulUserProfile,
   AmulUserAddress,
   AmulOrder,
-  AmulCart,
 } from '../types/amul';
 import {
   AmulApiClient,
-  AUTHENTICATED_DEFAULT_COOKIE,
-  AUTHENTICATED_DEFAULT_CART,
 } from '../services/amulApi';
-import { INITIAL_PRODUCTS } from '../constants/products';
 
 interface SessionState {
   session: AmulSession;
   userProfile: AmulUserProfile | null;
   addresses: AmulUserAddress[];
   orders: AmulOrder[];
-  cart: AmulCart | null;
   isLoadingUserData: boolean;
   heartbeatEnabled: boolean;
   smsRetrieverEnabled: boolean;
@@ -37,13 +32,43 @@ interface SessionState {
   updateAddress: (addressId: string, addressData: Partial<AmulUserAddress>) => Promise<boolean>;
   deleteAddress: (addressId: string) => Promise<boolean>;
   setDefaultAddress: (addressId: string) => Promise<void>;
-  addToCart: (productId: string, sku: string, quantity?: number) => Promise<boolean>;
   setHeartbeatEnabled: (enabled: boolean) => void;
   setSmsRetrieverEnabled: (enabled: boolean) => void;
   updateLastHeartbeat: () => void;
 }
 
 const SECURE_STORE_KEY = 'amul_flash_user_session';
+
+const storageHelper = {
+  async getItem(key: string): Promise<string | null> {
+    if (Platform.OS === 'web') {
+      try {
+        return typeof window !== 'undefined' ? window.localStorage.getItem(key) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+    return SecureStore.getItemAsync(key);
+  },
+  async setItem(key: string, value: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      try {
+        if (typeof window !== 'undefined') window.localStorage.setItem(key, value);
+      } catch (e) {}
+      return;
+    }
+    return SecureStore.setItemAsync(key, value);
+  },
+  async removeItem(key: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      try {
+        if (typeof window !== 'undefined') window.localStorage.removeItem(key);
+      } catch (e) {}
+      return;
+    }
+    return SecureStore.deleteItemAsync(key);
+  },
+};
 
 const INITIAL_EMPTY_SESSION: AmulSession = {
   mobile: '',
@@ -54,24 +79,12 @@ const INITIAL_EMPTY_SESSION: AmulSession = {
   lastHeartbeat: 0,
 };
 
-const INITIAL_AUTHENTICATED_SESSION: AmulSession = {
-  mobile: '+919899940268',
-  sessionCookie: AUTHENTICATED_DEFAULT_COOKIE,
-  jwtToken: '',
-  userId: '696091a6025cd5c65247e101',
-  userName: 'Hemant Nigam',
-  expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 30, // 30 days
-  isLoggedIn: true,
-  lastHeartbeat: Date.now(),
-  defaultAddressId: '696091f8527891a41e6b5dc7',
-};
-
 export const useSessionStore = create<SessionState>((set, get) => ({
-  session: INITIAL_AUTHENTICATED_SESSION,
+  session: INITIAL_EMPTY_SESSION,
   userProfile: null,
   addresses: [],
   orders: [],
-  cart: AUTHENTICATED_DEFAULT_CART,
+  cart: null,
   isLoadingUserData: false,
   heartbeatEnabled: true,
   smsRetrieverEnabled: true,
@@ -80,32 +93,25 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   loadSavedSession: async () => {
     try {
-      if (Platform.OS !== 'web') {
-        const saved = await SecureStore.getItemAsync(SECURE_STORE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed && parsed.isLoggedIn) {
-            const validCookie =
-              parsed.sessionCookie && parsed.sessionCookie.length > 50
-                ? parsed.sessionCookie
-                : AUTHENTICATED_DEFAULT_COOKIE;
-            set({
-              session: {
-                ...parsed,
-                sessionCookie: validCookie,
-              },
-              isInitialized: true,
-            });
-            get().loadUserData();
-            return;
-          }
+      const saved = await storageHelper.getItem(SECURE_STORE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.isLoggedIn && parsed.sessionCookie) {
+          AmulApiClient.activeSessionCookie = parsed.sessionCookie;
+          set({
+            session: parsed,
+            isInitialized: true,
+          });
+          get().loadUserData();
+          return;
         }
       }
-    } catch (e) {
-      console.warn('Could not load session from Keystore:', e);
-    }
-    set({ session: INITIAL_AUTHENTICATED_SESSION, isInitialized: true });
-    get().loadUserData();
+    } catch (e) {}
+
+    set({
+      session: INITIAL_EMPTY_SESSION,
+      isInitialized: true,
+    });
   },
 
   login: async (mobile, sessionCookie, jwtToken, name, userId) => {
@@ -113,73 +119,81 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       mobile,
       sessionCookie,
       jwtToken,
-      userId: userId || '696091a6025cd5c65247e101',
-      userName: name || 'Hemant Nigam',
+      userId: userId || '',
+      userName: name || '',
       expiresAt: Date.now() + 1000 * 60 * 60 * 48, // 48 hours
       isLoggedIn: true,
       lastHeartbeat: Date.now(),
-      defaultAddressId: '696091f8527891a41e6b5dc7',
+      defaultAddressId: undefined,
     };
 
+    AmulApiClient.activeSessionCookie = sessionCookie;
     set({ session: newSession });
 
     try {
-      if (Platform.OS !== 'web') {
-        await SecureStore.setItemAsync(SECURE_STORE_KEY, JSON.stringify(newSession));
-      }
-    } catch (e) {
-      console.warn('Could not persist session to Keystore:', e);
-    }
+      await storageHelper.setItem(SECURE_STORE_KEY, JSON.stringify(newSession));
+    } catch (e) {}
 
     // Automatically load profile, addresses, orders, and cart from Amul Cloud
     get().loadUserData();
   },
 
   logout: async () => {
+    AmulApiClient.activeSessionCookie = '';
     set({
       session: INITIAL_EMPTY_SESSION,
       userProfile: null,
       addresses: [],
       orders: [],
-      cart: null,
     });
     try {
-      if (Platform.OS !== 'web') {
-        await SecureStore.deleteItemAsync(SECURE_STORE_KEY);
-      }
-    } catch (e) {
-      console.warn('Could not remove session from Keystore:', e);
-    }
+      await storageHelper.removeItem(SECURE_STORE_KEY);
+    } catch (e) {}
   },
 
   loadUserData: async () => {
-    const { session } = get();
-    if (!session.isLoggedIn) return;
-
+    const cookie = get().session.sessionCookie || AmulApiClient.activeSessionCookie || '';
     set({ isLoadingUserData: true });
     try {
-      const cookie = session.sessionCookie;
-      const uid = session.userId || '696091a6025cd5c65247e101';
+      const uid = get().session.userId || undefined;
 
       // 1. Fetch Profile
-      const profile = await AmulApiClient.getUserInfo(cookie);
-      if (profile) {
-        set({ userProfile: profile });
+      let profile = get().userProfile;
+      const fetchedProfile = await AmulApiClient.getUserInfo(cookie);
+      if (fetchedProfile) {
+        profile = fetchedProfile;
+        const fullName = `${fetchedProfile.firstName} ${fetchedProfile.lastName}`.trim();
+        const updatedSession: AmulSession = {
+          ...get().session,
+          isLoggedIn: true,
+          userId: fetchedProfile.id || get().session.userId,
+          userName: fullName || get().session.userName,
+          sessionCookie: cookie || get().session.sessionCookie,
+        };
+        set({
+          userProfile: fetchedProfile,
+          session: updatedSession,
+        });
+        try {
+          await storageHelper.setItem(SECURE_STORE_KEY, JSON.stringify(updatedSession));
+        } catch (e) {}
       }
 
+      const activeUserId = profile?.id || uid;
+
       // 2. Fetch Addresses
-      const addresses = await AmulApiClient.getUserAddresses(profile?.id || uid, cookie);
-      set({ addresses });
+      if (activeUserId) {
+        const addresses = await AmulApiClient.getUserAddresses(activeUserId, cookie);
+        set({ addresses });
+      }
 
       // 3. Fetch Orders
-      const orders = await AmulApiClient.getUserOrders(profile?.id || uid, cookie);
-      set({ orders });
+      if (activeUserId) {
+        const orders = await AmulApiClient.getUserOrders(activeUserId, cookie);
+        set({ orders });
+      }
 
-      // 4. Fetch Cart
-      const cart = await AmulApiClient.getUserCart(get().cart?.id || undefined, profile?.id || uid, cookie);
-      set({ cart: cart || null });
     } catch (e) {
-      console.warn('Error loading user data:', e);
     } finally {
       set({ isLoadingUserData: false });
     }
@@ -187,23 +201,30 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   updateUserProfile: async (data) => {
     const { session, userProfile } = get();
-    const uid = userProfile?.id || session.userId || '696091a6025cd5c65247e101';
+    const uid = userProfile?.id || session.userId;
+    if (!uid) return false;
+
     const res = await AmulApiClient.updateUserProfile(uid, data, session.sessionCookie);
     if (res.success) {
+      const updatedName = `${data.first_name || ''} ${data.last_name || ''}`.trim();
+      const updatedSession = {
+        ...get().session,
+        userName: updatedName || get().session.userName,
+      };
       set((state) => ({
         userProfile: state.userProfile
           ? {
               ...state.userProfile,
-              firstName: data.first_name,
-              lastName: data.last_name,
-              email: data.email,
+              firstName: data.first_name ?? state.userProfile.firstName,
+              lastName: data.last_name ?? state.userProfile.lastName,
+              email: data.email ?? state.userProfile.email,
             }
           : null,
-        session: {
-          ...state.session,
-          userName: `${data.first_name} ${data.last_name}`.trim(),
-        },
+        session: updatedSession,
       }));
+      try {
+        await storageHelper.setItem(SECURE_STORE_KEY, JSON.stringify(updatedSession));
+      } catch (e) {}
       return true;
     }
     return false;
@@ -211,7 +232,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   addAddress: async (addressData) => {
     const { session, userProfile } = get();
-    const uid = userProfile?.id || session.userId || '696091a6025cd5c65247e101';
+    const uid = userProfile?.id || session.userId || undefined;
 
     const res = await AmulApiClient.addUserAddress(
       {
@@ -273,67 +294,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         defaultAddressId: addressId,
       },
     }));
-  },
-
-  addToCart: async (productId: string, sku: string, quantity: number = 1): Promise<boolean> => {
-    const { session, cart } = get();
-    try {
-      // Find matching product in catalog
-      const product = INITIAL_PRODUCTS.find((p) => p.id === productId || p.variants.some((v) => v.sku === sku));
-      const matchedVariant = product?.variants.find((v) => v.sku === sku) || product?.variants?.[0];
-      const unitPrice = matchedVariant?.price || product?.defaultPrice || 160;
-      const title = product?.title || 'Amul Product';
-      const imageUrl = product?.imageUrl || 'https://shop.amul.com/s/62fa94df8c13af2e242eba16/66d15f3206e72f00e5bcef29/01-hero-image_multipack-30.png';
-
-      // 1. Dispatch to Amul Cloud in background
-      AmulApiClient.instantAddToCart(
-        productId,
-        sku,
-        quantity,
-        session.sessionCookie,
-        cart?.id
-      ).catch((err) => console.warn('Instant add to cart network note:', err));
-
-      // 2. Update local state immediately with the added product
-      const existingItems = cart?.items ? [...cart.items] : [];
-      const itemIndex = existingItems.findIndex((it) => it.sku === sku || it.productId === productId);
-
-      if (itemIndex >= 0) {
-        existingItems[itemIndex] = {
-          ...existingItems[itemIndex],
-          quantity: existingItems[itemIndex].quantity + quantity,
-        };
-      } else {
-        existingItems.push({
-          id: `cart_it_${Date.now()}`,
-          productId: productId,
-          title: title,
-          sku: sku,
-          price: unitPrice,
-          quantity: quantity,
-          imageUrl: imageUrl,
-        });
-      }
-
-      const newCount = existingItems.reduce((acc, it) => acc + it.quantity, 0);
-      const newTotal = existingItems.reduce((acc, it) => acc + it.price * it.quantity, 0);
-
-      set({
-        cart: {
-          id: cart?.id || '6a9188e368d988facdb6810f',
-          userId: session.userId || '696091a6025cd5c65247e101',
-          items: existingItems,
-          itemsCount: newCount,
-          subtotal: newTotal,
-          total: newTotal,
-        },
-      });
-
-      return true;
-    } catch (e) {
-      console.warn('addToCart action note:', e);
-      return true;
-    }
   },
 
   setHeartbeatEnabled: (enabled) => {

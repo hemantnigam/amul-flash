@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -9,13 +8,14 @@ import {
   Alert,
   Platform,
   Modal,
-  TextInput,
   ActivityIndicator,
   Image,
   RefreshControl,
 } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
+import { AppTextInput as TextInput } from '../../components/AppTextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import {
   MapPin,
   ShieldCheck,
@@ -39,9 +39,7 @@ import {
 import { useSessionStore } from '../../store/useSessionStore';
 import { useStockStore } from '../../store/useStockStore';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
-import { AmulCheckoutModal } from '../../components/AmulCheckoutModal';
 import { AmulUserAddress, AmulProduct } from '../../types/amul';
-import { INITIAL_PRODUCTS } from '../../constants/products';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -50,7 +48,6 @@ export default function AccountScreen() {
     userProfile,
     addresses,
     orders,
-    cart,
     isLoadingUserData,
     heartbeatEnabled,
     setHeartbeatEnabled,
@@ -67,17 +64,25 @@ export default function AccountScreen() {
 
   // Profile Edit Modal State
   const [isEditProfileVisible, setIsEditProfileVisible] = useState(false);
-  const [firstName, setFirstName] = useState(userProfile?.firstName || 'Hemant');
-  const [lastName, setLastName] = useState(userProfile?.lastName || 'Nigam');
-  const [email, setEmail] = useState(userProfile?.email || 'h.nigam654@gmail.com');
+  const [firstName, setFirstName] = useState(userProfile?.firstName || '');
+  const [lastName, setLastName] = useState(userProfile?.lastName || '');
+  const [email, setEmail] = useState(userProfile?.email || '');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  useEffect(() => {
+    if (userProfile) {
+      setFirstName(userProfile.firstName || '');
+      setLastName(userProfile.lastName || '');
+      setEmail(userProfile.email || '');
+    }
+  }, [userProfile, isEditProfileVisible]);
 
   const handleSaveProfile = async () => {
     setIsSavingProfile(true);
     await updateUserProfile({
-      first_name: firstName,
-      last_name: lastName,
-      email: email,
+      first_name: firstName.trim(),
+      last_name: lastName.trim(),
+      email: email.trim(),
     });
     setIsSavingProfile(false);
     setIsEditProfileVisible(false);
@@ -106,25 +111,25 @@ export default function AccountScreen() {
     ]);
   };
 
-  // Auto-fetch fresh cart and profile data from Amul cloud on screen focus
-  useEffect(() => {
-    if (session.isLoggedIn) {
+  // Auto-fetch fresh profile and user data from Amul cloud on screen focus
+  useFocusEffect(
+    useCallback(() => {
       loadUserData();
-    }
-  }, [session.isLoggedIn]);
+    }, [])
+  );
 
-  const displayName = userProfile
+  const displayName = userProfile && (userProfile.firstName || userProfile.lastName)
     ? `${userProfile.firstName} ${userProfile.lastName}`.trim()
-    : session.userName || 'Hemant Nigam';
-  const displayEmail = userProfile?.email || 'h.nigam654@gmail.com';
-  const displayPhone = userProfile?.phone || session.mobile || '+919899940268';
+    : session.userName || (session.mobile ? `+91 ${session.mobile.replace('+91', '')}` : 'Amul User');
+  const displayEmail = userProfile?.email || 'No email registered';
+  const displayPhone = userProfile?.phone || (session.mobile ? (session.mobile.startsWith('+') ? session.mobile : `+91 ${session.mobile}`) : 'Not available');
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Account & Profile</Text>
-        <Text style={styles.headerSub}>Connected to Amul D2C Cloud & Fulfillment Hub</Text>
+        <Text style={styles.headerSub}>Connected to Amul Store</Text>
       </View>
 
       <ScrollView
@@ -142,7 +147,9 @@ export default function AccountScreen() {
         {/* User Profile Card */}
         <View style={styles.userCard}>
           <View style={styles.avatarCircle}>
-            <Text style={styles.avatarLetter}>{displayName.charAt(0).toUpperCase() || 'H'}</Text>
+            <Text style={styles.avatarLetter}>
+              {displayName ? displayName.charAt(0).toUpperCase() : 'A'}
+            </Text>
           </View>
           <View style={styles.userTextCol}>
             <Text style={styles.userName}>{displayName}</Text>
@@ -152,9 +159,9 @@ export default function AccountScreen() {
           <TouchableOpacity
             style={styles.editProfileBtn}
             onPress={() => {
-              setFirstName(userProfile?.firstName || 'Hemant');
-              setLastName(userProfile?.lastName || 'Nigam');
-              setEmail(userProfile?.email || 'h.nigam654@gmail.com');
+              setFirstName(userProfile?.firstName || '');
+              setLastName(userProfile?.lastName || '');
+              setEmail(userProfile?.email || '');
               setIsEditProfileVisible(true);
             }}
             activeOpacity={0.7}
@@ -164,39 +171,9 @@ export default function AccountScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Section 1: My Amul Shopping (Cart & Orders) */}
-        <Text style={styles.groupHeading}>MY AMUL SHOPPING</Text>
+        {/* Section 1: My Amul Orders */}
+        <Text style={styles.groupHeading}>MY AMUL ACTIVITY</Text>
         <View style={styles.cardGroup}>
-          {/* Cart Navigation Option */}
-          <TouchableOpacity
-            style={styles.cardRow}
-            onPress={() => router.push('/cart')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#EFF6FF' }]}>
-                <ShoppingCart size={18} color="#2563EB" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={styles.titleBadgeRow}>
-                  <Text style={styles.rowTitle}>Cart</Text>
-                  {cart && (cart.itemsCount || cart.items.length) > 0 && (
-                    <View style={styles.countBadge}>
-                      <Text style={styles.countBadgeText}>
-                        {cart.itemsCount || cart.items.length}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.rowSub}>
-                  {cart && cart.items.length > 0
-                    ? `${cart.itemsCount || cart.items.length} items reserved • ₹${cart.total}`
-                    : 'View and manage items in your cart'}
-                </Text>
-              </View>
-            </View>
-            <ChevronRight size={18} color="#94A3B8" />
-          </TouchableOpacity>
 
           {/* Orders Navigation Option */}
           <TouchableOpacity
@@ -291,13 +268,14 @@ export default function AccountScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle}>Auto Session Keeper</Text>
-                <Text style={styles.rowSub}>Maintains active Amul D2C checkout cookies</Text>
+                <Text style={styles.rowSub}>Maintains active Amul session cookies</Text>
               </View>
             </View>
             <Switch
               value={heartbeatEnabled}
               onValueChange={setHeartbeatEnabled}
-              trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
+              trackColor={{ false: '#E2E8F0', true: '#BFDBFE' }}
+              thumbColor={heartbeatEnabled ? '#2563EB' : '#94A3B8'}
             />
           </View>
 
@@ -315,7 +293,8 @@ export default function AccountScreen() {
             <Switch
               value={smsRetrieverEnabled}
               onValueChange={setSmsRetrieverEnabled}
-              trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
+              trackColor={{ false: '#E2E8F0', true: '#BFDBFE' }}
+              thumbColor={smsRetrieverEnabled ? '#2563EB' : '#94A3B8'}
             />
           </View>
         </View>

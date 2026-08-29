@@ -6,14 +6,36 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Zap } from 'lucide-react-native';
 import { NotificationService } from '../services/notificationService';
 import { useSessionStore } from '../store/useSessionStore';
+import { AmulApiClient } from '../services/amulApi';
+import { BrandLogoHeader } from '../components/BrandLogoHeader';
+
+import {
+  useFonts,
+  Sora_400Regular,
+  Sora_500Medium,
+  Sora_600SemiBold,
+  Sora_700Bold,
+  Sora_800ExtraBold,
+} from '@expo-google-fonts/sora';
 
 export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
-  const { session, isInitialized, loadSavedSession } = useSessionStore();
+  const { session, isInitialized, loadSavedSession, loadUserData, logout } = useSessionStore();
+
+  const [fontsLoaded] = useFonts({
+    Sora_400Regular,
+    Sora_500Medium,
+    Sora_600SemiBold,
+    Sora_700Bold,
+    Sora_800ExtraBold,
+  });
 
   useEffect(() => {
     NotificationService.initialize();
+    AmulApiClient.onSessionExpired(() => {
+      logout();
+    });
     loadSavedSession();
   }, []);
 
@@ -24,25 +46,22 @@ export default function RootLayout() {
 
     if (!session.isLoggedIn && !inAuthGroup) {
       router.replace('/login');
-    } else if (session.isLoggedIn && inAuthGroup) {
-      router.replace('/(tabs)');
+    } else if (session.isLoggedIn) {
+      loadUserData();
+      if (inAuthGroup) {
+        router.replace('/(tabs)');
+      }
     }
   }, [session.isLoggedIn, isInitialized, segments]);
 
-  // Clean splash loader while checking saved Keystore session on boot
-  if (!isInitialized) {
+  // Clean splash loader while checking saved Keystore session on boot and loading fonts
+  if (!isInitialized || !fontsLoaded) {
     return (
       <SafeAreaProvider>
         <StatusBar style="dark" />
         <View style={styles.splashContainer}>
-          <View style={styles.brandRow}>
-            <Text style={styles.brandTitleAmul}>Amul</Text>
-            <View style={styles.flashBadge}>
-              <Zap size={13} color="#FFFFFF" />
-              <Text style={styles.flashText}>FLASH</Text>
-            </View>
-          </View>
-          <ActivityIndicator size="small" color="#2563EB" style={{ marginTop: 12 }} />
+          <BrandLogoHeader size="large" showSubtitle />
+          <ActivityIndicator size="small" color="#2563EB" style={{ marginTop: 24 }} />
         </View>
       </SafeAreaProvider>
     );
@@ -74,19 +93,13 @@ export default function RootLayout() {
           name="locations"
           options={{
             headerShown: true,
-            title: 'Delivery Hubs & Radar',
+            title: 'Delivery Locations',
             headerStyle: { backgroundColor: '#FFFFFF' },
             headerTintColor: '#0037B0',
             headerTitleStyle: { fontWeight: '800' },
           }}
         />
-        <Stack.Screen
-          name="cart"
-          options={{
-            headerShown: false,
-            animation: 'slide_from_right',
-          }}
-        />
+
         <Stack.Screen
           name="orders"
           options={{
@@ -121,6 +134,7 @@ const styles = StyleSheet.create({
   brandTitleAmul: {
     fontSize: 34,
     fontWeight: '900',
+    fontFamily: 'PlusJakartaSans_800ExtraBold_Italic',
     color: '#0037B0',
     letterSpacing: -0.5,
     fontStyle: 'italic',
@@ -138,6 +152,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '900',
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
     letterSpacing: 0.5,
   },
 });

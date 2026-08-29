@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import {
   Modal,
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  TextInput,
 } from 'react-native';
+import { AppText as Text } from './AppText';
+import { AppTextInput as TextInput } from './AppTextInput';
 import { MapPin, Check, Plus, X, Navigation } from 'lucide-react-native';
 import { Theme } from '../constants/theme';
 import { useStockStore } from '../store/useStockStore';

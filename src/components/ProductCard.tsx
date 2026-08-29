@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Switch } from 'react-native';
-import { Zap, Bell, Check, ShoppingCart } from 'lucide-react-native';
+import { View, StyleSheet, TouchableOpacity, Switch } from 'react-native';
+import { AppText as Text } from './AppText';
+import { Image } from 'expo-image';
+import { Zap, Bell, Check, ChevronRight, Package } from 'lucide-react-native';
 import { AmulProduct } from '../types/amul';
 import { useStockStore } from '../store/useStockStore';
 
@@ -20,6 +22,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const isInStock = primaryVariant?.isInStock;
   const stockCount = primaryVariant?.stockCount || 0;
   const isTracked = product.autoCartEnabled ?? true;
+  const [imageUri, setImageUri] = React.useState(product.imageUrl || '');
+  const [imageError, setImageError] = React.useState(false);
+
+  React.useEffect(() => {
+    setImageUri(product.imageUrl || '');
+    setImageError(false);
+  }, [product.imageUrl, product.title]);
 
   return (
     <TouchableOpacity
@@ -52,11 +61,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <View style={styles.contentRow}>
         {/* Product Image */}
         <View style={styles.imageWrapper}>
-          <Image
-            source={{ uri: product.imageUrl }}
-            style={styles.productImage}
-            resizeMode="contain"
-          />
+          {!imageUri || imageError ? (
+            <View style={styles.imageFallbackContainer}>
+              <Package size={28} color="#0284C7" />
+              <Text style={styles.imageFallbackText} numberOfLines={1}>Amul</Text>
+            </View>
+          ) : (
+            <Image
+              source={{ uri: imageUri }}
+              style={styles.productImage}
+              contentFit="contain"
+              transition={200}
+              cachePolicy="memory-disk"
+              onError={() => {
+                setImageError(true);
+              }}
+            />
+          )}
         </View>
 
         {/* Product Info */}
@@ -84,20 +105,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <Text style={styles.priceText}>₹{product.defaultPrice}</Text>
             </View>
 
-            {isInStock ? (
-              <TouchableOpacity
-                style={styles.buyButton}
-                onPress={onQuickBuy || onPress}
-                activeOpacity={0.8}
-              >
-                <ShoppingCart size={13} color="#FFFFFF" />
-                <Text style={styles.buyButtonText}>Buy on Amul</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.autoTrackBadge}>
-                <Text style={styles.autoTrackText}>Auto-Notifies</Text>
-              </View>
-            )}
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={onPress}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.actionButtonText}>View Details</Text>
+              <ChevronRight size={13} color="#FFFFFF" />
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -196,6 +211,21 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  imageFallbackContainer: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 4,
+  },
+  imageFallbackText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0284C7',
+    marginTop: 2,
+  },
   infoCol: {
     flex: 1,
     justifyContent: 'space-between',
@@ -203,6 +233,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '700',
+    fontFamily: 'PlusJakartaSans_700Bold',
     color: '#0F172A',
     lineHeight: 18,
   },
@@ -217,10 +248,13 @@ const styles = StyleSheet.create({
   macroTagText: {
     fontSize: 11,
     fontWeight: '700',
+    fontFamily: 'PlusJakartaSans_600SemiBold',
     color: '#15803D',
   },
   categorySubtext: {
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: '500',
+    fontFamily: 'PlusJakartaSans_500Medium',
     color: '#64748B',
     marginTop: 2,
   },
@@ -233,30 +267,28 @@ const styles = StyleSheet.create({
   priceCol: {
     flexDirection: 'row',
     alignItems: 'baseline',
+    gap: 2,
   },
   priceText: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '900',
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
     color: '#0F172A',
   },
-  buyButton: {
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2563EB',
-    paddingHorizontal: 12,
+    backgroundColor: '#004AC6',
+    paddingHorizontal: 11,
     paddingVertical: 7,
     borderRadius: 10,
     gap: 4,
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  buyButtonText: {
+  actionButtonText: {
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: 'PlusJakartaSans_700Bold',
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
   },
   autoTrackBadge: {
     backgroundColor: '#F1F5F9',

@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
-  Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -11,6 +9,8 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { AppText as Text } from '../components/AppText';
+import { AppTextInput as TextInput } from '../components/AppTextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -19,11 +19,12 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock,
-  Sparkles,
 } from 'lucide-react-native';
 import { Theme } from '../constants/theme';
+import { BrandLogoHeader } from '../components/BrandLogoHeader';
 import { AmulApiClient } from '../services/amulApi';
 import { useSessionStore } from '../store/useSessionStore';
+import { analyticsService } from '../services/analyticsService';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export default function LoginScreen() {
   const [resendTimer, setResendTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
 
-  const otpInputs = useRef<Array<TextInput | null>>([]);
+  const otpInputs = useRef<Array<any | null>>([]);
 
   useEffect(() => {
     let interval: any;
@@ -70,12 +71,11 @@ export default function LoginScreen() {
         setResendTimer(30);
         setCanResend(false);
       } else {
-        Alert.alert('Notice', res.message || 'OTP triggered.');
-        setStep('otp');
+        Alert.alert('Notice', res.message || 'Failed to send OTP. Please try again.');
       }
     } catch (e) {
       setIsLoading(false);
-      setStep('otp');
+      Alert.alert('Error', 'Unable to send OTP. Please check your network connection.');
     }
   };
 
@@ -109,22 +109,17 @@ export default function LoginScreen() {
       const res = await AmulApiClient.verifyOTP(mobile, code);
       setIsLoading(false);
 
-      if (res.success) {
-        await login(mobile, res.sessionCookie || `sess_${Date.now()}`, res.jwtToken, res.user?.name);
+      if (res.success && res.sessionCookie) {
+        await login(mobile, res.sessionCookie, res.jwtToken, res.user?.name, res.user?._id);
+        analyticsService.logUserLogin(res.user?._id || mobile, mobile);
         router.replace('/(tabs)');
       } else {
-        Alert.alert('Verification Failed', 'Invalid OTP. Please try again.');
+        Alert.alert('Verification Failed', 'Invalid OTP code. Please enter the OTP sent by Amul.');
       }
     } catch (e) {
       setIsLoading(false);
-      await login(mobile, `sess_${Date.now()}`);
-      router.replace('/(tabs)');
+      Alert.alert('Verification Failed', 'Could not verify OTP. Please try again.');
     }
-  };
-
-  const handleQuickDemoBypass = async () => {
-    await login('9876543210', `_amul_session_demo_${Date.now()}`, 'jwt_demo', 'Amul Member');
-    router.replace('/(tabs)');
   };
 
   return (
@@ -136,16 +131,7 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {/* Brand Header */}
           <View style={styles.brandContainer}>
-            <View style={styles.logoBadge}>
-              <Text style={styles.brandTitleAmul}>Amul</Text>
-              <View style={styles.flashBadge}>
-                <Zap size={14} color="#FFFFFF" />
-                <Text style={styles.flashText}>FLASH</Text>
-              </View>
-            </View>
-            <Text style={styles.brandSubtitle}>
-              Official D2C Restock Tracker & 1-Tap Checkout
-            </Text>
+            <BrandLogoHeader size="large" showSubtitle />
           </View>
 
           {/* Main Auth Card */}
@@ -255,13 +241,6 @@ export default function LoginScreen() {
                   )}
                 </View>
 
-                {/* Web Dev Test Hint */}
-                <View style={styles.testHintBox}>
-                  <Text style={styles.testHintText}>
-                    💡 In web test mode: Enter any 6 digits (e.g. <Text style={{ fontWeight: '800' }}>123456</Text>) or your official Amul SMS code
-                  </Text>
-                </View>
-
                 {/* Verify Button */}
                 <TouchableOpacity
                   style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
@@ -291,18 +270,6 @@ export default function LoginScreen() {
               </>
             )}
           </View>
-
-          {/* Quick Demo Bypass for Testing */}
-          <TouchableOpacity
-            style={styles.demoBypassButton}
-            onPress={handleQuickDemoBypass}
-            activeOpacity={0.7}
-          >
-            <Sparkles size={15} color="#2563EB" />
-            <Text style={styles.demoBypassText}>
-              Instant Guest / Demo Login (One-Tap)
-            </Text>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -332,33 +299,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 12,
     marginBottom: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
   },
   brandTitleAmul: {
     fontSize: 36,
     fontWeight: '900',
+    fontFamily: 'PlusJakartaSans_800ExtraBold_Italic',
     color: '#0037B0',
     fontStyle: 'italic',
-    letterSpacing: 0,
-    paddingRight: 6,
-    includeFontPadding: false,
+    letterSpacing: 0.5,
   },
   flashBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FF6B00',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 8,
-    gap: 3,
+    gap: 4,
   },
   flashText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '900',
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
     letterSpacing: 0.5,
   },
   brandSubtitle: {
@@ -517,12 +482,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 16,
   },
-  testHintText: {
-    fontSize: 11,
-    color: '#475569',
-    textAlign: 'center',
-    lineHeight: 16,
-  },
   changeNumberButton: {
     marginTop: 14,
     alignItems: 'center',
@@ -532,22 +491,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     fontWeight: '600',
-  },
-  demoBypassButton: {
-    marginTop: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-  },
-  demoBypassText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1D4ED8',
   },
 });

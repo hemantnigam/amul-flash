@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   ActivityIndicator,
   RefreshControl,
-  Image,
 } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
+import { AppTextInput as TextInput } from '../../components/AppTextInput';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -28,14 +28,15 @@ import { useSessionStore } from '../../store/useSessionStore';
 import { ProductCard } from '../../components/ProductCard';
 import { DropAlertBanner } from '../../components/DropAlertBanner';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
-import { AmulCheckoutModal } from '../../components/AmulCheckoutModal';
 import { AmulProduct } from '../../types/amul';
+import { analyticsService } from '../../services/analyticsService';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { session, isInitialized } = useSessionStore();
   const {
     products,
+    allProductsMap,
     categories,
     selectedCategory,
     selectedPincode,
@@ -51,14 +52,14 @@ export default function HomeScreen() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isPincodeModalVisible, setIsPincodeModalVisible] = useState(false);
-  const [selectedProductForCheckout, setSelectedProductForCheckout] = useState<AmulProduct | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   React.useEffect(() => {
+    analyticsService.logScreenView('HomeScreen');
     if (session.isLoggedIn) {
-      loadInitialData();
+      loadInitialData(session.sessionCookie);
     }
-  }, [session.isLoggedIn]);
+  }, [session.isLoggedIn, session.sessionCookie]);
 
   if (!isInitialized || !session.isLoggedIn) {
     return null;
@@ -66,20 +67,59 @@ export default function HomeScreen() {
 
   const onRefresh = async () => {
     setIsRefreshing(true);
-    await refreshStock();
+    await refreshStock(session.sessionCookie);
     setIsRefreshing(false);
   };
 
-  const filteredProducts = products.filter((p) => {
-    if (!searchQuery) return true;
-    return (
-      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  });
+  // Ultra-fast in-memory memoized search (0ms latency, zero network calls on typing)
+  const filteredProducts = React.useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return products;
 
-  const heroProduct = filteredProducts[0] || products[0];
-  const gridProducts = filteredProducts.slice(1);
+    const allProductsList = Object.values(allProductsMap || {});
+    const source = allProductsList.length > 0 ? allProductsList : products;
+
+    const matches: AmulProduct[] = [];
+    const seen = new Set<string>();
+
+    for (let i = 0; i < source.length; i++) {
+      const p = source[i];
+      if (seen.has(p.id)) continue;
+
+      if (
+        p.title.toLowerCase().includes(q) ||
+        p.category?.toLowerCase().includes(q) ||
+        (p.description && p.description.toLowerCase().includes(q)) ||
+        p.id.toLowerCase().includes(q)
+      ) {
+        seen.add(p.id);
+        matches.push(p);
+      }
+    }
+    return matches;
+  }, [searchQuery, products, allProductsMap]);
+
+  // Synchronously compute visual active category pill without network delay
+  const activeHighlightCategory = React.useMemo(() => {
+    if (searchQuery.trim().length > 0 && filteredProducts.length > 0) {
+      return filteredProducts[0].category || selectedCategory;
+    }
+    return selectedCategory;
+  }, [searchQuery, filteredProducts, selectedCategory]);
+
+  const handleSearchChange = (text: string) => {
+    setSearchQuery(text);
+    if (!text.trim() && selectedCategory !== 'protein') {
+      setSelectedCategory('protein', session.sessionCookie);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    if (selectedCategory !== 'protein') {
+      setSelectedCategory('protein', session.sessionCookie);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -88,7 +128,7 @@ export default function HomeScreen() {
         <View style={styles.topRow}>
           <View style={styles.brandTitleCol}>
             <Text style={styles.brandTitle}>Amul Flash</Text>
-            <Text style={styles.brandSubtitle}>Protein & D2C Tracker</Text>
+            <Text style={styles.brandSubtitle}>Stock Tracker</Text>
           </View>
 
           {/* Location Pill */}
@@ -111,10 +151,10 @@ export default function HomeScreen() {
             placeholder="Search protein, lassi, whey, organic..."
             placeholderTextColor="#94A3B8"
             value={searchQuery}
-            onChangeText={setSearchQuery}
+            onChangeText={handleSearchChange}
           />
           {searchQuery ? (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <TouchableOpacity onPress={handleClearSearch}>
               <Text style={styles.clearText}>Clear</Text>
             </TouchableOpacity>
           ) : null}
@@ -132,7 +172,7 @@ export default function HomeScreen() {
             alert={activeDropAlert}
             onPayNow={(alertEvent) => {
               const target = products.find((p) => p.id === alertEvent.productId) || products[0];
-              if (target) setSelectedProductForCheckout(target);
+              if (target) router.push(`/product/${target.id}`);
             }}
             onDismiss={dismissDropAlert}
           />
@@ -141,12 +181,15 @@ export default function HomeScreen() {
         {/* Horizontal Category Pill Bar */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
           {categories.map((cat) => {
-            const isSelected = selectedCategory === cat.slug;
+            const isSelected = activeHighlightCategory === cat.slug;
             return (
               <TouchableOpacity
                 key={cat.id}
                 style={[styles.categoryChip, isSelected && styles.categoryChipSelected]}
-                onPress={() => setSelectedCategory(cat.slug)}
+                onPress={() => {
+                  setSearchQuery('');
+                  setSelectedCategory(cat.slug, session.sessionCookie);
+                }}
                 activeOpacity={0.7}
               >
                 <Text style={[styles.categoryChipText, isSelected && styles.categoryChipTextSelected]}>
@@ -164,109 +207,20 @@ export default function HomeScreen() {
           </View>
         ) : filteredProducts.length > 0 ? (
           <View style={styles.mainContent}>
-            {/* Hero Featured Product Card */}
-            {heroProduct && (
-              <TouchableOpacity
-                style={styles.heroCard}
-                onPress={() => router.push(`/product/${heroProduct.id}`)}
-                activeOpacity={0.9}
-              >
-                <View style={styles.heroImageWrapper}>
-                  <Image source={{ uri: heroProduct.imageUrl }} style={styles.heroImage} resizeMode="contain" />
-                  <View style={styles.heroStockBadge}>
-                    <View
-                      style={[
-                        styles.heroPulseDot,
-                        { backgroundColor: heroProduct.variants[0]?.isInStock ? '#10B981' : '#EF4444' },
-                      ]}
-                    />
-                    <Text style={styles.heroStockText}>
-                      {heroProduct.variants[0]?.isInStock
-                        ? `LIVE IN STOCK (${heroProduct.variants[0]?.stockCount || 50} units)`
-                        : 'OUT OF STOCK'}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.heroInfo}>
-                  <View style={styles.heroTitleRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.heroTitle} numberOfLines={1}>
-                        {heroProduct.title}
-                      </Text>
-                      {heroProduct.nutrition?.proteinGrams ? (
-                        <View style={styles.macroRow}>
-                          <View style={styles.heroMacroBadge}>
-                            <Text style={styles.heroMacroText}>
-                              ⚡ {heroProduct.nutrition.proteinGrams}g Protein
-                            </Text>
-                          </View>
-                          <Text style={styles.heroCalText}>• {heroProduct.nutrition.calories} kcal</Text>
-                        </View>
-                      ) : null}
-                    </View>
-
-                    {/* Track Toggle */}
-                    <TouchableOpacity
-                      style={[
-                        styles.heroTrackBtn,
-                        heroProduct.autoCartEnabled && styles.heroTrackBtnActive,
-                      ]}
-                      onPress={() => toggleAutoCartForProduct(heroProduct.id)}
-                    >
-                      <Bell size={13} color={heroProduct.autoCartEnabled ? '#1D4ED8' : '#64748B'} />
-                      <Text
-                        style={[
-                          styles.heroTrackBtnText,
-                          heroProduct.autoCartEnabled && styles.heroTrackBtnTextActive,
-                        ]}
-                      >
-                        {heroProduct.autoCartEnabled ? 'Tracking' : 'Track'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.heroBottomRow}>
-                    <View style={styles.heroPriceCol}>
-                      <Text style={styles.heroPrice}>₹{heroProduct.defaultPrice}</Text>
-                    </View>
-
-                    {heroProduct.variants[0]?.isInStock ? (
-                      <TouchableOpacity
-                        style={styles.heroBuyButton}
-                        onPress={() => setSelectedProductForCheckout(heroProduct)}
-                        activeOpacity={0.8}
-                      >
-                        <ShoppingCart size={14} color="#FFFFFF" />
-                        <Text style={styles.heroBuyText}>Buy on Amul</Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <View style={styles.heroAutoTrackBadge}>
-                        <Bell size={13} color="#D97706" />
-                        <Text style={styles.heroAutoTrackText}>Auto-Notifies on Drop</Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              </TouchableOpacity>
-            )}
-
-            {/* Section Heading */}
-            {gridProducts.length > 0 && (
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionHeading}>More in {selectedCategory.toUpperCase()}</Text>
-                <Text style={styles.sectionCountText}>{gridProducts.length} items</Text>
-              </View>
-            )}
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionHeading}>
+                {searchQuery ? `SEARCH RESULTS ("${searchQuery}")` : `${selectedCategory.toUpperCase()} PRODUCTS`}
+              </Text>
+              <Text style={styles.sectionCountText}>{filteredProducts.length} items</Text>
+            </View>
 
             {/* Products List with Track Toggles */}
             <View style={styles.productsList}>
-              {gridProducts.map((product) => (
+              {filteredProducts.map((product) => (
                 <ProductCard
                   key={product.id}
                   product={product}
                   onPress={() => router.push(`/product/${product.id}`)}
-                  onQuickBuy={() => setSelectedProductForCheckout(product)}
                 />
               ))}
             </View>
@@ -286,12 +240,6 @@ export default function HomeScreen() {
       <PincodeSelectorModal
         visible={isPincodeModalVisible}
         onClose={() => setIsPincodeModalVisible(false)}
-      />
-
-      <AmulCheckoutModal
-        visible={!!selectedProductForCheckout}
-        product={selectedProductForCheckout}
-        onClose={() => setSelectedProductForCheckout(null)}
       />
     </SafeAreaView>
   );
@@ -320,6 +268,7 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontSize: 22,
     fontWeight: '900',
+    fontFamily: 'PlusJakartaSans_800ExtraBold_Italic',
     color: '#0037B0',
     letterSpacing: -0.5,
     fontStyle: 'italic',
@@ -328,6 +277,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#64748B',
     fontWeight: '600',
+    fontFamily: 'PlusJakartaSans_600SemiBold',
     marginTop: -2,
   },
   locationPill: {
@@ -344,6 +294,7 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 12,
     fontWeight: '700',
+    fontFamily: 'PlusJakartaSans_700Bold',
     color: '#1A1B23',
   },
   greenLiveDot: {
@@ -366,11 +317,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#0F172A',
     fontWeight: '500',
+    fontFamily: 'PlusJakartaSans_500Medium',
   },
   clearText: {
     fontSize: 12,
     color: '#2563EB',
     fontWeight: '700',
+    fontFamily: 'PlusJakartaSans_700Bold',
   },
   scrollContent: {
     paddingBottom: 40,
@@ -395,11 +348,13 @@ const styles = StyleSheet.create({
   categoryChipText: {
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: 'PlusJakartaSans_600SemiBold',
     color: '#475569',
   },
   categoryChipTextSelected: {
     color: '#FFFFFF',
     fontWeight: '700',
+    fontFamily: 'PlusJakartaSans_700Bold',
   },
   mainContent: {
     paddingHorizontal: 16,
@@ -526,7 +481,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#0F172A',
   },
-  heroBuyButton: {
+  heroActionButton: {
     backgroundColor: '#0037B0',
     flexDirection: 'row',
     alignItems: 'center',
@@ -535,7 +490,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     gap: 6,
   },
-  heroBuyText: {
+  heroActionText: {
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
