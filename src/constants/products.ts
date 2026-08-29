@@ -1,15 +1,6 @@
 import { PincodeLocation, ActivityLog, RestockEvent } from '../types/amul';
 
-export const INITIAL_PINCODES: PincodeLocation[] = [
-  {
-    pincode: '110044',
-    label: 'Primary Delivery Hub',
-    address: 'Amul Serviceable Zone (110044)',
-    storeId: '66505ff5145c16635e6cc74d',
-    isDefault: true,
-    serviceable: true,
-  },
-];
+export const INITIAL_PINCODES: PincodeLocation[] = [];
 
 export const INITIAL_ACTIVITY_LOGS: ActivityLog[] = [
   {
