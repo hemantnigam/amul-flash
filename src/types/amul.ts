@@ -71,6 +71,7 @@ export interface PincodeLocation {
   address: string;
   storeId: string;
   isDefault?: boolean;
+  isSavedAddress?: boolean;
   distanceKm?: number;
   serviceable: boolean;
 }

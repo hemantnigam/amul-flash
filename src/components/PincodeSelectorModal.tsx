@@ -112,15 +112,17 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
                           <Check size={18} color="#FFFFFF" />
                         </View>
                       )}
-                      <TouchableOpacity
-                        style={{ padding: 6 }}
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          removePincode(item.pincode);
-                        }}
-                      >
-                        <Trash2 size={16} color="#94A3B8" />
-                      </TouchableOpacity>
+                      {!item.isSavedAddress && (
+                        <TouchableOpacity
+                          style={{ padding: 6 }}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            removePincode(item.pincode);
+                          }}
+                        >
+                          <Trash2 size={16} color="#94A3B8" />
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </TouchableOpacity>
                 );

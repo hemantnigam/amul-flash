@@ -184,6 +184,9 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
   removePincode: (pincodeStr) => {
     set((state) => {
+      const target = state.pincodes.find((p) => p.pincode === pincodeStr);
+      if (target?.isSavedAddress) return state;
+
       const remaining = state.pincodes.filter((p) => p.pincode !== pincodeStr);
       let newSelected = state.selectedPincode;
       if (state.selectedPincode.pincode === pincodeStr) {
@@ -213,6 +216,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
             address: `${addr.addressLine1 || addr.address || 'Saved Delivery Address'}${addr.city ? ', ' + addr.city : ''}`,
             storeId: '66505ff5145c16635e6cc74d',
             isDefault: addr.isDefault || userPincodes.length === 0,
+            isSavedAddress: true,
             serviceable: true,
           });
         }

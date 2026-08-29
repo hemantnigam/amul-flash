@@ -147,25 +147,32 @@ export default function LocationsScreen() {
                     <Check size={16} color="#FFFFFF" />
                   </View>
                 )}
-                <TouchableOpacity
-                  style={styles.deleteBtn}
-                  onPress={() => {
-                    Alert.alert(
-                      'Remove Delivery Hub',
-                      `Remove ${item.pincode} (${item.label}) from monitored hubs?`,
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Remove',
-                          style: 'destructive',
-                          onPress: () => removePincode(item.pincode),
-                        },
-                      ]
-                    );
-                  }}
-                >
-                  <Trash2 size={16} color="#EF4444" />
-                </TouchableOpacity>
+                {!item.isSavedAddress ? (
+                  <TouchableOpacity
+                    style={styles.deleteBtn}
+                    onPress={() => {
+                      Alert.alert(
+                        'Remove Delivery Hub',
+                        `Remove ${item.pincode} (${item.label}) from monitored hubs?`,
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Remove',
+                            style: 'destructive',
+                            onPress: () => removePincode(item.pincode),
+                          },
+                        ]
+                      );
+                    }}
+                  >
+                    <Trash2 size={16} color="#EF4444" />
+                  </TouchableOpacity>
+                ) : (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6 }}>
+                    <ShieldCheck size={14} color="#059669" />
+                    <Text style={{ fontSize: 11, color: '#059669', fontWeight: '600' }}>Saved</Text>
+                  </View>
+                )}
               </View>
             </View>
           );
