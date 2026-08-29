@@ -86,7 +86,7 @@ export const DropSimulatorModal: React.FC<DropSimulatorModalProps> = ({
           <View style={styles.targetLocationBox}>
             <Text style={styles.targetLocationLabel}>Drop Target Pincode:</Text>
             <Text style={styles.targetLocationValue}>
-              {selectedPincode.label} ({selectedPincode.pincode})
+              {selectedPincode?.label || 'Target Location'} ({selectedPincode?.pincode || 'Select Pincode'})
             </Text>
           </View>
 

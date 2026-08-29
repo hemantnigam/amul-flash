@@ -145,7 +145,9 @@ export default function HomeScreen() {
             activeOpacity={0.8}
           >
             <MapPin size={13} color="#2563EB" />
-            <Text style={styles.locationText}>{selectedPincode.pincode} • {selectedPincode.label}</Text>
+            <Text style={styles.locationText}>
+              {selectedPincode?.pincode ? `${selectedPincode.pincode} • ${selectedPincode.label}` : 'Select Delivery Hub'}
+            </Text>
             <View style={styles.greenLiveDot} />
           </TouchableOpacity>
         </View>

@@ -75,7 +75,7 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
             data={pincodes}
             keyExtractor={(item) => item.pincode}
             renderItem={({ item }) => {
-              const isSelected = item.pincode === selectedPincode.pincode;
+              const isSelected = item.pincode === selectedPincode?.pincode;
               return (
                 <TouchableOpacity
                   style={[styles.pincodeItem, isSelected && styles.pincodeItemSelected]}

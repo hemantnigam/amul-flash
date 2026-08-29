@@ -80,7 +80,7 @@ export default function LocationsScreen() {
 
       {/* Dynamic Cross-Zone Suggestion Card */}
       {(() => {
-        const alternateHub = pincodes.find((p) => p.pincode !== selectedPincode.pincode);
+        const alternateHub = pincodes.find((p) => p.pincode !== selectedPincode?.pincode);
         if (!alternateHub) return null;
         return (
           <View style={styles.suggestionCard}>
@@ -106,7 +106,7 @@ export default function LocationsScreen() {
       <Text style={styles.sectionTitle}>Active Monitored Locations</Text>
       <View style={styles.list}>
         {pincodes.map((item) => {
-          const isSelected = item.pincode === selectedPincode.pincode;
+          const isSelected = item.pincode === selectedPincode?.pincode;
           return (
             <View
               key={item.pincode}
