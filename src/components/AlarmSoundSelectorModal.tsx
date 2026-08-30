@@ -19,7 +19,6 @@ import {
 import { LOCAL_ALARM_SOUNDS, LocalSoundItem } from '../constants/alarmSounds';
 import { useStockStore } from '../store/useStockStore';
 import { alarmSoundService } from '../services/alarmSoundService';
-import { NotificationService } from '../services/notificationService';
 
 interface AlarmSoundSelectorModalProps {
   visible: boolean;
@@ -45,9 +44,6 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
       setPlayingId(item.id);
       setSelectedAlarmSoundId(item.id);
       await alarmSoundService.previewSound(item.id);
-      NotificationService.previewNotificationSound(item.id).catch((e) => {
-        console.log('⚠️ [AlarmSoundSelectorModal] Notification preview error:', e);
-      });
     }
   };
 

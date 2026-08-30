@@ -16,17 +16,17 @@ try {
   notifeeModule = null;
 }
 
-const LOUD_CHANNEL_ID = 'amul_loud_alarm_channel_v12';
+const VISUAL_ALERT_CHANNEL_ID = 'amul_restock_visual_alert_v13';
 
-async function ensureLoudChannel(): Promise<string> {
-  if (!notifeeModule || Platform.OS !== 'android') return LOUD_CHANNEL_ID;
+async function ensureAlertChannel(): Promise<string> {
+  if (!notifeeModule || Platform.OS !== 'android') return VISUAL_ALERT_CHANNEL_ID;
 
   try {
     const channelId = await notifeeModule.createChannel({
-      id: LOUD_CHANNEL_ID,
-      name: 'Amul Restock Loud Alarm',
-      importance: 4, // AndroidImportance.HIGH (4 = makes sound & peeks)
-      sound: 'default',
+      id: VISUAL_ALERT_CHANNEL_ID,
+      name: 'Amul Restock Flash Alert',
+      importance: 4, // AndroidImportance.HIGH (shows heads-up banner & wakes screen)
+      sound: undefined, // Let expo-audio handle the custom WAV sound without duplicate system beeps
       vibration: true,
       vibrationPattern: [300, 600, 300, 600],
       bypassDnd: true,
@@ -34,8 +34,8 @@ async function ensureLoudChannel(): Promise<string> {
     });
     return channelId;
   } catch (err) {
-    console.log('⚠️ [ensureLoudChannel error]:', err);
-    return LOUD_CHANNEL_ID;
+    console.log('⚠️ [ensureAlertChannel error]:', err);
+    return VISUAL_ALERT_CHANNEL_ID;
   }
 }
 
@@ -46,8 +46,8 @@ export const NotificationService = {
     if (notifeeModule) {
       try {
         await notifeeModule.requestPermission();
-        await ensureLoudChannel();
-        console.log('✅ [NotificationService] Loud alarm channel v12 initialized successfully');
+        await ensureAlertChannel();
+        console.log('✅ [NotificationService] Restock alert channel initialized');
       } catch (err) {
         console.log('⚠️ [Notifee initialize error]:', err);
       }
@@ -62,16 +62,14 @@ export const NotificationService = {
 
     if (notifeeModule && notifeeModule.displayNotification) {
       try {
-        const channelId = await ensureLoudChannel();
+        const channelId = await ensureAlertChannel();
         await notifeeModule.displayNotification({
           title: payload.title,
           body: payload.body,
           android: {
             channelId: channelId,
             importance: 4,
-            sound: 'default',
             category: 'alarm',
-            loopSound: true,
             pressAction: {
               id: 'default',
               launchActivity: 'default',
@@ -83,50 +81,13 @@ export const NotificationService = {
             vibrationPattern: [300, 600, 300, 600],
           },
           ios: {
-            sound: 'default',
             critical: true,
             criticalVolume: 1.0,
           },
         });
-        console.log('🚨 [Notifee] Triggered continuous alarm for:', soundItem.name);
+        console.log('🚨 [Notifee] Visual drop banner displayed for:', soundItem.name);
       } catch (err) {
         console.log('❌ [Notifee triggerEmergencyAlarm error]:', err);
-      }
-    }
-  },
-
-  async previewNotificationSound(soundId: string) {
-    if (Platform.OS === 'web') return;
-
-    const soundItem =
-      LOCAL_ALARM_SOUNDS.find((s) => s.id === soundId) || LOCAL_ALARM_SOUNDS[0];
-
-    if (notifeeModule && notifeeModule.displayNotification) {
-      try {
-        const channelId = await ensureLoudChannel();
-        await notifeeModule.displayNotification({
-          title: `🔔 Alarm Sound: ${soundItem.name}`,
-          body: `Playing loud alarm sound test for ${soundItem.name}`,
-          android: {
-            channelId: channelId,
-            importance: 4,
-            sound: 'default',
-            category: 'alarm',
-            loopSound: false,
-            pressAction: {
-              id: 'default',
-            },
-            vibrationPattern: [200, 400],
-          },
-          ios: {
-            sound: 'default',
-            critical: true,
-            criticalVolume: 1.0,
-          },
-        });
-        console.log('✅ [Notifee] Preview sound triggered on channel:', channelId);
-      } catch (err) {
-        console.log('❌ [Notifee preview error]:', err);
       }
     }
   },
