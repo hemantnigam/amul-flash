@@ -125,7 +125,9 @@ export default function AccountScreen() {
     if (countdownSeconds === null) return;
     if (countdownSeconds === 0) {
       setCountdownSeconds(null);
-      triggerSimulatedDrop();
+      if (!useStockStore.getState().activeAlarmEvent) {
+        triggerSimulatedDrop();
+      }
       return;
     }
     const timer = setTimeout(() => {

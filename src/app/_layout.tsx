@@ -28,6 +28,28 @@ try {
   notifeeModule = null;
 }
 
+if (notifeeModule && notifeeModule.onBackgroundEvent) {
+  notifeeModule.onBackgroundEvent(async ({ type, detail }: any) => {
+    console.log('📱 [Notifee onBackgroundEvent] Fired with type:', type);
+    if (detail?.notification?.data?.isAlarmTrigger === 'true') {
+      const soundId = useStockStore.getState().selectedAlarmSoundId;
+      alarmSoundService.startAlarm(soundId);
+      useStockStore.setState({
+        activeAlarmEvent: {
+          id: `drop_${Date.now()}`,
+          productId: detail.notification.data?.productId || 'protein',
+          productName: detail.notification.title || 'Restock Alert',
+          pincode: useStockStore.getState().selectedPincode.pincode,
+          timestamp: Date.now(),
+          unitsAdded: 30,
+          survivalDurationSecs: 180,
+          variantName: 'Standard Pack',
+        },
+      });
+    }
+  });
+}
+
 export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
