@@ -70,6 +70,8 @@ export const NotificationService = {
           data: {
             productId: payload.productId || '',
             pincode: payload.pincode || '',
+            soundId: soundId,
+            isAlarmTrigger: 'true',
           },
           android: {
             channelId: channelId,

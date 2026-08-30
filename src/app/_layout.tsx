@@ -31,18 +31,18 @@ try {
 if (notifeeModule && notifeeModule.onBackgroundEvent) {
   notifeeModule.onBackgroundEvent(async ({ type, detail }: any) => {
     console.log('📱 [Notifee onBackgroundEvent] Fired with type:', type);
-    // Ignore trigger creation (type 7) and dismiss (type 0)
     if (type === 7 || type === 0) return;
 
-    if (detail?.notification?.data?.isAlarmTrigger === 'true') {
-      const soundId = useStockStore.getState().selectedAlarmSoundId;
+    const notif = detail?.notification;
+    if (notif?.data?.isAlarmTrigger === 'true' || notif?.data?.productId) {
+      const soundId = notif.data?.soundId || useStockStore.getState().selectedAlarmSoundId;
       alarmSoundService.startAlarm(soundId);
       useStockStore.setState({
         activeAlarmEvent: {
           id: `drop_${Date.now()}`,
-          productId: detail.notification.data?.productId || 'protein',
-          productName: detail.notification.title || 'Restock Alert',
-          pincode: useStockStore.getState().selectedPincode.pincode,
+          productId: notif.data?.productId || 'protein',
+          productName: notif.title || 'Restock Alert',
+          pincode: notif.data?.pincode || useStockStore.getState().selectedPincode.pincode,
           timestamp: Date.now(),
           unitsAdded: 30,
           survivalDurationSecs: 180,
@@ -76,15 +76,16 @@ export default function RootLayout() {
     // Check if app was launched by clicking a notification on Lock Screen
     if (notifeeModule && notifeeModule.getInitialNotification) {
       notifeeModule.getInitialNotification().then((initialNotification: any) => {
-        if (initialNotification?.notification?.data?.isAlarmTrigger === 'true') {
-          const soundId = useStockStore.getState().selectedAlarmSoundId;
+        const notif = initialNotification?.notification;
+        if (notif?.data?.isAlarmTrigger === 'true' || notif?.data?.productId) {
+          const soundId = notif.data?.soundId || useStockStore.getState().selectedAlarmSoundId;
           alarmSoundService.startAlarm(soundId);
           useStockStore.setState({
             activeAlarmEvent: {
               id: `drop_${Date.now()}`,
-              productId: initialNotification.notification.data?.productId || 'protein',
-              productName: initialNotification.notification.title || 'Restock Alert',
-              pincode: useStockStore.getState().selectedPincode.pincode,
+              productId: notif.data?.productId || 'protein',
+              productName: notif.title || 'Restock Alert',
+              pincode: notif.data?.pincode || useStockStore.getState().selectedPincode.pincode,
               timestamp: Date.now(),
               unitsAdded: 30,
               survivalDurationSecs: 180,
@@ -98,18 +99,18 @@ export default function RootLayout() {
     // Listen for notification deliver & press interactions (DELIVERED = 3, PRESS = 1, ACTION_PRESS = 2)
     if (notifeeModule && notifeeModule.onForegroundEvent) {
       const unsubscribe = notifeeModule.onForegroundEvent(({ type, detail }: any) => {
-        // Ignore trigger creation (7) and dismiss (0)
         if (type === 7 || type === 0) return;
 
-        if (detail.notification?.data?.isAlarmTrigger === 'true') {
-          const soundId = useStockStore.getState().selectedAlarmSoundId;
+        const notif = detail?.notification;
+        if (notif?.data?.isAlarmTrigger === 'true' || notif?.data?.productId) {
+          const soundId = notif.data?.soundId || useStockStore.getState().selectedAlarmSoundId;
           alarmSoundService.startAlarm(soundId);
           useStockStore.setState({
             activeAlarmEvent: {
               id: `drop_${Date.now()}`,
-              productId: detail.notification.data?.productId || 'protein',
-              productName: detail.notification.title || 'Restock Alert',
-              pincode: useStockStore.getState().selectedPincode.pincode,
+              productId: notif.data?.productId || 'protein',
+              productName: notif.title || 'Restock Alert',
+              pincode: notif.data?.pincode || useStockStore.getState().selectedPincode.pincode,
               timestamp: Date.now(),
               unitsAdded: 30,
               survivalDurationSecs: 180,
