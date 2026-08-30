@@ -64,7 +64,6 @@
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "color": "#208AEF",
           "sounds": [
             "./src/music/mixkit_alarm_digital_clock_beep_989.wav",
             "./src/music/mixkit_alert_alarm_1005.wav",
