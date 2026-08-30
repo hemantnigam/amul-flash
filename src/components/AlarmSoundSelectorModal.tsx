@@ -69,7 +69,7 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
           {/* Header */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Restock Alert Tone</Text>
+              <Text style={styles.title}>Custom Notification Sound</Text>
               <Text style={styles.subTitle}>
                 Select the sound played when tracked items drop
               </Text>
@@ -188,7 +188,7 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
             }}
             activeOpacity={0.85}
           >
-            <Text style={styles.doneBtnText}>Save Sound Selection</Text>
+            <Text style={styles.doneBtnText}>Confirm</Text>
           </TouchableOpacity>
         </View>
       </View>

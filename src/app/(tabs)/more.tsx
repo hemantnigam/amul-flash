@@ -21,7 +21,6 @@ import {
   Zap,
   LogOut,
   ChevronRight,
-  Smartphone,
   Edit2,
   Package,
   X,
@@ -51,10 +50,6 @@ export default function AccountScreen() {
     addresses,
     orders,
     isLoadingUserData,
-    heartbeatEnabled,
-    setHeartbeatEnabled,
-    smsRetrieverEnabled,
-    setSmsRetrieverEnabled,
     updateUserProfile,
     loadUserData,
     logout,
@@ -365,52 +360,14 @@ export default function AccountScreen() {
             <ChevronRight size={18} color="#94A3B8" />
           </TouchableOpacity>
 
-          {/* Heartbeat Switch */}
-          <View style={styles.switchRow}>
-            <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#F0FDF4' }]}>
-                <Zap size={18} color="#16A34A" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Auto Session Keeper</Text>
-                <Text style={styles.rowSub}>Maintains active Amul session cookies</Text>
-              </View>
-            </View>
-            <Switch
-              value={heartbeatEnabled}
-              onValueChange={setHeartbeatEnabled}
-              trackColor={{ false: '#E2E8F0', true: '#BFDBFE' }}
-              thumbColor={heartbeatEnabled ? '#2563EB' : '#94A3B8'}
-            />
-          </View>
-
-          {/* SMS Retriever Switch */}
-          <View style={styles.switchRow}>
-            <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#FFF7ED' }]}>
-                <Smartphone size={18} color="#EA580C" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Instant SMS Auto-Fill</Text>
-                <Text style={styles.rowSub}>&lt;500ms drop OTP authentication</Text>
-              </View>
-            </View>
-            <Switch
-              value={smsRetrieverEnabled}
-              onValueChange={setSmsRetrieverEnabled}
-              trackColor={{ false: '#E2E8F0', true: '#BFDBFE' }}
-              thumbColor={smsRetrieverEnabled ? '#2563EB' : '#94A3B8'}
-            />
-          </View>
-
-          {/* In-App Stock Drop Alarm Overlay Switch */}
+          {/* High Priority Alarm Switch */}
           <View style={styles.switchRow}>
             <View style={styles.rowLeft}>
               <View style={[styles.iconBox, { backgroundColor: '#FEF2F2' }]}>
                 <Zap size={18} color="#EF4444" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>In-App Restock Alarm</Text>
+                <Text style={styles.rowTitle}>High Priority Alarm</Text>
                 <Text style={styles.rowSub}>Full-screen alert with continuous sound & quick buy</Text>
               </View>
             </View>
@@ -422,7 +379,7 @@ export default function AccountScreen() {
             />
           </View>
 
-          {/* Restock Sound & Ringtone Picker */}
+          {/* Custom Notification Sound Picker */}
           <TouchableOpacity
             style={styles.cardRow}
             onPress={() => setIsSoundModalVisible(true)}
@@ -433,7 +390,7 @@ export default function AccountScreen() {
                 <Music size={18} color="#4F46E5" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Restock Alert Tone</Text>
+                <Text style={styles.rowTitle}>Custom Notification Sound</Text>
                 <Text style={styles.rowSub}>{currentSound.name} ({currentSound.category})</Text>
               </View>
             </View>
