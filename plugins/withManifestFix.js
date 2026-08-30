@@ -54,11 +54,8 @@ function withLockScreenMainActivity(config) {
   return withMainActivity(config, async (config) => {
     let contents = config.modResults.contents;
 
-    // Check if onCreate already exists or add lock-screen window flags
     if (!contents.includes('setShowWhenLocked')) {
-      const lockScreenCode = `
-  override fun onCreate(savedInstanceState: android.os.Bundle?) {
-    super.onCreate(savedInstanceState)
+      const lockFlagsCode = `
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O_MR1) {
       setShowWhenLocked(true)
       setTurnScreenOn(true)
@@ -69,16 +66,24 @@ function withLockScreenMainActivity(config) {
         android.view.WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
         android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
       )
-    }
-  }
-`;
-      // Inject after class declaration
-      const classMatch = contents.match(/class MainActivity\s*:\s*ReactActivity\(\)\s*\{/);
-      if (classMatch) {
+    }`;
+
+      // 1. If super.onCreate(...) already exists in MainActivity.kt, inject right after it
+      const superOnCreateMatch = contents.match(/super\.onCreate\([^)]*\)/);
+      if (superOnCreateMatch) {
         contents = contents.replace(
-          classMatch[0],
-          `${classMatch[0]}${lockScreenCode}`
+          superOnCreateMatch[0],
+          `${superOnCreateMatch[0]}${lockFlagsCode}`
         );
+      } else {
+        // 2. If onCreate does not exist, define single onCreate
+        const classMatch = contents.match(/class MainActivity\s*:\s*ReactActivity\(\)\s*\{/);
+        if (classMatch) {
+          contents = contents.replace(
+            classMatch[0],
+            `${classMatch[0]}\n  override fun onCreate(savedInstanceState: android.os.Bundle?) {\n    super.onCreate(savedInstanceState)${lockFlagsCode}\n  }\n`
+          );
+        }
       }
     }
 
