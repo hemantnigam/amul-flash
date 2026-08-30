@@ -351,9 +351,9 @@ export default function AccountScreen() {
                 <MapPin size={18} color="#2563EB" />
               </View>
               <View>
-                <Text style={styles.rowTitle}>Radar Delivery Hub</Text>
+                <Text style={styles.rowTitle}>Tracked Pincodes</Text>
                 <Text style={styles.rowSub}>
-                  {selectedPincode?.pincode ? `${selectedPincode.pincode} • ${selectedPincode.label}` : 'Select Delivery Hub'}
+                  {selectedPincode?.pincode ? `${selectedPincode.pincode} • ${selectedPincode.label}` : 'Select Tracked Pincode'}
                 </Text>
               </View>
             </View>
