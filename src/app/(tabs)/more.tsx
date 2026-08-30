@@ -62,6 +62,8 @@ export default function AccountScreen() {
   const {
     selectedPincode,
     selectedAlarmSoundId,
+    alarmOverlayEnabled,
+    setAlarmOverlayEnabled,
     triggerSimulatedDrop,
     isSimulatingDrop,
   } = useStockStore();
@@ -378,6 +380,25 @@ export default function AccountScreen() {
               onValueChange={setSmsRetrieverEnabled}
               trackColor={{ false: '#E2E8F0', true: '#BFDBFE' }}
               thumbColor={smsRetrieverEnabled ? '#2563EB' : '#94A3B8'}
+            />
+          </View>
+
+          {/* In-App Stock Drop Alarm Overlay Switch */}
+          <View style={styles.switchRow}>
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#FEF2F2' }]}>
+                <Zap size={18} color="#EF4444" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>In-App Restock Alarm</Text>
+                <Text style={styles.rowSub}>Full-screen alert with continuous sound & quick buy</Text>
+              </View>
+            </View>
+            <Switch
+              value={alarmOverlayEnabled}
+              onValueChange={setAlarmOverlayEnabled}
+              trackColor={{ false: '#E2E8F0', true: '#FECACA' }}
+              thumbColor={alarmOverlayEnabled ? '#EF4444' : '#94A3B8'}
             />
           </View>
 

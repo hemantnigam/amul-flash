@@ -10,13 +10,9 @@ import {
 import { AppText as Text } from './AppText';
 import {
   X,
-  Volume2,
+  Play,
   Square,
   Check,
-  Music,
-  Radio,
-  Sparkles,
-  Zap,
 } from 'lucide-react-native';
 import { LOCAL_ALARM_SOUNDS, LocalSoundItem } from '../constants/alarmSounds';
 import { useStockStore } from '../store/useStockStore';
@@ -58,21 +54,6 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
     setPlayingId(null);
   };
 
-  const getCategoryIcon = (category: string) => {
-    switch (category.toLowerCase()) {
-      case 'digital':
-      case 'buzzer':
-        return <Radio size={16} color="#2563EB" />;
-      case 'alert':
-      case 'siren':
-        return <Zap size={16} color="#EA580C" />;
-      case 'celebration':
-        return <Sparkles size={16} color="#CA8A04" />;
-      default:
-        return <Music size={16} color="#7C3AED" />;
-    }
-  };
-
   return (
     <Modal
       visible={visible}
@@ -88,7 +69,7 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
           {/* Header */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Restock Alert Ringtone</Text>
+              <Text style={styles.title}>Restock Alert Tone</Text>
               <Text style={styles.subTitle}>
                 Select the sound played when tracked items drop
               </Text>
@@ -123,67 +104,76 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
                     isSelected && styles.soundCardSelected,
                   ]}
                 >
-                  {/* Left Selectable Area */}
+                  {/* Left: Play / Pause Preview Button */}
+                  <TouchableOpacity
+                    style={[
+                      styles.playBtn,
+                      isPlaying && styles.playBtnActive,
+                      isSelected && !isPlaying && styles.playBtnSelected,
+                    ]}
+                    onPress={() => handleTogglePlay(item)}
+                    activeOpacity={0.8}
+                  >
+                    {isPlaying ? (
+                      <Square size={14} color="#FFFFFF" fill="#FFFFFF" />
+                    ) : (
+                      <Play
+                        size={15}
+                        color={isSelected ? '#2563EB' : '#475569'}
+                        fill={isSelected ? '#2563EB' : '#475569'}
+                        style={{ marginLeft: 2 }}
+                      />
+                    )}
+                  </TouchableOpacity>
+
+                  {/* Middle: Sound Title, Category & Description */}
                   <TouchableOpacity
                     style={styles.soundInfoArea}
                     onPress={() => handleSelectSound(item)}
                     activeOpacity={0.7}
                   >
-                    <View
-                      style={[
-                        styles.iconBox,
-                        isSelected && { backgroundColor: '#EFF6FF' },
-                      ]}
-                    >
-                      {getCategoryIcon(item.category)}
-                    </View>
-
-                    <View style={{ flex: 1 }}>
-                      <View style={styles.titleRow}>
+                    <View style={styles.titleRow}>
+                      <Text
+                        style={[
+                          styles.soundName,
+                          isSelected && styles.soundNameSelected,
+                        ]}
+                      >
+                        {item.name}
+                      </Text>
+                      <View
+                        style={[
+                          styles.categoryBadge,
+                          isSelected && styles.categoryBadgeSelected,
+                        ]}
+                      >
                         <Text
                           style={[
-                            styles.soundName,
-                            isSelected && styles.soundNameSelected,
+                            styles.categoryBadgeText,
+                            isSelected && styles.categoryBadgeTextSelected,
                           ]}
                         >
-                          {item.name}
+                          {item.category}
                         </Text>
-                        <View style={styles.categoryBadge}>
-                          <Text style={styles.categoryBadgeText}>
-                            {item.category}
-                          </Text>
-                        </View>
                       </View>
-                      <Text style={styles.soundDesc}>{item.description}</Text>
                     </View>
+                    <Text style={styles.soundDesc}>{item.description}</Text>
                   </TouchableOpacity>
 
-                  {/* Right: Preview Play/Stop Button & Selected Checkmark */}
-                  <View style={styles.actionsRight}>
-                    <TouchableOpacity
-                      style={[
-                        styles.playBtn,
-                        isPlaying && styles.playBtnActive,
-                      ]}
-                      onPress={() => handleTogglePlay(item)}
-                      activeOpacity={0.8}
-                    >
-                      {isPlaying ? (
-                        <Square size={14} color="#FFFFFF" fill="#FFFFFF" />
-                      ) : (
-                        <Volume2
-                          size={16}
-                          color={isSelected ? '#2563EB' : '#64748B'}
-                        />
-                      )}
-                    </TouchableOpacity>
-
-                    {isSelected && (
+                  {/* Right: Selection Checkmark */}
+                  <TouchableOpacity
+                    style={styles.rightAction}
+                    onPress={() => handleSelectSound(item)}
+                    activeOpacity={0.7}
+                  >
+                    {isSelected ? (
                       <View style={styles.checkCircle}>
                         <Check size={14} color="#FFFFFF" strokeWidth={3} />
                       </View>
+                    ) : (
+                      <View style={styles.unselectedRadio} />
                     )}
-                  </View>
+                  </TouchableOpacity>
                 </View>
               );
             })}
@@ -257,33 +247,45 @@ const styles = StyleSheet.create({
   soundCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: '#F8FAFC',
     borderRadius: 16,
-    padding: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     marginBottom: 10,
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
+    gap: 12,
   },
   soundCardSelected: {
     backgroundColor: '#F0F7FF',
     borderColor: '#2563EB',
   },
-  soundInfoArea: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  iconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+  playBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#CBD5E1',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  playBtnSelected: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#93C5FD',
+  },
+  playBtnActive: {
+    backgroundColor: '#EF4444',
+    borderColor: '#EF4444',
+  },
+  soundInfoArea: {
+    flex: 1,
+    justifyContent: 'center',
   },
   titleRow: {
     flexDirection: 'row',
@@ -300,14 +302,20 @@ const styles = StyleSheet.create({
     color: '#1D4ED8',
   },
   categoryBadge: {
-    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+    backgroundColor: 'rgba(100, 116, 139, 0.1)',
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 4,
   },
+  categoryBadgeSelected: {
+    backgroundColor: 'rgba(37, 99, 235, 0.12)',
+  },
   categoryBadgeText: {
     fontSize: 10,
     fontWeight: '700',
+    color: '#64748B',
+  },
+  categoryBadgeTextSelected: {
     color: '#2563EB',
   },
   soundDesc: {
@@ -315,25 +323,8 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: 2,
   },
-  actionsRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginLeft: 8,
-  },
-  playBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-  },
-  playBtnActive: {
-    backgroundColor: '#EF4444',
-    borderColor: '#EF4444',
+  rightAction: {
+    padding: 4,
   },
   checkCircle: {
     width: 22,
@@ -342,6 +333,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#2563EB',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  unselectedRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
   },
   doneBtn: {
     backgroundColor: '#2563EB',

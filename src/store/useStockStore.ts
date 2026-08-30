@@ -3,6 +3,7 @@ import { AmulProduct, PincodeLocation, ActivityLog, RestockEvent, AmulCategory }
 import { AmulApiClient } from '../services/amulApi';
 import { stockRadarService } from '../services/radarService';
 import { NotificationService } from '../services/notificationService';
+import { alarmSoundService } from '../services/alarmSoundService';
 
 interface StockStoreState {
   products: AmulProduct[];
@@ -18,6 +19,8 @@ interface StockStoreState {
   trackedProductsMap: Record<string, AmulProduct>;
   allProductsMap: Record<string, AmulProduct>;
   selectedAlarmSoundId: string;
+  activeAlarmEvent: RestockEvent | null;
+  alarmOverlayEnabled: boolean;
 
   loadInitialData: (sessionCookie?: string) => Promise<void>;
   setSelectedCategory: (categorySlug: string, sessionCookie?: string) => Promise<void>;
@@ -28,6 +31,9 @@ interface StockStoreState {
   toggleAutoCartForProduct: (productId: string, productObj?: AmulProduct) => void;
   triggerSimulatedDrop: (productId?: string) => Promise<void>;
   dismissDropAlert: () => void;
+  triggerAlarmEvent: (event: RestockEvent) => void;
+  dismissAlarmEvent: () => void;
+  setAlarmOverlayEnabled: (enabled: boolean) => void;
   setSelectedAlarmSoundId: (soundId: string) => void;
   addActivityLog: (log: Omit<ActivityLog, 'id' | 'timestamp'>) => void;
   refreshStock: (sessionCookie?: string) => Promise<void>;
@@ -51,6 +57,8 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
   selectedPincode: DEFAULT_USER_PINCODE,
   activityLogs: [],
   activeDropAlert: null,
+  activeAlarmEvent: null,
+  alarmOverlayEnabled: true,
   isSimulatingDrop: false,
   isLoadingProducts: false,
   lastUpdated: Date.now(),
@@ -281,11 +289,8 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       variantName: targetProduct.variants[0]?.name || 'Standard Pack',
     };
 
-    set({
-      activeDropAlert: dropEvent,
-      isSimulatingDrop: false,
-      lastUpdated: Date.now(),
-    });
+    // Trigger in-app full screen alarm overlay + continuous audio
+    get().triggerAlarmEvent(dropEvent);
 
     // Send standard push notification with selected sound
     await NotificationService.sendRestockNotification(
@@ -308,8 +313,25 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     });
   },
 
+  triggerAlarmEvent: (event: RestockEvent) => {
+    if (get().alarmOverlayEnabled) {
+      alarmSoundService.startAlarm(get().selectedAlarmSoundId);
+      set({ activeAlarmEvent: event, activeDropAlert: event });
+    }
+  },
+
+  dismissAlarmEvent: () => {
+    alarmSoundService.stopAlarm();
+    set({ activeAlarmEvent: null });
+  },
+
+  setAlarmOverlayEnabled: (enabled: boolean) => {
+    set({ alarmOverlayEnabled: enabled });
+  },
+
   dismissDropAlert: () => {
-    set({ activeDropAlert: null });
+    alarmSoundService.stopAlarm();
+    set({ activeDropAlert: null, activeAlarmEvent: null });
   },
 
   setSelectedAlarmSoundId: (soundId: string) => {

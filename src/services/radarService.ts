@@ -66,10 +66,8 @@ class StockRadarService {
             variantName: liveProd.variants[0]?.name || 'Standard',
           };
 
-          // 1. Show in-app banner if user is currently inside app
-          useStockStore.setState({
-            activeDropAlert: restockEvent,
-          });
+          // 1. Show in-app full screen alarm overlay + banner
+          useStockStore.getState().triggerAlarmEvent(restockEvent);
 
           // 2. Dispatch High-Priority Restock Notification
           await NotificationService.sendRestockNotification(

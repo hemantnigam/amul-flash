@@ -7,6 +7,8 @@ import { NotificationService } from '../services/notificationService';
 import { useSessionStore } from '../store/useSessionStore';
 import { AmulApiClient } from '../services/amulApi';
 import { BrandLogoHeader } from '../components/BrandLogoHeader';
+import { FullScreenAlarmOverlay } from '../components/FullScreenAlarmOverlay';
+import { useStockStore } from '../store/useStockStore';
 
 import {
   useFonts,
@@ -48,8 +50,18 @@ export default function RootLayout() {
     if (notifeeModule && notifeeModule.getInitialNotification) {
       notifeeModule.getInitialNotification().then((initialNotification: any) => {
         const prodId = initialNotification?.notification?.data?.productId;
+        const pincode = initialNotification?.notification?.data?.pincode;
         if (prodId) {
-          router.push(`/product/${prodId}`);
+          useStockStore.getState().triggerAlarmEvent({
+            id: `drop_${Date.now()}_${prodId}`,
+            productId: prodId,
+            productName: initialNotification?.notification?.title || 'Amul Restock Alert',
+            pincode: pincode || useStockStore.getState().selectedPincode.pincode,
+            timestamp: Date.now(),
+            unitsAdded: 30,
+            survivalDurationSecs: 180,
+            variantName: 'Standard Pack',
+          });
         }
       });
     }
@@ -60,8 +72,18 @@ export default function RootLayout() {
         // Type 1 = PRESS, Type 2 = ACTION_PRESS
         if (type === 1 || type === 2) {
           const prodId = detail?.notification?.data?.productId;
+          const pincode = detail?.notification?.data?.pincode;
           if (prodId) {
-            router.push(`/product/${prodId}`);
+            useStockStore.getState().triggerAlarmEvent({
+              id: `drop_${Date.now()}_${prodId}`,
+              productId: prodId,
+              productName: detail?.notification?.title || 'Amul Restock Alert',
+              pincode: pincode || useStockStore.getState().selectedPincode.pincode,
+              timestamp: Date.now(),
+              unitsAdded: 30,
+              survivalDurationSecs: 180,
+              variantName: 'Standard Pack',
+            });
           }
         }
       });
@@ -147,6 +169,7 @@ export default function RootLayout() {
           }}
         />
       </Stack>
+      <FullScreenAlarmOverlay />
     </SafeAreaProvider>
   );
 }
