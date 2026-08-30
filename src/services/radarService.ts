@@ -45,16 +45,17 @@ class StockRadarService {
       const liveProducts = await AmulApiClient.fetchStoreProducts(category, storeId);
       if (!liveProducts || liveProducts.length === 0) return;
 
-      const trackedMap = state.trackedProductsMap;
+      const trackedMap = state.trackedProductsMap || {};
       const soundId = state.selectedAlarmSoundId || 'digital_clock_beep';
 
       for (const liveProd of liveProducts) {
         const isNowInStock = Boolean(liveProd.variants[0]?.isInStock);
         const wasInStock = this.previousStockMap[liveProd.id];
+        const isTracked = Boolean(trackedMap[liveProd.id]);
 
-        // Detect Transition: OUT OF STOCK -> IN STOCK (Real Restock Drop from Amul API!)
-        if (wasInStock === false && isNowInStock === true) {
-          console.log(`🚨 [StockRadarService] LIVE RESTOCK DETECTED via API for: ${liveProd.title}!`);
+        // Detect Transition: OUT OF STOCK -> IN STOCK for TRACKED items ONLY!
+        if (isTracked && wasInStock === false && isNowInStock === true) {
+          console.log(`🚨 [StockRadarService] TRACKED RESTOCK DETECTED via API for: ${liveProd.title}!`);
 
           const restockEvent: RestockEvent = {
             id: `drop_${Date.now()}_${liveProd.id}`,
