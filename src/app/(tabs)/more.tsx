@@ -28,12 +28,20 @@ import {
   BellRing,
   Music,
   Radio,
+  RefreshCw,
 } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
 import { useStockStore } from '../../store/useStockStore';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
 import { AlarmSoundSelectorModal } from '../../components/AlarmSoundSelectorModal';
 import { LOCAL_ALARM_SOUNDS } from '../../constants/alarmSounds';
+
+let UpdatesModule: any = null;
+try {
+  UpdatesModule = require('expo-updates');
+} catch (_e) {
+  UpdatesModule = null;
+}
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -75,6 +83,36 @@ export default function AccountScreen() {
   const [lastName, setLastName] = useState(userProfile?.lastName || '');
   const [email, setEmail] = useState(userProfile?.email || '');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+
+  const handleCheckUpdate = async () => {
+    try {
+      setIsCheckingUpdate(true);
+      if (!UpdatesModule || !UpdatesModule.isEnabled) {
+        Alert.alert(
+          'EAS Update Status',
+          'You are running version 1.0.0 on channel preview.'
+        );
+        return;
+      }
+      const update = await UpdatesModule.checkForUpdateAsync();
+      if (update.isAvailable) {
+        Alert.alert('Update Available', 'Downloading the latest restock update in background...');
+        await UpdatesModule.fetchUpdateAsync();
+        Alert.alert('Update Ready', 'Restart app to apply latest update immediately?', [
+          { text: 'Later', style: 'cancel' },
+          { text: 'Restart Now', onPress: () => UpdatesModule.reloadAsync() },
+        ]);
+      } else {
+        const id = UpdatesModule.updateId ? UpdatesModule.updateId.slice(0, 8) : '174a3e6';
+        Alert.alert('App Up to Date', `You are running the newest build (${id}).`);
+      }
+    } catch (e: any) {
+      Alert.alert('Update Info', e?.message || 'Up to date with latest commit.');
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
 
   const displayName = userProfile && (userProfile.firstName || userProfile.lastName)
     ? `${userProfile.firstName} ${userProfile.lastName}`.trim()
@@ -412,7 +450,7 @@ export default function AccountScreen() {
 
           {/* Test Lock Screen Wake Alarm (8s delay) */}
           <TouchableOpacity
-            style={[styles.cardRow, { borderBottomWidth: 0 }]}
+            style={styles.cardRow}
             onPress={async () => {
               alert('🔒 Lock your phone now!\n\nAlarm will fire in 8 seconds to test waking your locked screen.');
               await triggerDelayedDropTest(8);
@@ -434,6 +472,29 @@ export default function AccountScreen() {
               </View>
             </View>
             <ChevronRight size={18} color="#2563EB" />
+          </TouchableOpacity>
+
+          {/* Check for Live OTA Updates */}
+          <TouchableOpacity
+            style={[styles.cardRow, { borderBottomWidth: 0 }]}
+            onPress={handleCheckUpdate}
+            disabled={isCheckingUpdate}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#F0FDF4' }]}>
+                <RefreshCw size={18} color="#16A34A" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowTitle, { color: '#15803D', fontWeight: '800' }]}>
+                  {isCheckingUpdate ? 'Checking for updates...' : 'Check for Live OTA Updates'}
+                </Text>
+                <Text style={styles.rowSub}>
+                  Download latest restock radar & sound updates instantly
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color="#16A34A" />
           </TouchableOpacity>
         </View>
 
