@@ -165,9 +165,10 @@ export default function LoginScreen() {
                   </View>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="Enter 10-digit mobile number"
+                    placeholder="10-digit mobile number"
                     placeholderTextColor="#94A3B8"
                     keyboardType="phone-pad"
+                    autoComplete="tel"
                     maxLength={10}
                     value={mobile}
                     onChangeText={setMobile}
@@ -400,11 +401,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   countryCodeBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
     backgroundColor: '#F1F5F9',
     borderRightWidth: 1,
     borderRightColor: '#E2E8F0',
+    justifyContent: 'center',
   },
   countryCodeText: {
     fontSize: 14,
@@ -413,10 +415,10 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: '600',
     color: '#0F172A',
-    paddingHorizontal: 14,
+    paddingHorizontal: 10,
     paddingVertical: 12,
   },
   primaryButton: {
