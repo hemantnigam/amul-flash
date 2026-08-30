@@ -26,11 +26,14 @@ import {
   Package,
   X,
   BellRing,
+  Music,
   RefreshCw,
 } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
 import { useStockStore } from '../../store/useStockStore';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
+import { AlarmSoundSelectorModal } from '../../components/AlarmSoundSelectorModal';
+import { LOCAL_ALARM_SOUNDS } from '../../constants/alarmSounds';
 
 let UpdatesModule: any = null;
 try {
@@ -58,11 +61,16 @@ export default function AccountScreen() {
 
   const {
     selectedPincode,
+    selectedAlarmSoundId,
     triggerSimulatedDrop,
     isSimulatingDrop,
   } = useStockStore();
 
   const [isPincodeModalVisible, setIsPincodeModalVisible] = useState(false);
+  const [isSoundModalVisible, setIsSoundModalVisible] = useState(false);
+
+  const currentSound =
+    LOCAL_ALARM_SOUNDS.find((s) => s.id === selectedAlarmSoundId) || LOCAL_ALARM_SOUNDS[0];
 
   // Profile Edit Modal State
   const [isEditProfileVisible, setIsEditProfileVisible] = useState(false);
@@ -373,6 +381,24 @@ export default function AccountScreen() {
             />
           </View>
 
+          {/* Restock Sound & Ringtone Picker */}
+          <TouchableOpacity
+            style={styles.cardRow}
+            onPress={() => setIsSoundModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#EEF2FF' }]}>
+                <Music size={18} color="#4F46E5" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>Restock Alert Tone</Text>
+                <Text style={styles.rowSub}>{currentSound.name} ({currentSound.category})</Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color="#94A3B8" />
+          </TouchableOpacity>
+
           {/* Tap to test live restock notification */}
           <TouchableOpacity
             style={styles.cardRow}
@@ -433,6 +459,12 @@ export default function AccountScreen() {
       <PincodeSelectorModal
         visible={isPincodeModalVisible}
         onClose={() => setIsPincodeModalVisible(false)}
+      />
+
+      {/* Alarm Sound Picker Modal */}
+      <AlarmSoundSelectorModal
+        visible={isSoundModalVisible}
+        onClose={() => setIsSoundModalVisible(false)}
       />
 
       {/* Edit Profile Modal */}

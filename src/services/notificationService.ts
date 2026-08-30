@@ -1,4 +1,6 @@
 import { Platform } from 'react-native';
+import { LOCAL_ALARM_SOUNDS, LocalSoundItem } from '../constants/alarmSounds';
+import { alarmSoundService } from './alarmSoundService';
 
 export interface NotificationPayload {
   title: string;
@@ -76,8 +78,16 @@ export const NotificationService = {
     }
   },
 
-  async sendRestockNotification(payload: NotificationPayload) {
+  async sendRestockNotification(payload: NotificationPayload, soundId: string = 'digital_clock_beep') {
     if (Platform.OS === 'web') return;
+
+    const soundItem: LocalSoundItem =
+      LOCAL_ALARM_SOUNDS.find((s) => s.id === soundId) || LOCAL_ALARM_SOUNDS[0];
+
+    // Trigger custom audio playback via expo-audio
+    try {
+      alarmSoundService.previewSound(soundItem.id);
+    } catch (_e) {}
 
     // 1. Primary delivery via Notifee
     if (notifeeModule && notifeeModule.displayNotification) {
@@ -104,7 +114,7 @@ export const NotificationService = {
             sound: 'default',
           },
         });
-        console.log('🔔 [NotificationService] Restock notification dispatched:', payload.title);
+        console.log('🔔 [NotificationService] Restock notification dispatched with sound:', soundItem.name);
         return;
       } catch (err) {
         console.log('❌ [NotificationService displayNotification error]:', err);

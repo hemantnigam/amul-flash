@@ -17,6 +17,7 @@ interface StockStoreState {
   lastUpdated: number;
   trackedProductsMap: Record<string, AmulProduct>;
   allProductsMap: Record<string, AmulProduct>;
+  selectedAlarmSoundId: string;
 
   loadInitialData: (sessionCookie?: string) => Promise<void>;
   setSelectedCategory: (categorySlug: string, sessionCookie?: string) => Promise<void>;
@@ -27,6 +28,7 @@ interface StockStoreState {
   toggleAutoCartForProduct: (productId: string, productObj?: AmulProduct) => void;
   triggerSimulatedDrop: (productId?: string) => Promise<void>;
   dismissDropAlert: () => void;
+  setSelectedAlarmSoundId: (soundId: string) => void;
   addActivityLog: (log: Omit<ActivityLog, 'id' | 'timestamp'>) => void;
   refreshStock: (sessionCookie?: string) => Promise<void>;
   fetchAllCategoriesProducts: (sessionCookie?: string) => Promise<void>;
@@ -54,6 +56,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
   lastUpdated: Date.now(),
   trackedProductsMap: {},
   allProductsMap: {},
+  selectedAlarmSoundId: 'digital_clock_beep',
 
   loadInitialData: async (sessionCookie?: string) => {
     set({ isLoadingProducts: true });
@@ -284,13 +287,16 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       lastUpdated: Date.now(),
     });
 
-    // Send standard push notification
-    await NotificationService.sendRestockNotification({
-      title: `⚡ Restock Alert: ${targetProduct.title}`,
-      body: `Stock is now live for Hub ${state.selectedPincode.pincode || '110044'}! Tap to view.`,
-      productId: targetProduct.id,
-      pincode: state.selectedPincode.pincode || '110044',
-    });
+    // Send standard push notification with selected sound
+    await NotificationService.sendRestockNotification(
+      {
+        title: `⚡ Restock Alert: ${targetProduct.title}`,
+        body: `Stock is now live for Hub ${state.selectedPincode.pincode || '110044'}! Tap to view.`,
+        productId: targetProduct.id,
+        pincode: state.selectedPincode.pincode || '110044',
+      },
+      state.selectedAlarmSoundId || 'digital_clock_beep'
+    );
 
     // Stock Tracker Log
     get().addActivityLog({
@@ -304,6 +310,10 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
   dismissDropAlert: () => {
     set({ activeDropAlert: null });
+  },
+
+  setSelectedAlarmSoundId: (soundId: string) => {
+    set({ selectedAlarmSoundId: soundId });
   },
 
   addActivityLog: (log) => {

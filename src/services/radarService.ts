@@ -72,12 +72,15 @@ class StockRadarService {
           });
 
           // 2. Dispatch High-Priority Restock Notification
-          await NotificationService.sendRestockNotification({
-            title: `⚡ Restock Alert: ${liveProd.title}`,
-            body: `Stock is now live for Pincode ${pincode}! Tap to buy now.`,
-            productId: liveProd.id,
-            pincode: pincode,
-          });
+          await NotificationService.sendRestockNotification(
+            {
+              title: `⚡ Restock Alert: ${liveProd.title}`,
+              body: `Stock is now live for Pincode ${pincode}! Tap to buy now.`,
+              productId: liveProd.id,
+              pincode: pincode,
+            },
+            state.selectedAlarmSoundId || 'digital_clock_beep'
+          );
 
           // 3. Log to Activity Feed
           state.addActivityLog({
