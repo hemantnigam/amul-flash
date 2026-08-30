@@ -27,6 +27,7 @@ import {
   X,
   BellRing,
   Music,
+  Radio,
 } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
 import { useStockStore } from '../../store/useStockStore';
@@ -57,6 +58,7 @@ export default function AccountScreen() {
     setAlarmOverlayEnabled,
     selectedAlarmSoundId,
     triggerSimulatedDrop,
+    triggerDelayedDropTest,
     isSimulatingDrop,
   } = useStockStore();
 
@@ -385,7 +387,7 @@ export default function AccountScreen() {
 
           {/* Tap to test live restock notification */}
           <TouchableOpacity
-            style={[styles.cardRow, { borderBottomWidth: 0 }]}
+            style={styles.cardRow}
             onPress={async () => {
               await triggerSimulatedDrop();
             }}
@@ -398,14 +400,40 @@ export default function AccountScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.rowTitle, { color: '#C2410C', fontWeight: '800' }]}>
-                  Tap to test live restock notification
+                  Test Instant Alarm
                 </Text>
                 <Text style={styles.rowSub}>
-                  {isSimulatingDrop ? 'Simulating restock...' : 'Triggers simulated drop & tests full-screen alarm'}
+                  {isSimulatingDrop ? 'Simulating restock...' : 'Triggers full-screen clock alarm overlay immediately'}
                 </Text>
               </View>
             </View>
             <ChevronRight size={18} color="#EA580C" />
+          </TouchableOpacity>
+
+          {/* Test Lock Screen Wake Alarm (8s delay) */}
+          <TouchableOpacity
+            style={[styles.cardRow, { borderBottomWidth: 0 }]}
+            onPress={async () => {
+              alert('🔒 Lock your phone now!\n\nAlarm will fire in 8 seconds to test waking your locked screen.');
+              await triggerDelayedDropTest(8);
+            }}
+            disabled={isSimulatingDrop}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#EFF6FF' }]}>
+                <Radio size={18} color="#2563EB" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowTitle, { color: '#1D4ED8', fontWeight: '800' }]}>
+                  Test Lock-Screen Wake Alarm (8s delay)
+                </Text>
+                <Text style={styles.rowSub}>
+                  Tap this, lock your phone, and watch the alarm wake your locked screen
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color="#2563EB" />
           </TouchableOpacity>
         </View>
 

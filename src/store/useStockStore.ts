@@ -3,6 +3,7 @@ import { AmulProduct, AmulCategory, PincodeLocation, ActivityLog, RestockEvent }
 import { NotificationService } from '../services/notificationService';
 import { AmulApiClient, DEFAULT_CATEGORIES } from '../services/amulApi';
 import { alarmSoundService } from '../services/alarmSoundService';
+import { stockRadarService } from '../services/radarService';
 
 interface StockStoreState {
   products: AmulProduct[];
@@ -29,6 +30,7 @@ interface StockStoreState {
   syncPincodesFromAddresses: (addresses: any[]) => void;
   toggleAutoCartForProduct: (productId: string, productObj?: AmulProduct) => void;
   triggerSimulatedDrop: (productId?: string) => Promise<void>;
+  triggerDelayedDropTest: (delaySeconds?: number) => Promise<void>;
   dismissDropAlert: () => void;
   setAlarmOverlayEnabled: (enabled: boolean) => void;
   setSelectedAlarmSoundId: (soundId: string) => void;
@@ -65,7 +67,6 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
   trackedProductsMap: {},
   allProductsMap: {},
 
-
   loadInitialData: async (sessionCookie?: string) => {
     set({ isLoadingProducts: true });
     try {
@@ -74,7 +75,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       const activeCategories = liveCategories.length > 0 ? liveCategories : DEFAULT_CATEGORIES;
       set({ categories: activeCategories });
 
-      // 2. Fetch live products for selected category
+      // 2. Fetch live products for selected category from Amul API
       const substoreId = get().selectedPincode.storeId || '66505ff5145c16635e6cc74d';
       const liveProducts = await AmulApiClient.fetchStoreProducts(get().selectedCategory, substoreId, sessionCookie);
 
@@ -96,8 +97,11 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
         lastUpdated: Date.now(),
       });
 
-      // 3. Background pre-fetch remaining categories for global search
+      // 3. Background pre-fetch remaining categories
       get().fetchAllCategoriesProducts(sessionCookie);
+
+      // 4. Start Live Stock Radar Polling
+      stockRadarService.startMonitoring();
     } catch (e) {
       set({ isLoadingProducts: false });
     }
@@ -137,7 +141,6 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       const categories = get().categories || DEFAULT_CATEGORIES;
       const trackedMap = get().trackedProductsMap;
 
-      // Pre-fetch top 6 popular categories in background
       const priorityCats = categories.slice(0, 6);
       for (const cat of priorityCats) {
         if (cat.slug !== get().selectedCategory) {
@@ -283,21 +286,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
     set({ isSimulatingDrop: true });
 
-    // 1. Update product to In Stock with 30 units
-    const updatedProducts = state.products.map((p) => {
-      if (p.id === targetProduct.id) {
-        return {
-          ...p,
-          variants: p.variants.map((v) => ({
-            ...v,
-            isInStock: true,
-            stockCount: 30,
-          })),
-        };
-      }
-      return p;
-    });
-
+    // Create the restock drop event payload (WITHOUT mutating real product in-stock state)
     const dropEvent: RestockEvent = {
       id: `drop_${Date.now()}`,
       productId: targetProduct.id,
@@ -312,7 +301,6 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     if (state.alarmOverlayEnabled) {
       alarmSoundService.startAlarm(state.selectedAlarmSoundId);
       set({
-        products: updatedProducts,
         activeDropAlert: dropEvent,
         activeAlarmEvent: dropEvent,
         isSimulatingDrop: false,
@@ -320,32 +308,38 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       });
     } else {
       set({
-        products: updatedProducts,
         activeDropAlert: dropEvent,
         isSimulatingDrop: false,
         lastUpdated: Date.now(),
       });
     }
 
-    // 2. Play Emergency Alarm & Notification
+    // Play Emergency Alarm & Notification
     await NotificationService.triggerEmergencyAlarm(
       {
-        title: `⚡ FLASH DROP: ${targetProduct.title}`,
-        body: `30 units restocked for Pincode ${state.selectedPincode.pincode}! Stock live now!`,
+        title: `⚡ TEST RESTOCK DROP: ${targetProduct.title}`,
+        body: `Testing alarm sound & overlay for Pincode ${state.selectedPincode.pincode}!`,
         productId: targetProduct.id,
         pincode: state.selectedPincode.pincode,
       },
       state.selectedAlarmSoundId
     );
 
-    // 3. Stock Tracker Log
+    // Stock Tracker Log
     get().addActivityLog({
       type: 'restock',
-      title: `Stock Live: ${targetProduct.title}`,
-      description: `Restocked 30 units for Hub ${state.selectedPincode.pincode}`,
+      title: `Test Drop Alert: ${targetProduct.title}`,
+      description: `Alarm tested for Hub ${state.selectedPincode.pincode}`,
       pincode: state.selectedPincode.pincode,
       status: 'success',
     });
+  },
+
+  triggerDelayedDropTest: async (delaySeconds = 8) => {
+    console.log(`⏱️ [triggerDelayedDropTest] Alarm scheduled to fire in ${delaySeconds} seconds. Lock screen now to test!`);
+    setTimeout(async () => {
+      await get().triggerSimulatedDrop();
+    }, delaySeconds * 1000);
   },
 
   setAlarmOverlayEnabled: (enabled: boolean) => {
