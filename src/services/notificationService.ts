@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import { LOCAL_ALARM_SOUNDS, LocalSoundItem } from '../constants/alarmSounds';
 
 export interface NotificationPayload {
@@ -16,7 +16,7 @@ try {
   notifeeModule = null;
 }
 
-const VISUAL_ALERT_CHANNEL_ID = 'amul_restock_emergency_alarm_v16';
+const VISUAL_ALERT_CHANNEL_ID = 'amul_restock_emergency_alarm_v17';
 
 async function ensureAlertChannel(): Promise<string> {
   if (!notifeeModule || Platform.OS !== 'android') return VISUAL_ALERT_CHANNEL_ID;
@@ -52,6 +52,34 @@ export const NotificationService = {
       } catch (err) {
         console.log('⚠️ [Notifee initialize error]:', err);
       }
+    }
+  },
+
+  async checkAndRequestAlarmPermission(): Promise<boolean> {
+    if (Platform.OS !== 'android' || !notifeeModule) return true;
+    try {
+      const settings = await notifeeModule.getNotificationSettings();
+      console.log('📱 [NotificationService] Android Alarm Permission:', settings.android?.alarm);
+      if (settings.android?.alarm === 0) {
+        Alert.alert(
+          '⏰ Exact Alarm Permission Needed',
+          'To wake your phone screen at the exact second a restock occurs while your phone is locked, Android requires "Alarms & Reminders" permission.\n\nPlease toggle it ON in the next screen.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Open Settings',
+              onPress: async () => {
+                await notifeeModule.openAlarmSettings();
+              },
+            },
+          ]
+        );
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.log('⚠️ [checkAndRequestAlarmPermission error]:', e);
+      return true;
     }
   },
 

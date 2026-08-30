@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   KeyboardAvoidingView,
+  Linking,
 } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import { AppTextInput as TextInput } from '../../components/AppTextInput';
@@ -29,9 +30,11 @@ import {
   Music,
   Radio,
   RefreshCw,
+  ShieldCheck,
 } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
 import { useStockStore } from '../../store/useStockStore';
+import { NotificationService } from '../../services/notificationService';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
 import { AlarmSoundSelectorModal } from '../../components/AlarmSoundSelectorModal';
 import { LOCAL_ALARM_SOUNDS } from '../../constants/alarmSounds';
@@ -41,6 +44,13 @@ try {
   UpdatesModule = require('expo-updates');
 } catch (_e) {
   UpdatesModule = null;
+}
+
+let notifeeModule: any = null;
+try {
+  notifeeModule = require('@notifee/react-native').default;
+} catch (_e) {
+  notifeeModule = null;
 }
 
 export default function AccountScreen() {
@@ -116,7 +126,22 @@ export default function AccountScreen() {
 
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
 
+  const handleOpenAlarmSettings = async () => {
+    try {
+      if (notifeeModule && notifeeModule.openAlarmSettings) {
+        await notifeeModule.openAlarmSettings();
+      } else {
+        await Linking.openSettings();
+      }
+    } catch (_e) {
+      Linking.openSettings();
+    }
+  };
+
   const startCountdownTest = async () => {
+    const hasPermission = await NotificationService.checkAndRequestAlarmPermission();
+    if (!hasPermission) return;
+
     setCountdownSeconds(8);
     await triggerDelayedDropTest(8);
   };
@@ -488,6 +513,28 @@ export default function AccountScreen() {
               </View>
             </View>
             <ChevronRight size={18} color="#2563EB" />
+          </TouchableOpacity>
+
+          {/* Alarm & Lock Screen Permissions */}
+          <TouchableOpacity
+            style={styles.cardRow}
+            onPress={handleOpenAlarmSettings}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#FAF5FF' }]}>
+                <ShieldCheck size={18} color="#9333EA" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowTitle, { color: '#7E22CE', fontWeight: '800' }]}>
+                  Alarm & Lock Screen Permissions
+                </Text>
+                <Text style={styles.rowSub}>
+                  Ensure "Alarms & Reminders" is allowed to wake screen on time
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color="#9333EA" />
           </TouchableOpacity>
 
           {/* Check for Live OTA Updates */}
