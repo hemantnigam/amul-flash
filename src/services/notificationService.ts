@@ -66,6 +66,10 @@ export const NotificationService = {
         await notifeeModule.displayNotification({
           title: payload.title,
           body: payload.body,
+          data: {
+            productId: payload.productId || '',
+            pincode: payload.pincode || '',
+          },
           android: {
             channelId: channelId,
             importance: 4,
@@ -88,6 +92,62 @@ export const NotificationService = {
         console.log('🚨 [Notifee] Visual drop banner displayed for:', soundItem.name);
       } catch (err) {
         console.log('❌ [Notifee triggerEmergencyAlarm error]:', err);
+      }
+    }
+  },
+
+  async scheduleDelayedLockScreenAlarm(
+    payload: NotificationPayload,
+    delaySeconds: number = 8,
+    soundId: string = 'digital_clock_beep'
+  ) {
+    if (Platform.OS === 'web') return;
+
+    if (notifeeModule && notifeeModule.createTriggerNotification) {
+      try {
+        const channelId = await ensureAlertChannel();
+        const triggerTimestamp = Date.now() + delaySeconds * 1000;
+
+        await notifeeModule.createTriggerNotification(
+          {
+            title: payload.title,
+            body: payload.body,
+            data: {
+              productId: payload.productId || '',
+              pincode: payload.pincode || '',
+              soundId: soundId,
+              isAlarmTrigger: 'true',
+            },
+            android: {
+              channelId: channelId,
+              importance: 4, // AndroidImportance.HIGH
+              category: 'alarm',
+              pressAction: {
+                id: 'default',
+                launchActivity: 'default',
+              },
+              fullScreenAction: {
+                id: 'default',
+                launchActivity: 'default',
+              },
+              vibrationPattern: [300, 600, 300, 600],
+            },
+            ios: {
+              critical: true,
+              criticalVolume: 1.0,
+            },
+          },
+          {
+            type: 0, // TriggerType.TIMESTAMP
+            timestamp: triggerTimestamp,
+            alarmManager: {
+              allowWhileIdle: true, // Wakes phone from deep sleep/Doze mode!
+            },
+          }
+        );
+        console.log(`⏰ [Notifee] Scheduled Native Alarm via Android AlarmManager for ${delaySeconds}s from now (allowWhileIdle: true)`);
+      } catch (err) {
+        console.log('❌ [Notifee scheduleDelayedLockScreenAlarm error]:', err);
       }
     }
   },

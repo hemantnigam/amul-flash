@@ -336,10 +336,23 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
   },
 
   triggerDelayedDropTest: async (delaySeconds = 8) => {
-    console.log(`⏱️ [triggerDelayedDropTest] Alarm scheduled to fire in ${delaySeconds} seconds. Lock screen now to test!`);
-    setTimeout(async () => {
-      await get().triggerSimulatedDrop();
-    }, delaySeconds * 1000);
+    const state = get();
+    const targetProduct =
+      state.products.find((p) => !p.variants[0]?.isInStock) || state.products[0];
+    const soundId = state.selectedAlarmSoundId || 'digital_clock_beep';
+
+    console.log(`⏱️ [triggerDelayedDropTest] Scheduling native AlarmManager alarm for ${delaySeconds}s from now.`);
+
+    await NotificationService.scheduleDelayedLockScreenAlarm(
+      {
+        title: `⚡ TEST RESTOCK DROP: ${targetProduct ? targetProduct.title : 'Amul Whey Protein'}`,
+        body: `Lock-Screen Wake Alarm Test for Pincode ${state.selectedPincode.pincode}!`,
+        productId: targetProduct ? targetProduct.id : 'protein',
+        pincode: state.selectedPincode.pincode,
+      },
+      delaySeconds,
+      soundId
+    );
   },
 
   setAlarmOverlayEnabled: (enabled: boolean) => {

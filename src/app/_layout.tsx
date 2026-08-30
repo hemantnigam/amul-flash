@@ -5,6 +5,8 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NotificationService } from '../services/notificationService';
 import { useSessionStore } from '../store/useSessionStore';
+import { useStockStore } from '../store/useStockStore';
+import { alarmSoundService } from '../services/alarmSoundService';
 import { AmulApiClient } from '../services/amulApi';
 import { BrandLogoHeader } from '../components/BrandLogoHeader';
 
@@ -18,6 +20,13 @@ import {
 } from '@expo-google-fonts/sora';
 
 import { FullScreenAlarmOverlay } from '../components/FullScreenAlarmOverlay';
+
+let notifeeModule: any = null;
+try {
+  notifeeModule = require('@notifee/react-native').default;
+} catch (_e) {
+  notifeeModule = null;
+}
 
 export default function RootLayout() {
   const router = useRouter();
@@ -38,6 +47,53 @@ export default function RootLayout() {
       logout();
     });
     loadSavedSession();
+
+    // Check if app was launched by a Full-Screen Alarm Notification
+    if (notifeeModule && notifeeModule.getInitialNotification) {
+      notifeeModule.getInitialNotification().then((initialNotification: any) => {
+        if (initialNotification?.notification) {
+          const soundId = useStockStore.getState().selectedAlarmSoundId;
+          alarmSoundService.startAlarm(soundId);
+          useStockStore.setState({
+            activeAlarmEvent: {
+              id: `drop_${Date.now()}`,
+              productId: initialNotification.notification.data?.productId || 'protein',
+              productName: initialNotification.notification.title || 'Restock Alert',
+              pincode: useStockStore.getState().selectedPincode.pincode,
+              timestamp: Date.now(),
+              unitsAdded: 30,
+              survivalDurationSecs: 180,
+              variantName: 'Standard Pack',
+            },
+          });
+        }
+      });
+    }
+
+    // Listen for incoming alarm events
+    if (notifeeModule && notifeeModule.onForegroundEvent) {
+      const unsubscribe = notifeeModule.onForegroundEvent(({ type, detail }: any) => {
+        if (type === 1 /* DELIVERED */ || type === 3 /* PRESS */ || type === 7 /* ACTION_PRESS */) {
+          if (detail.notification?.data?.isAlarmTrigger === 'true') {
+            const soundId = useStockStore.getState().selectedAlarmSoundId;
+            alarmSoundService.startAlarm(soundId);
+            useStockStore.setState({
+              activeAlarmEvent: {
+                id: `drop_${Date.now()}`,
+                productId: detail.notification.data?.productId || 'protein',
+                productName: detail.notification.title || 'Restock Alert',
+                pincode: useStockStore.getState().selectedPincode.pincode,
+                timestamp: Date.now(),
+                unitsAdded: 30,
+                survivalDurationSecs: 180,
+                variantName: 'Standard Pack',
+              },
+            });
+          }
+        }
+      });
+      return () => unsubscribe();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
