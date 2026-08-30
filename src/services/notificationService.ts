@@ -16,7 +16,25 @@ try {
   notifeeModule = null;
 }
 
-const VISUAL_ALERT_CHANNEL_ID = 'amul_restock_emergency_alarm_v17';
+// Safely load Expo Notifications
+let expoNotifications: any = null;
+try {
+  expoNotifications = require('expo-notifications');
+  if (expoNotifications && expoNotifications.setNotificationHandler) {
+    expoNotifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        priority: 'max',
+      }),
+    });
+  }
+} catch (_e) {
+  expoNotifications = null;
+}
+
+const VISUAL_ALERT_CHANNEL_ID = 'amul_restock_emergency_alarm_v18';
 
 async function ensureAlertChannel(): Promise<string> {
   if (!notifeeModule || Platform.OS !== 'android') return VISUAL_ALERT_CHANNEL_ID;
@@ -60,6 +78,7 @@ export const NotificationService = {
     try {
       const settings = await notifeeModule.getNotificationSettings();
       console.log('📱 [NotificationService] Android Alarm Permission:', settings.android?.alarm);
+      // In Android 13/14, 0 = disabled, 1 = enabled
       if (settings.android?.alarm === 0) {
         Alert.alert(
           '⏰ Exact Alarm Permission Needed',
@@ -136,10 +155,12 @@ export const NotificationService = {
   ) {
     if (Platform.OS === 'web') return;
 
+    const triggerTimestamp = Date.now() + delaySeconds * 1000;
+
+    // 1. Primary Native Clock Alarm via Notifee AlarmManager.setAlarmClock
     if (notifeeModule && notifeeModule.createTriggerNotification) {
       try {
         const channelId = await ensureAlertChannel();
-        const triggerTimestamp = Date.now() + delaySeconds * 1000;
 
         await notifeeModule.createTriggerNotification(
           {
@@ -176,14 +197,36 @@ export const NotificationService = {
             type: 0, // TriggerType.TIMESTAMP
             timestamp: triggerTimestamp,
             alarmManager: {
-              allowWhileIdle: true, // Wakes phone from deep sleep/Doze mode!
+              type: 0, // AlarmType.SET_ALARM_CLOCK (Uses Android's setAlarmClock() - the highest priority clock alarm!)
             },
           }
         );
-        console.log(`⏰ [Notifee] Scheduled Native Alarm via Android AlarmManager for ${delaySeconds}s from now (allowWhileIdle: true)`);
+        console.log(`⏰ [Notifee] Scheduled Native AlarmClock via Android AlarmManager for ${delaySeconds}s from now (AlarmType.SET_ALARM_CLOCK)`);
       } catch (err) {
         console.log('❌ [Notifee scheduleDelayedLockScreenAlarm error]:', err);
       }
+    }
+
+    // 2. Redundant scheduler via Expo Notifications
+    if (expoNotifications && expoNotifications.scheduleNotificationAsync) {
+      try {
+        await expoNotifications.scheduleNotificationAsync({
+          content: {
+            title: payload.title,
+            body: payload.body,
+            data: {
+              productId: payload.productId || '',
+              pincode: payload.pincode || '',
+              soundId: soundId,
+              isAlarmTrigger: 'true',
+            },
+          },
+          trigger: {
+            type: 'timeInterval',
+            seconds: delaySeconds,
+          },
+        });
+      } catch (_e) {}
     }
   },
 
@@ -191,6 +234,11 @@ export const NotificationService = {
     if (notifeeModule && notifeeModule.cancelAllNotifications) {
       try {
         await notifeeModule.cancelAllNotifications();
+      } catch (_e) {}
+    }
+    if (expoNotifications && expoNotifications.cancelAllScheduledNotificationsAsync) {
+      try {
+        await expoNotifications.cancelAllScheduledNotificationsAsync();
       } catch (_e) {}
     }
   },
