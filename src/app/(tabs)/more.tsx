@@ -315,7 +315,7 @@ export default function AccountScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={[styles.groupHeading, { color: colors.textSecondary }]}>APP PREFERENCES & RADAR</Text>
+        <Text style={[styles.groupHeading, { color: colors.textSecondary }]}>APP PREFERENCES</Text>
         <View style={[styles.cardGroup, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           
           <TouchableOpacity
@@ -324,13 +324,13 @@ export default function AccountScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: isDark ? '#1E293B' : '#EFF6FF' }]}>
+              <View style={[styles.iconBox, { backgroundColor: isDark ? '#26193C' : '#F3E8FF' }]}>
                 {themeMode === 'dark' ? (
-                  <Moon size={18} color={colors.primary} />
+                  <Moon size={18} color="#8B5CF6" />
                 ) : themeMode === 'light' ? (
-                  <Sun size={18} color={colors.primary} />
+                  <Sun size={18} color="#8B5CF6" />
                 ) : (
-                  <Smartphone size={18} color={colors.primary} />
+                  <Smartphone size={18} color="#8B5CF6" />
                 )}
               </View>
               <View style={{ flex: 1 }}>
@@ -349,12 +349,12 @@ export default function AccountScreen() {
                 style={[
                   styles.themeTag,
                   {
-                    backgroundColor: colors.surfaceContainer,
-                    borderColor: colors.border,
+                    backgroundColor: isDark ? '#26193C' : '#F3E8FF',
+                    borderColor: isDark ? '#4C1D95' : '#DDD6FE',
                   },
                 ]}
               >
-                <Text style={[styles.themeTagText, { color: colors.primary }]}>
+                <Text style={[styles.themeTagText, { color: '#8B5CF6' }]}>
                   {themeMode === 'system' ? 'System' : themeMode === 'dark' ? 'Dark' : 'Light'}
                 </Text>
               </View>
@@ -368,8 +368,8 @@ export default function AccountScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: colors.surfaceContainer }]}>
-                <MapPin size={18} color={colors.primary} />
+              <View style={[styles.iconBox, { backgroundColor: isDark ? '#0C2A3E' : '#E0F2FE' }]}>
+                <MapPin size={18} color="#0284C7" />
               </View>
               <View>
                 <Text style={[styles.rowTitle, { color: colors.text }]}>Tracked Pincodes</Text>
@@ -383,8 +383,8 @@ export default function AccountScreen() {
 
           <View style={[styles.switchRow, { borderBottomColor: colors.border }]}>
             <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: colors.surfaceContainer }]}>
-                <Zap size={18} color={colors.primary} />
+              <View style={[styles.iconBox, { backgroundColor: isDark ? '#3B0E1B' : '#FFE4E6' }]}>
+                <Zap size={18} color="#E11D48" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.rowTitle, { color: colors.text }]}>High Priority Alarm</Text>
@@ -405,8 +405,8 @@ export default function AccountScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: colors.surfaceContainer }]}>
-                <Music size={18} color={colors.primary} />
+              <View style={[styles.iconBox, { backgroundColor: isDark ? '#1E183B' : '#EDE9FE' }]}>
+                <Music size={18} color="#7C3AED" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.rowTitle, { color: colors.text }]}>Custom Notification Sound</Text>
@@ -451,8 +451,8 @@ export default function AccountScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: colors.surfaceContainer }]}>
-                <RefreshCw size={18} color={colors.text} />
+              <View style={[styles.iconBox, { backgroundColor: isDark ? '#042F2E' : '#CCFBF1' }]}>
+                <RefreshCw size={18} color="#0D9488" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.rowTitle, { color: colors.text, fontWeight: '700' }]}>
