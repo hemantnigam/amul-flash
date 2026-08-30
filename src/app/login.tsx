@@ -165,7 +165,7 @@ export default function LoginScreen() {
                   </View>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="10-digit mobile number"
+                    placeholder="Enter mobile number"
                     placeholderTextColor="#94A3B8"
                     keyboardType="phone-pad"
                     autoComplete="tel"
