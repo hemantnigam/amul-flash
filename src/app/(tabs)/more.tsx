@@ -125,16 +125,12 @@ export default function AccountScreen() {
     if (countdownSeconds === null) return;
     if (countdownSeconds === 0) {
       setCountdownSeconds(null);
-      if (!useStockStore.getState().activeAlarmEvent) {
-        triggerSimulatedDrop();
-      }
       return;
     }
     const timer = setTimeout(() => {
       setCountdownSeconds((prev) => (prev !== null && prev > 0 ? prev - 1 : null));
     }, 1000);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countdownSeconds]);
 
   const displayName = userProfile && (userProfile.firstName || userProfile.lastName)

@@ -31,6 +31,9 @@ try {
 if (notifeeModule && notifeeModule.onBackgroundEvent) {
   notifeeModule.onBackgroundEvent(async ({ type, detail }: any) => {
     console.log('📱 [Notifee onBackgroundEvent] Fired with type:', type);
+    // Ignore trigger creation (type 7) and dismiss (type 0)
+    if (type === 7 || type === 0) return;
+
     if (detail?.notification?.data?.isAlarmTrigger === 'true') {
       const soundId = useStockStore.getState().selectedAlarmSoundId;
       alarmSoundService.startAlarm(soundId);
@@ -70,26 +73,27 @@ export default function RootLayout() {
     });
     loadSavedSession();
 
-    // Listen for notification press interactions (EventType.PRESS = 3, EventType.ACTION_PRESS = 7)
+    // Listen for notification deliver & press interactions (DELIVERED = 3, PRESS = 1, ACTION_PRESS = 2)
     if (notifeeModule && notifeeModule.onForegroundEvent) {
       const unsubscribe = notifeeModule.onForegroundEvent(({ type, detail }: any) => {
-        if (type === 3 || type === 7) {
-          if (detail.notification?.data?.isAlarmTrigger === 'true') {
-            const soundId = useStockStore.getState().selectedAlarmSoundId;
-            alarmSoundService.startAlarm(soundId);
-            useStockStore.setState({
-              activeAlarmEvent: {
-                id: `drop_${Date.now()}`,
-                productId: detail.notification.data?.productId || 'protein',
-                productName: detail.notification.title || 'Restock Alert',
-                pincode: useStockStore.getState().selectedPincode.pincode,
-                timestamp: Date.now(),
-                unitsAdded: 30,
-                survivalDurationSecs: 180,
-                variantName: 'Standard Pack',
-              },
-            });
-          }
+        // Ignore trigger creation (7) and dismiss (0)
+        if (type === 7 || type === 0) return;
+
+        if (detail.notification?.data?.isAlarmTrigger === 'true') {
+          const soundId = useStockStore.getState().selectedAlarmSoundId;
+          alarmSoundService.startAlarm(soundId);
+          useStockStore.setState({
+            activeAlarmEvent: {
+              id: `drop_${Date.now()}`,
+              productId: detail.notification.data?.productId || 'protein',
+              productName: detail.notification.title || 'Restock Alert',
+              pincode: useStockStore.getState().selectedPincode.pincode,
+              timestamp: Date.now(),
+              unitsAdded: 30,
+              survivalDurationSecs: 180,
+              variantName: 'Standard Pack',
+            },
+          });
         }
       });
       return () => unsubscribe();
