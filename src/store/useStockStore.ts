@@ -279,39 +279,43 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
     set({ isSimulatingDrop: true });
 
-    const dropEvent: RestockEvent = {
-      id: `drop_${Date.now()}`,
-      productId: targetProduct.id,
-      productName: targetProduct.title,
-      pincode: state.selectedPincode.pincode || '110044',
-      timestamp: Date.now(),
-      unitsAdded: 30,
-      survivalDurationSecs: 180,
-      variantName: targetProduct.variants[0]?.name || 'Standard Pack',
-    };
-
-    // Trigger in-app full screen alarm overlay + continuous audio
-    get().triggerAlarmEvent(dropEvent);
-
-    // Send standard push notification with selected sound
-    await NotificationService.sendRestockNotification(
-      {
-        title: `⚡ Restock Alert: ${targetProduct.title}`,
-        body: `Stock is now live for Hub ${state.selectedPincode.pincode || '110044'}! Tap to view.`,
+    try {
+      const dropEvent: RestockEvent = {
+        id: `drop_${Date.now()}`,
         productId: targetProduct.id,
+        productName: targetProduct.title,
         pincode: state.selectedPincode.pincode || '110044',
-      },
-      state.selectedAlarmSoundId || 'digital_clock_beep'
-    );
+        timestamp: Date.now(),
+        unitsAdded: 30,
+        survivalDurationSecs: 180,
+        variantName: targetProduct.variants[0]?.name || 'Standard Pack',
+      };
 
-    // Stock Tracker Log
-    get().addActivityLog({
-      type: 'restock',
-      title: `Test Restock Alert: ${targetProduct.title}`,
-      description: `Notification sent for Hub ${state.selectedPincode.pincode || '110044'}`,
-      pincode: state.selectedPincode.pincode || '110044',
-      status: 'success',
-    });
+      // Trigger in-app full screen alarm overlay + continuous audio
+      get().triggerAlarmEvent(dropEvent);
+
+      // Send standard push notification with selected sound
+      await NotificationService.sendRestockNotification(
+        {
+          title: `⚡ Restock Alert: ${targetProduct.title}`,
+          body: `Stock is now live for Hub ${state.selectedPincode.pincode || '110044'}! Tap to view.`,
+          productId: targetProduct.id,
+          pincode: state.selectedPincode.pincode || '110044',
+        },
+        state.selectedAlarmSoundId || 'digital_clock_beep'
+      );
+
+      // Stock Tracker Log
+      get().addActivityLog({
+        type: 'restock',
+        title: `Test Restock Alert: ${targetProduct.title}`,
+        description: `Notification sent for Hub ${state.selectedPincode.pincode || '110044'}`,
+        pincode: state.selectedPincode.pincode || '110044',
+        status: 'success',
+      });
+    } finally {
+      set({ isSimulatingDrop: false });
+    }
   },
 
   triggerDelayedDropTest: async (delaySeconds = 5) => {

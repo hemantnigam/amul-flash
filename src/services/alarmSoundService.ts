@@ -31,7 +31,9 @@ class AlarmSoundService {
 
   async startAlarm(soundId?: string) {
     console.log('🔔 [AlarmSoundService.startAlarm] soundId:', soundId);
-    if (this.isRinging) return;
+    if (this.isRinging) {
+      await this.stopAlarm();
+    }
     this.isRinging = true;
 
     // Stop any preview that was playing
