@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { AmulProduct, AmulCategory, PincodeLocation, ActivityLog, RestockEvent } from '../types/amul';
 import { NotificationService } from '../services/notificationService';
 import { AmulApiClient, DEFAULT_CATEGORIES } from '../services/amulApi';
+import { alarmSoundService } from '../services/alarmSoundService';
 
 interface StockStoreState {
   products: AmulProduct[];
@@ -11,6 +12,9 @@ interface StockStoreState {
   selectedPincode: PincodeLocation;
   activityLogs: ActivityLog[];
   activeDropAlert: RestockEvent | null;
+  activeAlarmEvent: RestockEvent | null;
+  alarmOverlayEnabled: boolean;
+  selectedAlarmSoundId: string;
   isSimulatingDrop: boolean;
   isLoadingProducts: boolean;
   lastUpdated: number;
@@ -26,6 +30,10 @@ interface StockStoreState {
   toggleAutoCartForProduct: (productId: string, productObj?: AmulProduct) => void;
   triggerSimulatedDrop: (productId?: string) => Promise<void>;
   dismissDropAlert: () => void;
+  setAlarmOverlayEnabled: (enabled: boolean) => void;
+  setSelectedAlarmSoundId: (soundId: string) => void;
+  triggerAlarmEvent: (event: RestockEvent) => void;
+  dismissAlarmEvent: () => void;
   addActivityLog: (log: Omit<ActivityLog, 'id' | 'timestamp'>) => void;
   refreshStock: (sessionCookie?: string) => Promise<void>;
   fetchAllCategoriesProducts: (sessionCookie?: string) => Promise<void>;
@@ -48,6 +56,9 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
   selectedPincode: DEFAULT_USER_PINCODE,
   activityLogs: [],
   activeDropAlert: null,
+  activeAlarmEvent: null,
+  alarmOverlayEnabled: true,
+  selectedAlarmSoundId: 'digital_clock_beep',
   isSimulatingDrop: false,
   isLoadingProducts: false,
   lastUpdated: Date.now(),
@@ -298,20 +309,34 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       variantName: targetProduct.variants[0]?.name || 'Standard Pack',
     };
 
-    set({
-      products: updatedProducts,
-      activeDropAlert: dropEvent,
-      isSimulatingDrop: false,
-      lastUpdated: Date.now(),
-    });
+    if (state.alarmOverlayEnabled) {
+      alarmSoundService.startAlarm(state.selectedAlarmSoundId);
+      set({
+        products: updatedProducts,
+        activeDropAlert: dropEvent,
+        activeAlarmEvent: dropEvent,
+        isSimulatingDrop: false,
+        lastUpdated: Date.now(),
+      });
+    } else {
+      set({
+        products: updatedProducts,
+        activeDropAlert: dropEvent,
+        isSimulatingDrop: false,
+        lastUpdated: Date.now(),
+      });
+    }
 
     // 2. Play Emergency Alarm & Notification
-    await NotificationService.triggerEmergencyAlarm({
-      title: `⚡ FLASH DROP: ${targetProduct.title}`,
-      body: `30 units restocked for Pincode ${state.selectedPincode.pincode}! Stock live now!`,
-      productId: targetProduct.id,
-      pincode: state.selectedPincode.pincode,
-    });
+    await NotificationService.triggerEmergencyAlarm(
+      {
+        title: `⚡ FLASH DROP: ${targetProduct.title}`,
+        body: `30 units restocked for Pincode ${state.selectedPincode.pincode}! Stock live now!`,
+        productId: targetProduct.id,
+        pincode: state.selectedPincode.pincode,
+      },
+      state.selectedAlarmSoundId
+    );
 
     // 3. Stock Tracker Log
     get().addActivityLog({
@@ -323,8 +348,29 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     });
   },
 
+  setAlarmOverlayEnabled: (enabled: boolean) => {
+    set({ alarmOverlayEnabled: enabled });
+  },
+
+  setSelectedAlarmSoundId: (soundId: string) => {
+    set({ selectedAlarmSoundId: soundId });
+  },
+
+  triggerAlarmEvent: (event: RestockEvent) => {
+    if (get().alarmOverlayEnabled) {
+      alarmSoundService.startAlarm(get().selectedAlarmSoundId);
+      set({ activeAlarmEvent: event });
+    }
+  },
+
+  dismissAlarmEvent: () => {
+    alarmSoundService.stopAlarm();
+    set({ activeAlarmEvent: null });
+  },
+
   dismissDropAlert: () => {
-    set({ activeDropAlert: null });
+    alarmSoundService.stopAlarm();
+    set({ activeDropAlert: null, activeAlarmEvent: null });
   },
 
   addActivityLog: (log) => {

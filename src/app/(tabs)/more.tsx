@@ -25,10 +25,14 @@ import {
   Edit2,
   Package,
   X,
+  BellRing,
+  Music,
 } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
 import { useStockStore } from '../../store/useStockStore';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
+import { AlarmSoundSelectorModal } from '../../components/AlarmSoundSelectorModal';
+import { LOCAL_ALARM_SOUNDS } from '../../constants/alarmSounds';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -47,9 +51,21 @@ export default function AccountScreen() {
     logout,
   } = useSessionStore();
 
-  const { selectedPincode } = useStockStore();
+  const {
+    selectedPincode,
+    alarmOverlayEnabled,
+    setAlarmOverlayEnabled,
+    selectedAlarmSoundId,
+    triggerSimulatedDrop,
+    isSimulatingDrop,
+  } = useStockStore();
 
   const [isPincodeModalVisible, setIsPincodeModalVisible] = useState(false);
+  const [isSoundModalVisible, setIsSoundModalVisible] = useState(false);
+
+  // Find active sound name
+  const currentSound =
+    LOCAL_ALARM_SOUNDS.find((s) => s.id === selectedAlarmSoundId) || LOCAL_ALARM_SOUNDS[0];
 
   // Profile Edit Modal State
   const [isEditProfileVisible, setIsEditProfileVisible] = useState(false);
@@ -312,7 +328,7 @@ export default function AccountScreen() {
           </View>
 
           {/* SMS Retriever Switch */}
-          <View style={[styles.switchRow, { borderBottomWidth: 0 }]}>
+          <View style={styles.switchRow}>
             <View style={styles.rowLeft}>
               <View style={[styles.iconBox, { backgroundColor: '#FFF7ED' }]}>
                 <Smartphone size={18} color="#EA580C" />
@@ -329,6 +345,68 @@ export default function AccountScreen() {
               thumbColor={smsRetrieverEnabled ? '#2563EB' : '#94A3B8'}
             />
           </View>
+
+          {/* Stock Drop Alarm Switch */}
+          <View style={styles.switchRow}>
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#FEF2F2' }]}>
+                <BellRing size={18} color="#EF4444" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>Stock Drop Alarm (Full Screen)</Text>
+                <Text style={styles.rowSub}>Rings clock alarm with sound & vibration on drops</Text>
+              </View>
+            </View>
+            <Switch
+              value={alarmOverlayEnabled}
+              onValueChange={setAlarmOverlayEnabled}
+              trackColor={{ false: '#E2E8F0', true: '#FECACA' }}
+              thumbColor={alarmOverlayEnabled ? '#EF4444' : '#94A3B8'}
+            />
+          </View>
+
+          {/* Alarm Ringtone & Music Picker */}
+          <TouchableOpacity
+            style={styles.cardRow}
+            onPress={() => setIsSoundModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#EEF2FF' }]}>
+                <Music size={18} color="#4F46E5" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>Alarm Ringtone & Music</Text>
+                <Text style={styles.rowSub}>{currentSound.name} ({currentSound.category})</Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color="#94A3B8" />
+          </TouchableOpacity>
+
+          {/* Tap to test live restock notification */}
+          <TouchableOpacity
+            style={[styles.cardRow, { borderBottomWidth: 0 }]}
+            onPress={async () => {
+              await triggerSimulatedDrop();
+            }}
+            disabled={isSimulatingDrop}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#FFF7ED' }]}>
+                <Zap size={18} color="#EA580C" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowTitle, { color: '#C2410C', fontWeight: '800' }]}>
+                  Tap to test live restock notification
+                </Text>
+                <Text style={styles.rowSub}>
+                  {isSimulatingDrop ? 'Simulating restock...' : 'Triggers simulated drop & tests full-screen alarm'}
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color="#EA580C" />
+          </TouchableOpacity>
         </View>
 
         {/* Sign Out Button */}
@@ -342,6 +420,12 @@ export default function AccountScreen() {
       <PincodeSelectorModal
         visible={isPincodeModalVisible}
         onClose={() => setIsPincodeModalVisible(false)}
+      />
+
+      {/* Alarm Sound Picker Modal */}
+      <AlarmSoundSelectorModal
+        visible={isSoundModalVisible}
+        onClose={() => setIsSoundModalVisible(false)}
       />
 
       {/* Edit Profile Modal */}

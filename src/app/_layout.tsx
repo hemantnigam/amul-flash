@@ -17,6 +17,8 @@ import {
   Sora_800ExtraBold,
 } from '@expo-google-fonts/sora';
 
+import { FullScreenAlarmOverlay } from '../components/FullScreenAlarmOverlay';
+
 export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
@@ -116,6 +118,7 @@ export default function RootLayout() {
           }}
         />
       </Stack>
+      <FullScreenAlarmOverlay />
     </SafeAreaProvider>
   );
 }

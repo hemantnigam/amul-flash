@@ -20,7 +20,13 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "USE_FULL_SCREEN_INTENT",
+        "WAKE_LOCK",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
     },
     "web": {
       "output": "static",
@@ -53,7 +59,26 @@
             }
           ]
         }
-      ]
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#208AEF",
+          "sounds": [
+            "./src/music/mixkit_alarm_digital_clock_beep_989.wav",
+            "./src/music/mixkit_alert_alarm_1005.wav",
+            "./src/music/mixkit_battleship_alarm_1001.wav",
+            "./src/music/mixkit_classic_winner_alarm_1997.wav",
+            "./src/music/mixkit_digital_clock_digital_alarm_buzzer_992.wav",
+            "./src/music/mixkit_interface_hint_notification_911.wav",
+            "./src/music/mixkit_sound_alert_in_hall_1006.wav",
+            "./src/music/mixkit_spaceship_alarm_998.wav"
+          ]
+        }
+      ],
+      "expo-audio",
+      "./plugins/withManifestFix.js"
     ],
     "experiments": {
       "typedRoutes": true,
