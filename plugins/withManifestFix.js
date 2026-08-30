@@ -11,13 +11,14 @@ function withLockScreenManifest(config) {
     }
     androidManifest.$['xmlns:tools'] = 'http://schemas.android.com/tools';
 
-    // 1. Configure MainActivity to show when locked and turn screen on
+    // 1. Configure MainActivity to show when locked, turn screen on, and show for all users
     if (application && Array.isArray(application.activity)) {
       application.activity.forEach((activity) => {
         if (!activity.$) activity.$ = {};
         activity.$['android:showWhenLocked'] = 'true';
         activity.$['android:turnScreenOn'] = 'true';
         activity.$['android:showForAllUsers'] = 'true';
+        activity.$['android:showOnLockScreen'] = 'true';
       });
     }
 
@@ -59,14 +60,15 @@ function withLockScreenMainActivity(config) {
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O_MR1) {
       setShowWhenLocked(true)
       setTurnScreenOn(true)
-    } else {
-      window.addFlags(
-        android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-        android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-        android.view.WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
-        android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-      )
-    }`;
+      val keyguardManager = getSystemService(android.content.Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
+      keyguardManager?.requestDismissKeyguard(this, null)
+    }
+    window.addFlags(
+      android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+      android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+      android.view.WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
+      android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+    )`;
 
       // 1. If super.onCreate(...) already exists in MainActivity.kt, inject right after it
       const superOnCreateMatch = contents.match(/super\.onCreate\([^)]*\)/);

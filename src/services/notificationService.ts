@@ -16,7 +16,7 @@ try {
   notifeeModule = null;
 }
 
-const VISUAL_ALERT_CHANNEL_ID = 'amul_restock_visual_alert_v13';
+const VISUAL_ALERT_CHANNEL_ID = 'amul_restock_emergency_alarm_v15';
 
 async function ensureAlertChannel(): Promise<string> {
   if (!notifeeModule || Platform.OS !== 'android') return VISUAL_ALERT_CHANNEL_ID;
@@ -24,9 +24,9 @@ async function ensureAlertChannel(): Promise<string> {
   try {
     const channelId = await notifeeModule.createChannel({
       id: VISUAL_ALERT_CHANNEL_ID,
-      name: 'Amul Restock Flash Alert',
-      importance: 4, // AndroidImportance.HIGH (shows heads-up banner & wakes screen)
-      sound: undefined, // Let expo-audio handle the custom WAV sound without duplicate system beeps
+      name: 'Amul Emergency Restock Alarm',
+      importance: 4, // AndroidImportance.HIGH (Required by Android to turn display ON over lock screen)
+      sound: 'default', // Android OS strictly requires non-silent channel for lock-screen wake
       vibration: true,
       vibrationPattern: [300, 600, 300, 600],
       bypassDnd: true,
@@ -74,6 +74,7 @@ export const NotificationService = {
             channelId: channelId,
             importance: 4,
             category: 'alarm',
+            wakeUpScreen: true,
             pressAction: {
               id: 'default',
               launchActivity: 'default',
@@ -122,6 +123,7 @@ export const NotificationService = {
               channelId: channelId,
               importance: 4, // AndroidImportance.HIGH
               category: 'alarm',
+              wakeUpScreen: true, // Acquires PowerManager wake lock to turn screen ON
               pressAction: {
                 id: 'default',
                 launchActivity: 'default',
