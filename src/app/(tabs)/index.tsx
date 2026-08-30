@@ -14,7 +14,6 @@ import { useRouter } from 'expo-router';
 import {
   Search,
   MapPin,
-  Bell,
   Package,
 } from 'lucide-react-native';
 import { useStockStore } from '../../store/useStockStore';
@@ -37,7 +36,6 @@ export default function HomeScreen() {
     activeDropAlert,
     isLoadingProducts,
     setSelectedCategory,
-    triggerSimulatedDrop,
     dismissDropAlert,
     refreshStock,
     loadInitialData,
@@ -121,10 +119,6 @@ export default function HomeScreen() {
     }
   };
 
-  const handleTestNotification = async () => {
-    await triggerSimulatedDrop();
-  };
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {/* Top Header */}
@@ -165,16 +159,6 @@ export default function HomeScreen() {
             </TouchableOpacity>
           ) : null}
         </View>
-
-        {/* Temporary Notification Test Button */}
-        <TouchableOpacity
-          style={styles.testNotificationBtn}
-          onPress={handleTestNotification}
-          activeOpacity={0.8}
-        >
-          <Bell size={14} color="#FFFFFF" />
-          <Text style={styles.testNotificationText}>⚡ Tap to Test Live Restock Notification</Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -569,21 +553,5 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     fontSize: 12,
     color: '#64748B',
-  },
-  testNotificationBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#2563EB',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    marginTop: 10,
-  },
-  testNotificationText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
   },
 });
