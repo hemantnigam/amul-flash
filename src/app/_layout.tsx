@@ -48,32 +48,10 @@ export default function RootLayout() {
     });
     loadSavedSession();
 
-    // Check if app was launched by a Full-Screen Alarm Notification
-    if (notifeeModule && notifeeModule.getInitialNotification) {
-      notifeeModule.getInitialNotification().then((initialNotification: any) => {
-        if (initialNotification?.notification) {
-          const soundId = useStockStore.getState().selectedAlarmSoundId;
-          alarmSoundService.startAlarm(soundId);
-          useStockStore.setState({
-            activeAlarmEvent: {
-              id: `drop_${Date.now()}`,
-              productId: initialNotification.notification.data?.productId || 'protein',
-              productName: initialNotification.notification.title || 'Restock Alert',
-              pincode: useStockStore.getState().selectedPincode.pincode,
-              timestamp: Date.now(),
-              unitsAdded: 30,
-              survivalDurationSecs: 180,
-              variantName: 'Standard Pack',
-            },
-          });
-        }
-      });
-    }
-
-    // Listen for incoming alarm events
+    // Listen for notification press interactions (EventType.PRESS = 3, EventType.ACTION_PRESS = 7)
     if (notifeeModule && notifeeModule.onForegroundEvent) {
       const unsubscribe = notifeeModule.onForegroundEvent(({ type, detail }: any) => {
-        if (type === 1 /* DELIVERED */ || type === 3 /* PRESS */ || type === 7 /* ACTION_PRESS */) {
+        if (type === 3 || type === 7) {
           if (detail.notification?.data?.isAlarmTrigger === 'true') {
             const soundId = useStockStore.getState().selectedAlarmSoundId;
             alarmSoundService.startAlarm(soundId);

@@ -452,7 +452,11 @@ export default function AccountScreen() {
           <TouchableOpacity
             style={styles.cardRow}
             onPress={async () => {
-              alert('🔒 Lock your phone now!\n\nAlarm will fire in 8 seconds to test waking your locked screen.');
+              Alert.alert(
+                '🔒 Lock Screen Alarm Test',
+                'Native alarm scheduled!\n\nPress your phone power button to LOCK the screen now.\n\nThe alarm will ring in 8 seconds.',
+                [{ text: 'OK' }]
+              );
               await triggerDelayedDropTest(8);
             }}
             disabled={isSimulatingDrop}
