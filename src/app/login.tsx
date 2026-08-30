@@ -71,6 +71,23 @@ export default function LoginScreen() {
   };
 
   const handleOtpChange = (value: string, index: number) => {
+    // If user pastes or autofills a multi-digit OTP (e.g. 6 digits)
+    const cleanDigits = value.replace(/\D/g, '');
+    if (cleanDigits.length > 1) {
+      const newOtp = ['', '', '', '', '', ''];
+      for (let i = 0; i < 6 && i < cleanDigits.length; i++) {
+        newOtp[i] = cleanDigits[i];
+      }
+      setOtp(newOtp);
+      if (cleanDigits.length === 6) {
+        handleVerifyOTP(cleanDigits.substring(0, 6));
+      } else {
+        const nextIndex = Math.min(cleanDigits.length, 5);
+        otpInputs.current[nextIndex]?.focus();
+      }
+      return;
+    }
+
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
@@ -199,7 +216,9 @@ export default function LoginScreen() {
                       }}
                       style={[styles.otpInput, digit ? styles.otpInputFilled : null]}
                       keyboardType="number-pad"
-                      maxLength={1}
+                      textContentType="oneTimeCode"
+                      autoComplete="sms-otp"
+                      maxLength={index === 0 ? 6 : 1}
                       value={digit}
                       onChangeText={(val) => handleOtpChange(val, index)}
                       onKeyPress={({ nativeEvent }) => {
