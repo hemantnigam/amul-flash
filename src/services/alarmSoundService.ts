@@ -25,6 +25,7 @@ let previewPlayer: any = null;
 
 class AlarmSoundService {
   private isRinging: boolean = false;
+  private isPreviewing: boolean = false;
   private audioCtx: any = null;
   private loopTimer: any = null;
 
@@ -43,7 +44,7 @@ class AlarmSoundService {
       } catch (_e) {}
     }
 
-    // 2. Play local WAV sound from src/music via expo-audio if available
+    // 2. Play local WAV sound from src/music via expo-audio continuously
     const targetSound: LocalSoundItem =
       LOCAL_ALARM_SOUNDS.find((s) => s.id === soundId) || LOCAL_ALARM_SOUNDS[0];
 
@@ -51,13 +52,30 @@ class AlarmSoundService {
 
     if (expoAudioModule && typeof expoAudioModule.createAudioPlayer === 'function') {
       try {
-        const player = expoAudioModule.createAudioPlayer(targetSound.fileSource, {
-          loop: true,
-          volume: 1.0,
-        });
+        if (activePlayer) {
+          try {
+            activePlayer.pause();
+            activePlayer.release();
+          } catch (_e) {}
+          activePlayer = null;
+        }
+
+        const player = expoAudioModule.createAudioPlayer(targetSound.fileSource);
+        player.loop = true;
+        player.volume = 1.0;
+
+        // Auto-loop guarantee listener
+        if (typeof player.addListener === 'function') {
+          player.addListener('playbackStatusUpdate', (status: any) => {
+            if (status?.didJustFinish && this.isRinging) {
+              player.seekTo(0).then(() => player.play()).catch(() => {});
+            }
+          });
+        }
+
         activePlayer = player;
         player.play();
-        console.log('✅ [AlarmSoundService] Playing via expo-audio');
+        console.log('✅ [AlarmSoundService] Playing continuously via expo-audio (loop = true)');
         return;
       } catch (err) {
         console.log('⚠️ [expo-audio startAlarm error]:', err);
@@ -74,6 +92,7 @@ class AlarmSoundService {
     console.log('▶️ [AlarmSoundService.previewSound] soundId:', soundId);
     await this.stopPreview();
     if (this.isRinging) return;
+    this.isPreviewing = true;
 
     // Trigger preview vibration
     if (Platform.OS !== 'web') {
@@ -89,13 +108,22 @@ class AlarmSoundService {
 
     if (expoAudioModule && typeof expoAudioModule.createAudioPlayer === 'function') {
       try {
-        const player = expoAudioModule.createAudioPlayer(targetSound.fileSource, {
-          loop: true,
-          volume: 1.0,
-        });
+        const player = expoAudioModule.createAudioPlayer(targetSound.fileSource);
+        player.loop = true;
+        player.volume = 1.0;
+
+        // Auto-loop guarantee listener for preview
+        if (typeof player.addListener === 'function') {
+          player.addListener('playbackStatusUpdate', (status: any) => {
+            if (status?.didJustFinish && this.isPreviewing) {
+              player.seekTo(0).then(() => player.play()).catch(() => {});
+            }
+          });
+        }
+
         previewPlayer = player;
         player.play();
-        console.log('✅ [previewSound] Playing continuously via expo-audio');
+        console.log('✅ [previewSound] Playing continuously via expo-audio (loop = true)');
         return;
       } catch (err) {
         console.log('⚠️ [expo-audio preview error]:', err);
@@ -106,6 +134,8 @@ class AlarmSoundService {
   }
 
   async stopPreview() {
+    this.isPreviewing = false;
+
     if (Platform.OS !== 'web') {
       try {
         Vibration.cancel();
@@ -127,6 +157,7 @@ class AlarmSoundService {
 
   async stopAlarm() {
     this.isRinging = false;
+    this.isPreviewing = false;
 
     // 1. Stop active player
     if (activePlayer) {
