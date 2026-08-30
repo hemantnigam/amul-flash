@@ -218,27 +218,60 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
   syncPincodesFromAddresses: (addresses: any[]) => {
     if (!addresses || addresses.length === 0) return;
 
-    const userPincodes: PincodeLocation[] = addresses.map((addr, idx) => ({
-      pincode: addr.pincode || '',
-      label: addr.addressType || (idx === 0 ? 'Home' : `Address ${idx + 1}`),
-      address: [addr.addressLine1, addr.addressLine2, addr.city, addr.state]
-        .filter(Boolean)
-        .join(', '),
-      storeId: '66505ff5145c16635e6cc74d',
-      isDefault: addr.isDefault || idx === 0,
-      serviceable: true,
-    })).filter(p => !!p.pincode);
+    const currentPincodes = get().pincodes;
+    const userPincodes: PincodeLocation[] = [];
+
+    addresses.forEach((addr: any, idx: number) => {
+      const rawPin = addr.pincode || addr.zip || addr.postal_code || addr.postcode || addr.postalCode;
+      if (rawPin) {
+        const pinStr = String(rawPin).trim();
+        if (pinStr.length === 6 && !userPincodes.some((p) => p.pincode === pinStr)) {
+          const typeName = addr.addressType
+            ? `${addr.addressType.charAt(0).toUpperCase() + addr.addressType.slice(1)}`
+            : (idx === 0 ? 'Home' : `Address ${idx + 1}`);
+
+          const label = addr.fullName
+            ? `${addr.fullName}'s ${typeName}`
+            : (addr.city ? `${addr.city} (${typeName})` : typeName);
+
+          const fullAddress = [
+            addr.address || addr.addressLine1,
+            addr.addressLine2,
+            addr.city,
+            addr.state,
+            pinStr,
+          ].filter(Boolean).join(', ');
+
+          userPincodes.push({
+            pincode: pinStr,
+            label,
+            address: fullAddress || `Delivery Hub for ${pinStr}`,
+            storeId: addr.storeId || '66505ff5145c16635e6cc74d',
+            isDefault: Boolean(addr.isDefault) || idx === 0,
+            isSavedAddress: true,
+            serviceable: true,
+            distanceKm: 0,
+          });
+        }
+      }
+    });
 
     if (userPincodes.length > 0) {
-      const customPincodes = get().pincodes.filter(
-        (p) => !userPincodes.some((u) => u.pincode === p.pincode) && p.pincode !== '110044'
+      const customPincodes = currentPincodes.filter(
+        (p) => !p.isSavedAddress && !userPincodes.some((u) => u.pincode === p.pincode)
       );
       const combined = [...userPincodes, ...customPincodes];
-      const defaultPin = combined.find((p) => p.isDefault) || combined[0];
+
+      let currentSelected = get().selectedPincode;
+      const isSelectedValid = currentSelected?.pincode && combined.some((p) => p.pincode === currentSelected.pincode);
+
+      const targetSelected = isSelectedValid
+        ? combined.find((p) => p.pincode === currentSelected.pincode)!
+        : (combined.find((p) => p.isDefault) || combined[0]);
 
       set({
         pincodes: combined,
-        selectedPincode: defaultPin,
+        selectedPincode: targetSelected,
       });
     }
   },

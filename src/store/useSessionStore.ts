@@ -10,6 +10,7 @@ import {
 import {
   AmulApiClient,
 } from '../services/amulApi';
+import { useStockStore } from './useStockStore';
 
 interface SessionState {
   session: AmulSession;
@@ -185,6 +186,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       if (activeUserId) {
         const addresses = await AmulApiClient.getUserAddresses(activeUserId, cookie);
         set({ addresses });
+
+        // Immediately sync delivery hubs into stock store
+        useStockStore.getState().syncPincodesFromAddresses(addresses);
 
         // Auto-populate user profile from saved shipping address if profile is empty
         const currentProf = get().userProfile;

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { AppText as Text } from './AppText';
 import { AppTextInput as TextInput } from './AppTextInput';
-import { Check, Plus, X, Navigation, Trash2 } from 'lucide-react-native';
+import { Check, Plus, X, Navigation, Trash2, ShieldCheck } from 'lucide-react-native';
 import { Theme } from '../constants/theme';
 import { useStockStore } from '../store/useStockStore';
 import { PincodeLocation } from '../types/amul';
@@ -96,6 +96,12 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
                         <View style={styles.pincodeBadge}>
                           <Text style={styles.pincodeBadgeText}>{item.pincode}</Text>
                         </View>
+                        {item.isSavedAddress && (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#ECFDF5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, gap: 3 }}>
+                            <ShieldCheck size={11} color="#059669" />
+                            <Text style={{ fontSize: 10, color: '#059669', fontWeight: '700' }}>Saved</Text>
+                          </View>
+                        )}
                         {item.distanceKm !== undefined && item.distanceKm > 0 && (
                           <Text style={styles.distanceText}>({item.distanceKm} km away)</Text>
                         )}
