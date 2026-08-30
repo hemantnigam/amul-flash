@@ -73,6 +73,28 @@ export default function RootLayout() {
     });
     loadSavedSession();
 
+    // Check if app was launched by clicking a notification on Lock Screen
+    if (notifeeModule && notifeeModule.getInitialNotification) {
+      notifeeModule.getInitialNotification().then((initialNotification: any) => {
+        if (initialNotification?.notification?.data?.isAlarmTrigger === 'true') {
+          const soundId = useStockStore.getState().selectedAlarmSoundId;
+          alarmSoundService.startAlarm(soundId);
+          useStockStore.setState({
+            activeAlarmEvent: {
+              id: `drop_${Date.now()}`,
+              productId: initialNotification.notification.data?.productId || 'protein',
+              productName: initialNotification.notification.title || 'Restock Alert',
+              pincode: useStockStore.getState().selectedPincode.pincode,
+              timestamp: Date.now(),
+              unitsAdded: 30,
+              survivalDurationSecs: 180,
+              variantName: 'Standard Pack',
+            },
+          });
+        }
+      });
+    }
+
     // Listen for notification deliver & press interactions (DELIVERED = 3, PRESS = 1, ACTION_PRESS = 2)
     if (notifeeModule && notifeeModule.onForegroundEvent) {
       const unsubscribe = notifeeModule.onForegroundEvent(({ type, detail }: any) => {
