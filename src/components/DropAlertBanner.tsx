@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { AppText as Text } from './AppText';
-import { Zap, Clock, X, ShoppingBag } from 'lucide-react-native';
+import { Zap, Clock, X } from 'lucide-react-native';
 import { Theme } from '../constants/theme';
 import { RestockEvent } from '../types/amul';
 

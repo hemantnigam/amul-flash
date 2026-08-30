@@ -23,7 +23,6 @@ import {
   MapPin,
   ExternalLink,
   ArrowRight,
-  ShieldCheck,
 } from 'lucide-react-native';
 import { useSessionStore } from '../store/useSessionStore';
 
@@ -34,6 +33,7 @@ export default function OrdersScreen() {
 
   useEffect(() => {
     loadUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRefresh = async () => {

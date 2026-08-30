@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, Pressable } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, Radio, User } from 'lucide-react-native';
@@ -24,6 +24,16 @@ export default function TabLayout() {
         headerShown: false,
         tabBarActiveTintColor: '#2563EB',
         tabBarInactiveTintColor: '#64748B',
+        tabBarButton: (props) => (
+          <Pressable
+            {...(props as any)}
+            android_ripple={null}
+            style={({ pressed }) => [
+              props.style as any,
+              { opacity: pressed ? 0.75 : 1 },
+            ]}
+          />
+        ),
         tabBarStyle: {
           height: tabHeight,
           paddingBottom: bottomInset,

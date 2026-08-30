@@ -1,9 +1,8 @@
 import React, { useEffect } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Zap } from 'lucide-react-native';
 import { NotificationService } from '../services/notificationService';
 import { useSessionStore } from '../store/useSessionStore';
 import { AmulApiClient } from '../services/amulApi';
@@ -37,6 +36,7 @@ export default function RootLayout() {
       logout();
     });
     loadSavedSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -52,6 +52,7 @@ export default function RootLayout() {
         router.replace('/(tabs)');
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.isLoggedIn, isInitialized, segments]);
 
   // Clean splash loader while checking saved Keystore session on boot and loading fonts

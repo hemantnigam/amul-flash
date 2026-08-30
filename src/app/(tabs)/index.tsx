@@ -9,26 +9,19 @@ import {
 } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import { AppTextInput as TextInput } from '../../components/AppTextInput';
-import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Search,
   MapPin,
-  Flame,
-  Zap,
   Bell,
-  Check,
-  ChevronRight,
   Package,
-  ShoppingCart,
 } from 'lucide-react-native';
 import { useStockStore } from '../../store/useStockStore';
 import { useSessionStore } from '../../store/useSessionStore';
 import { ProductCard } from '../../components/ProductCard';
 import { DropAlertBanner } from '../../components/DropAlertBanner';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
-import { NotificationService } from '../../services/notificationService';
 import { AmulProduct } from '../../types/amul';
 import { analyticsService } from '../../services/analyticsService';
 
@@ -46,7 +39,6 @@ export default function HomeScreen() {
     setSelectedCategory,
     triggerSimulatedDrop,
     dismissDropAlert,
-    toggleAutoCartForProduct,
     refreshStock,
     loadInitialData,
     syncPincodesFromAddresses,
@@ -61,23 +53,13 @@ export default function HomeScreen() {
     if (session.isLoggedIn) {
       loadInitialData(session.sessionCookie);
     }
-  }, [session.isLoggedIn, session.sessionCookie]);
+  }, [session.isLoggedIn, session.sessionCookie, loadInitialData]);
 
   React.useEffect(() => {
     if (addresses && addresses.length > 0) {
       syncPincodesFromAddresses(addresses);
     }
-  }, [addresses]);
-
-  if (!isInitialized || !session.isLoggedIn) {
-    return null;
-  }
-
-  const onRefresh = async () => {
-    setIsRefreshing(true);
-    await refreshStock(session.sessionCookie);
-    setIsRefreshing(false);
-  };
+  }, [addresses, syncPincodesFromAddresses]);
 
   // Ultra-fast in-memory memoized search (0ms latency, zero network calls on typing)
   const filteredProducts = React.useMemo(() => {
@@ -114,6 +96,16 @@ export default function HomeScreen() {
     }
     return selectedCategory;
   }, [searchQuery, filteredProducts, selectedCategory]);
+
+  if (!isInitialized || !session.isLoggedIn) {
+    return null;
+  }
+
+  const onRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshStock(session.sessionCookie);
+    setIsRefreshing(false);
+  };
 
   const handleSearchChange = (text: string) => {
     setSearchQuery(text);

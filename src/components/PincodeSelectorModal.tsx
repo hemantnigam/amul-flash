@@ -4,14 +4,13 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  FlatList,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
 } from 'react-native';
 import { AppText as Text } from './AppText';
 import { AppTextInput as TextInput } from './AppTextInput';
-import { MapPin, Check, Plus, X, Navigation, Trash2 } from 'lucide-react-native';
+import { Check, Plus, X, Navigation, Trash2 } from 'lucide-react-native';
 import { Theme } from '../constants/theme';
 import { useStockStore } from '../store/useStockStore';
 import { PincodeLocation } from '../types/amul';

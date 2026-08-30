@@ -5,7 +5,6 @@ export const AppText: React.FC<TextProps> = ({ style, children, ...props }) => {
   // Extract font weight to dynamically select the correct Plus Jakarta Sans font variant
   const flatStyle = StyleSheet.flatten(style) || {};
   const weight = flatStyle.fontWeight;
-  const isItalic = flatStyle.fontStyle === 'italic';
 
   let fontFamily = 'Sora_500Medium';
 

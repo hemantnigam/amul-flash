@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { AppText as Text } from './AppText';
-import { Zap, BellRing, ShieldCheck, X, Sparkles, CheckCircle2 } from 'lucide-react-native';
+import { Zap, X, CheckCircle2 } from 'lucide-react-native';
 import { Theme } from '../constants/theme';
 import { useStockStore } from '../store/useStockStore';
 
@@ -68,7 +68,7 @@ export const DropSimulatorModal: React.FC<DropSimulatorModalProps> = ({
                   <View style={styles.prodItemInfo}>
                     <Text style={styles.prodItemTitle}>{p.title}</Text>
                     <Text style={styles.prodItemSub}>
-                      {p.nutrition?.proteinGrams ? `${p.nutrition.proteinGrams}g Protein • ` : ''}₹{p.defaultPrice}
+                      {p.flavor ? `${p.flavor} • ` : ''}₹{p.defaultPrice}
                     </Text>
                   </View>
                   {p.autoCartEnabled && (

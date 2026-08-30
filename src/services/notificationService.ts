@@ -5,33 +5,26 @@ export interface NotificationPayload {
   body: string;
   productId?: string;
   pincode?: string;
-  isEmergencyAlarm?: boolean;
 }
 
 let notifeeModule: any = null;
 try {
-  // Dynamically require to ensure graceful web/simulator fallback
   notifeeModule = require('@notifee/react-native').default;
-} catch (e) {
-  // Graceful fallback for non-native environments
-}
+} catch (e) {}
 
 export const NotificationService = {
   async initialize() {
     if (!notifeeModule || Platform.OS === 'web') return;
 
     try {
-      // Create high-priority emergency alarm channel for restock drops
       await notifeeModule.createChannel({
-        id: 'amul_restock_alarm',
-        name: 'Amul Restock Drop Alarms',
+        id: 'amul_restock_notifications',
+        name: 'Amul Restock Notifications',
         importance: 4, // AndroidImportance.HIGH
-        sound: 'alarm',
+        sound: 'default',
         vibration: true,
-        bypassDnd: true,
       });
 
-      // Request notification permissions
       await notifeeModule.requestPermission();
     } catch (err) {}
   },
@@ -43,20 +36,15 @@ export const NotificationService = {
           title: payload.title,
           body: payload.body,
           android: {
-            channelId: 'amul_restock_alarm',
+            channelId: 'amul_restock_notifications',
             importance: 4,
-            sound: 'alarm',
+            sound: 'default',
             pressAction: {
               id: 'default',
             },
-            actions: [
-              {
-                title: '⚡ View Details',
-                pressAction: {
-                  id: 'view_details',
-                },
-              },
-            ],
+          },
+          ios: {
+            sound: 'default',
           },
         });
       } catch (err) {}

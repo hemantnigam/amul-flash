@@ -1,13 +1,5 @@
 export type StockStatus = 'in_stock' | 'low_stock' | 'out_of_stock';
 
-export interface NutritionInfo {
-  proteinGrams: number;
-  calories: number;
-  carbsGrams: number;
-  fatGrams: number;
-  servingSize: string;
-}
-
 export interface ProductVariant {
   id: string;
   name: string;
@@ -48,6 +40,14 @@ export interface AmulCategory {
   itemCount?: number;
 }
 
+export interface ProductMetafields {
+  benefits?: string;
+  how_to_useit?: string;
+  ingredients?: string;
+  uom?: string;
+  weight?: string;
+}
+
 export interface AmulProduct {
   id: string;
   rawId?: string;
@@ -56,13 +56,15 @@ export interface AmulProduct {
   category: ProductCategory;
   flavor?: string;
   imageUrl: string;
-  nutrition?: NutritionInfo;
   defaultPrice: number;
   variants: ProductVariant[];
   description: string;
   isPopular?: boolean;
   trackedPincodes?: string[];
   autoCartEnabled?: boolean;
+  alias?: string;
+  webUrl?: string;
+  metafields?: ProductMetafields;
 }
 
 export interface PincodeLocation {

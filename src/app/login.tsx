@@ -15,7 +15,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Smartphone,
-  Zap,
   ArrowRight,
   CheckCircle2,
   Clock,
@@ -35,21 +34,14 @@ export default function LoginScreen() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(30);
-  const [canResend, setCanResend] = useState(false);
 
-  const otpInputs = useRef<Array<any | null>>([]);
+  const otpInputs = useRef<(any | null)[]>([]);
 
   useEffect(() => {
     let interval: any;
     if (step === 'otp' && resendTimer > 0) {
       interval = setInterval(() => {
-        setResendTimer((prev) => {
-          if (prev <= 1) {
-            setCanResend(true);
-            return 0;
-          }
-          return prev - 1;
-        });
+        setResendTimer((prev) => (prev <= 1 ? 0 : prev - 1));
       }, 1000);
     }
     return () => clearInterval(interval);
@@ -69,7 +61,6 @@ export default function LoginScreen() {
       if (res.success) {
         setStep('otp');
         setResendTimer(30);
-        setCanResend(false);
       } else {
         Alert.alert('Notice', res.message || 'Failed to send OTP. Please try again.');
       }
@@ -231,7 +222,6 @@ export default function LoginScreen() {
                     <TouchableOpacity
                       onPress={async () => {
                         setResendTimer(30);
-                        setCanResend(false);
                         await handleSendOTP();
                       }}
                       activeOpacity={0.7}

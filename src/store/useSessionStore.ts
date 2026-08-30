@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import {
   AmulSession,
   AmulUserProfile,
@@ -185,6 +185,23 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       if (activeUserId) {
         const addresses = await AmulApiClient.getUserAddresses(activeUserId, cookie);
         set({ addresses });
+
+        // Auto-populate user profile from saved shipping address if profile is empty
+        const currentProf = get().userProfile;
+        if ((!currentProf || (!currentProf.firstName && !currentProf.lastName)) && addresses.length > 0) {
+          const firstAddr = addresses.find((a) => a.fullName) || addresses[0];
+          if (firstAddr && firstAddr.fullName) {
+            const parts = firstAddr.fullName.trim().split(' ');
+            const synthProfile: AmulUserProfile = {
+              id: activeUserId || 'user',
+              firstName: parts[0] || '',
+              lastName: parts.slice(1).join(' ') || '',
+              phone: firstAddr.phone || get().session.mobile || '',
+              email: currentProf?.email || '',
+            };
+            set({ userProfile: synthProfile });
+          }
+        }
       }
 
       // 3. Fetch Orders
@@ -219,7 +236,13 @@ export const useSessionStore = create<SessionState>((set, get) => ({
               lastName: data.last_name ?? state.userProfile.lastName,
               email: data.email ?? state.userProfile.email,
             }
-          : null,
+          : {
+              id: uid,
+              firstName: data.first_name || '',
+              lastName: data.last_name || '',
+              email: data.email || '',
+              phone: session.mobile || '',
+            },
         session: updatedSession,
       }));
       try {

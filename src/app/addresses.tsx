@@ -24,10 +24,8 @@ import {
   Building,
   Home,
   Check,
-  RefreshCw,
 } from 'lucide-react-native';
 import { useSessionStore } from '../store/useSessionStore';
-import { AmulUserAddress } from '../types/amul';
 
 export default function AddressesScreen() {
   const router = useRouter();
@@ -63,6 +61,7 @@ export default function AddressesScreen() {
 
   useEffect(() => {
     loadUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRefresh = async () => {

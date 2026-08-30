@@ -1,13 +1,12 @@
-import { Platform } from 'react-native';
 import {
   AmulProduct,
   AmulCategory,
-  PincodeLocation,
   AmulUserProfile,
   AmulUserAddress,
   AmulOrder,
+  ProductMetafields,
 } from '../types/amul';
-import { INITIAL_PINCODES, getFallbackProductsForCategory } from '../constants/products';
+import { INITIAL_PINCODES } from '../constants/products';
 
 /**
  * Pure JS SHA-256 implementation - zero native module dependency, 100% cross-platform
@@ -158,7 +157,7 @@ export const AMUL_CDN_BASE = 'https://shop.amul.com/s/62fa94df8c13af2e242eba16/'
  * Robust image URL resolver for Amul D2C product packshots
  * Directly preserves and resolves whatever image string or object is returned in the API response.
  */
-export function resolveAmulImageUrl(rawImage: any, fileBaseUrl: string = AMUL_CDN_BASE, contextName?: string): string {
+export function resolveAmulImageUrl(rawImage: any, fileBaseUrl: string = AMUL_CDN_BASE, _contextName?: string): string {
   if (!rawImage) return '';
 
   const img = typeof rawImage === 'object' ? rawImage.image || rawImage.url || '' : String(rawImage);
@@ -232,6 +231,70 @@ export function mergeCookies(existingCookie: string = '', newCookie: string = ''
   return Array.from(cookieMap.entries())
     .map(([k, v]) => `${k}=${v}`)
     .join('; ');
+}
+
+
+
+export function cleanHtmlText(raw?: string): string {
+  if (!raw || typeof raw !== 'string') return '';
+  return raw
+    .replace(/<br\s*[\/]?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '• ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n\s*\n\s*\n/g, '\n\n')
+    .trim();
+}
+
+export function extractProductMetafields(rawMeta: any): ProductMetafields | undefined {
+  if (!rawMeta) return undefined;
+
+  const result: ProductMetafields = {};
+
+  if (Array.isArray(rawMeta)) {
+    for (const item of rawMeta) {
+      if (!item) continue;
+      const key = String(item.key || item.name || item.field || item.id || '').toLowerCase().trim();
+      const val = cleanHtmlText(String(item.value || item.content || item.text || ''));
+      if (!val) continue;
+
+      if (key === 'benefits' || key.includes('benefit')) {
+        result.benefits = val;
+      } else if (
+        key === 'how_to_useit' ||
+        key === 'how_to_use' ||
+        key.includes('how_to_use') ||
+        key.includes('how to use') ||
+        key.includes('direction') ||
+        key.includes('usage')
+      ) {
+        result.how_to_useit = val;
+      } else if (key === 'ingredients' || key.includes('ingredient')) {
+        result.ingredients = val;
+      } else if (key === 'uom' || key.includes('uom') || key === 'unit') {
+        result.uom = val;
+      } else if (key === 'weight' || key.includes('weight') || key === 'net_weight') {
+        result.weight = val;
+      }
+    }
+  } else if (typeof rawMeta === 'object') {
+    if (rawMeta.benefits) result.benefits = cleanHtmlText(String(rawMeta.benefits));
+    if (rawMeta.how_to_useit) result.how_to_useit = cleanHtmlText(String(rawMeta.how_to_useit));
+    if (rawMeta.how_to_use) result.how_to_useit = result.how_to_useit || cleanHtmlText(String(rawMeta.how_to_use));
+    if (rawMeta.ingredients) result.ingredients = cleanHtmlText(String(rawMeta.ingredients));
+    if (rawMeta.uom) result.uom = cleanHtmlText(String(rawMeta.uom));
+    if (rawMeta.weight) result.weight = cleanHtmlText(String(rawMeta.weight));
+  }
+
+  const hasAny = result.benefits || result.how_to_useit || result.ingredients || result.uom || result.weight;
+  return hasAny ? result : undefined;
 }
 
 let sessionExpiredCallback: (() => void) | null = null;
@@ -432,7 +495,7 @@ export const AmulApiClient = {
 
       const effectiveCookie = sessionCookie || this.activeSessionCookie || '';
       const substoreParam = substoreId ? `&substore=${substoreId}` : '';
-      let url = `${AMUL_ENDPOINTS.PRODUCTS}?fields[name]=1&fields[brand]=1&fields[categories]=1&fields[collections]=1&fields[alias]=1&fields[sku]=1&fields[price]=1&fields[compare_price]=1&fields[original_price]=1&fields[images]=1&fields[metafields]=1&fields[discounts]=1&fields[catalog_only]=1&fields[is_catalog]=1&fields[seller]=1&fields[available]=1&fields[inventory_quantity]=1&fields[net_quantity]=1&fields[num_reviews]=1&fields[avg_rating]=1&fields[inventory_low_stock_quantity]=1&fields[inventory_allow_out_of_stock]=1&fields[default_variant]=1&fields[variants]=1&fields[lp_seller_ids]=1${filterParam}&facets=true&facetgroup=default_category_facet&limit=32&total=1&start=0&v=6&device_type=other${substoreParam}`;
+      let url = `${AMUL_ENDPOINTS.PRODUCTS}?fields[name]=1&fields[description]=1&fields[brand]=1&fields[categories]=1&fields[collections]=1&fields[alias]=1&fields[sku]=1&fields[price]=1&fields[compare_price]=1&fields[original_price]=1&fields[images]=1&fields[metafields]=1&fields[discounts]=1&fields[catalog_only]=1&fields[is_catalog]=1&fields[seller]=1&fields[available]=1&fields[inventory_quantity]=1&fields[net_quantity]=1&fields[num_reviews]=1&fields[avg_rating]=1&fields[inventory_low_stock_quantity]=1&fields[inventory_allow_out_of_stock]=1&fields[default_variant]=1&fields[variants]=1&fields[lp_seller_ids]=1${filterParam}&facets=true&facetgroup=default_category_facet&limit=32&total=1&start=0&v=6&device_type=other${substoreParam}`;
 
       let res = await fetch(url, {
         credentials: 'include',
@@ -461,7 +524,7 @@ export const AmulApiClient = {
         if (!isRetry) {
           return this.fetchStoreProducts(categorySlug, substoreId, sessionCookie, true);
         }
-        return getFallbackProductsForCategory(categorySlug);
+        return [];
       }
 
       let json: any = null;
@@ -471,7 +534,7 @@ export const AmulApiClient = {
         if (!isRetry) {
           return this.fetchStoreProducts(categorySlug, substoreId, sessionCookie, true);
         }
-        return getFallbackProductsForCategory(categorySlug);
+        return [];
       }
 
       if ((res.status === 401 || !json?.data) && !isRetry) {
@@ -482,29 +545,30 @@ export const AmulApiClient = {
         return json.data.map((item: any) => {
           const isAvailable = (item.available === 1 || item.available === true) && (item.inventory_quantity === undefined || item.inventory_quantity > 0);
           const stockCount = isAvailable ? (item.inventory_quantity !== undefined && item.inventory_quantity > 0 ? item.inventory_quantity : 50) : 0;
-          const isProtein = item.name.toLowerCase().includes('protein') || item.name.toLowerCase().includes('whey');
 
           const rawImg = item.images?.[0] || item.image;
           const resolvedImg = resolveAmulImageUrl(rawImg, json.fileBaseUrl, item.name);
 
+          const itemAlias = item.alias || item.sku || '';
+          const itemWebUrl = item.alias
+            ? `https://shop.amul.com/en/product/${item.alias}`
+            : `https://shop.amul.com/en/browse/${categorySlug}`;
+
+          const parsedMeta = extractProductMetafields(item.metafields);
+          const cleanDesc = cleanHtmlText(item.description) || `Authentic Amul Product. SKU: ${item.sku || item.alias}`;
+
           return {
             id: item.sku || item.alias || item._id,
             rawId: item._id,
+            alias: itemAlias,
+            webUrl: itemWebUrl,
             sellerId: item.seller,
             title: item.name,
             category: categorySlug,
             flavor: item.name.includes('|') ? item.name.split('|')[1]?.trim() : 'Natural',
             imageUrl: resolvedImg,
-            description: `Authentic Amul Product. SKU: ${item.sku || item.alias}`,
-            nutrition: isProtein
-              ? {
-                proteinGrams: item.name.toLowerCase().includes('whey') ? 32 : item.name.toLowerCase().includes('paneer') ? 50 : 15,
-                calories: 110,
-                carbsGrams: 5,
-                fatGrams: 1.5,
-                servingSize: '1 Pack',
-              }
-              : undefined,
+            description: cleanDesc,
+            metafields: parsedMeta,
             defaultPrice: item.price || 500,
             isPopular: true,
             autoCartEnabled: false,
@@ -524,10 +588,10 @@ export const AmulApiClient = {
         });
       }
     } catch (e) {
-      return getFallbackProductsForCategory(categorySlug);
+      return [];
     }
 
-    return getFallbackProductsForCategory(categorySlug);
+    return [];
   },
 
   /**
@@ -659,21 +723,25 @@ export const AmulApiClient = {
       });
 
       const textResponse = await res.text();
-      if (!textResponse || !textResponse.startsWith('{')) {
-        if (!isRetry) {
-          return this.getUserInfo(sessionCookie, true);
-        }
-        return null;
+      let cleanedText = textResponse
+        .replace(/^var\s+session\s*=\s*/i, '')
+        .replace(/^session\s*=\s*/i, '')
+        .replace(/;\s*$/, '')
+        .trim();
+
+      const firstBrace = cleanedText.indexOf('{');
+      const lastBrace = cleanedText.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        cleanedText = cleanedText.substring(firstBrace, lastBrace + 1);
       }
 
       let json: any = null;
       try {
-        const cleanedText = textResponse
-          .replace(/^session\s*=\s*/, '')
-          .replace(/;\s*$/, '')
-          .trim();
         json = JSON.parse(cleanedText);
       } catch (parseErr) {
+        if (!isRetry) {
+          return this.getUserInfo(sessionCookie, true);
+        }
         return null;
       }
 

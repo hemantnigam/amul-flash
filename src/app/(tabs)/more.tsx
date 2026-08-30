@@ -9,8 +9,8 @@ import {
   Platform,
   Modal,
   ActivityIndicator,
-  Image,
   RefreshControl,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import { AppTextInput as TextInput } from '../../components/AppTextInput';
@@ -18,29 +18,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
   MapPin,
-  ShieldCheck,
   Zap,
   LogOut,
   ChevronRight,
-  Sparkles,
   Smartphone,
   Edit2,
-  Plus,
-  Trash2,
   Package,
-  CheckCircle2,
-  Truck,
-  ShoppingCart,
-  User,
   X,
-  RefreshCw,
-  ExternalLink,
-  BellRing,
 } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
 import { useStockStore } from '../../store/useStockStore';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
-import { AmulUserAddress, AmulProduct } from '../../types/amul';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -59,7 +47,7 @@ export default function AccountScreen() {
     logout,
   } = useSessionStore();
 
-  const { selectedPincode, highSirenEnabled, toggleHighSiren } = useStockStore();
+  const { selectedPincode } = useStockStore();
 
   const [isPincodeModalVisible, setIsPincodeModalVisible] = useState(false);
 
@@ -70,13 +58,64 @@ export default function AccountScreen() {
   const [email, setEmail] = useState(userProfile?.email || '');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
+  const displayName = userProfile && (userProfile.firstName || userProfile.lastName)
+    ? `${userProfile.firstName} ${userProfile.lastName}`.trim()
+    : session.userName || (addresses.length > 0 ? addresses[0].fullName : (session.mobile ? `+91 ${session.mobile.replace('+91', '')}` : 'Amul User'));
+  const displayEmail = userProfile?.email || '';
+  const displayPhone = userProfile?.phone || (session.mobile ? (session.mobile.startsWith('+') ? session.mobile : `+91 ${session.mobile}`) : 'Not available');
+
   useEffect(() => {
-    if (userProfile) {
-      setFirstName(userProfile.firstName || '');
-      setLastName(userProfile.lastName || '');
-      setEmail(userProfile.email || '');
+    console.log('--------------------------------------------------');
+    console.log('🔍 [AccountScreen DEBUG] userProfile:', JSON.stringify(userProfile, null, 2));
+    console.log('🔍 [AccountScreen DEBUG] session:', JSON.stringify(session, null, 2));
+    console.log('🔍 [AccountScreen DEBUG] addresses count:', addresses.length);
+    if (addresses.length > 0) {
+      console.log('🔍 [AccountScreen DEBUG] first address:', JSON.stringify(addresses[0], null, 2));
     }
-  }, [userProfile, isEditProfileVisible]);
+    console.log('--------------------------------------------------');
+  }, [userProfile, session, addresses]);
+
+  const handleOpenEditProfile = () => {
+    console.log('👉 [handleOpenEditProfile CLICKED]');
+    console.log('👉 Current userProfile:', userProfile);
+    console.log('👉 Current displayName:', displayName);
+
+    let fName = userProfile?.firstName || '';
+    let lName = userProfile?.lastName || '';
+    let mail = userProfile?.email || '';
+
+    // Directly populate from the outside displayed name if profile fields are split-empty
+    if (!fName && displayName) {
+      const parts = displayName.trim().split(' ');
+      fName = parts[0] || '';
+      lName = parts.slice(1).join(' ') || '';
+    }
+
+    console.log(`👉 Populating Modal State -> firstName: "${fName}", lastName: "${lName}", email: "${mail}"`);
+
+    setFirstName(fName);
+    setLastName(lName);
+    setEmail(mail);
+    setIsEditProfileVisible(true);
+  };
+
+  useEffect(() => {
+    if (isEditProfileVisible) {
+      let fName = userProfile?.firstName || '';
+      let lName = userProfile?.lastName || '';
+      let mail = userProfile?.email || '';
+
+      if (!fName && displayName) {
+        const parts = displayName.trim().split(' ');
+        fName = parts[0] || '';
+        lName = parts.slice(1).join(' ') || '';
+      }
+
+      setFirstName(fName);
+      setLastName(lName);
+      setEmail(mail);
+    }
+  }, [isEditProfileVisible, userProfile, displayName]);
 
   const handleSaveProfile = async () => {
     setIsSavingProfile(true);
@@ -116,14 +155,9 @@ export default function AccountScreen() {
   useFocusEffect(
     useCallback(() => {
       loadUserData();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
   );
-
-  const displayName = userProfile && (userProfile.firstName || userProfile.lastName)
-    ? `${userProfile.firstName} ${userProfile.lastName}`.trim()
-    : session.userName || (session.mobile ? `+91 ${session.mobile.replace('+91', '')}` : 'Amul User');
-  const displayEmail = userProfile?.email || 'No email registered';
-  const displayPhone = userProfile?.phone || (session.mobile ? (session.mobile.startsWith('+') ? session.mobile : `+91 ${session.mobile}`) : 'Not available');
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -159,12 +193,7 @@ export default function AccountScreen() {
           </View>
           <TouchableOpacity
             style={styles.editProfileBtn}
-            onPress={() => {
-              setFirstName(userProfile?.firstName || '');
-              setLastName(userProfile?.lastName || '');
-              setEmail(userProfile?.email || '');
-              setIsEditProfileVisible(true);
-            }}
+            onPress={handleOpenEditProfile}
             activeOpacity={0.7}
           >
             <Edit2 size={14} color="#2563EB" />
@@ -239,6 +268,8 @@ export default function AccountScreen() {
           </TouchableOpacity>
         </View>
 
+
+
         {/* Section 3: Delivery Pincode & Radar */}
         <Text style={styles.groupHeading}>RADAR & AUTOMATION</Text>
         <View style={styles.cardGroup}>
@@ -280,25 +311,6 @@ export default function AccountScreen() {
             />
           </View>
 
-          {/* High Siren Alert Switch */}
-          <View style={styles.switchRow}>
-            <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#FEF2F2' }]}>
-                <BellRing size={18} color="#DC2626" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>High Siren Drop Alarm</Text>
-                <Text style={styles.rowSub}>Emergency alarm siren sound on restock drops</Text>
-              </View>
-            </View>
-            <Switch
-              value={highSirenEnabled}
-              onValueChange={toggleHighSiren}
-              trackColor={{ false: '#E2E8F0', true: '#BFDBFE' }}
-              thumbColor={highSirenEnabled ? '#2563EB' : '#94A3B8'}
-            />
-          </View>
-
           {/* SMS Retriever Switch */}
           <View style={[styles.switchRow, { borderBottomWidth: 0 }]}>
             <View style={styles.rowLeft}>
@@ -334,7 +346,10 @@ export default function AccountScreen() {
 
       {/* Edit Profile Modal */}
       <Modal visible={isEditProfileVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit Amul Profile</Text>
@@ -343,28 +358,31 @@ export default function AccountScreen() {
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.inputLabel}>First Name</Text>
+            <Text style={styles.inputLabel}>FIRST NAME</Text>
             <TextInput
               style={styles.modalInput}
               value={firstName}
               onChangeText={setFirstName}
               placeholder="First Name"
+              placeholderTextColor="#94A3B8"
             />
 
-            <Text style={styles.inputLabel}>Last Name</Text>
+            <Text style={styles.inputLabel}>LAST NAME</Text>
             <TextInput
               style={styles.modalInput}
               value={lastName}
               onChangeText={setLastName}
               placeholder="Last Name"
+              placeholderTextColor="#94A3B8"
             />
 
-            <Text style={styles.inputLabel}>Email Address</Text>
+            <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
             <TextInput
               style={styles.modalInput}
               value={email}
               onChangeText={setEmail}
               placeholder="Email Address"
+              placeholderTextColor="#94A3B8"
               keyboardType="email-address"
               autoCapitalize="none"
             />
@@ -382,7 +400,7 @@ export default function AccountScreen() {
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -793,14 +811,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   modalInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
     color: '#0F172A',
+    minHeight: 46,
+    marginBottom: 10,
   },
   inputRow: {
     flexDirection: 'row',

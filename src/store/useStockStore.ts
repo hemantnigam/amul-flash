@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { AmulProduct, AmulCategory, PincodeLocation, ActivityLog, RestockEvent } from '../types/amul';
-import { INITIAL_PINCODES } from '../constants/products';
 import { NotificationService } from '../services/notificationService';
 import { AmulApiClient, DEFAULT_CATEGORIES } from '../services/amulApi';
 
@@ -18,8 +17,6 @@ interface StockStoreState {
   trackedProductsMap: Record<string, AmulProduct>;
   allProductsMap: Record<string, AmulProduct>;
 
-  highSirenEnabled: boolean;
-  toggleHighSiren: () => void;
   loadInitialData: (sessionCookie?: string) => Promise<void>;
   setSelectedCategory: (categorySlug: string, sessionCookie?: string) => Promise<void>;
   setSelectedPincode: (pincode: PincodeLocation, sessionCookie?: string) => Promise<void>;
@@ -56,11 +53,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
   lastUpdated: Date.now(),
   trackedProductsMap: {},
   allProductsMap: {},
-  highSirenEnabled: true,
 
-  toggleHighSiren: () => {
-    set((state) => ({ highSirenEnabled: !state.highSirenEnabled }));
-  },
 
   loadInitialData: async (sessionCookie?: string) => {
     set({ isLoadingProducts: true });
@@ -318,7 +311,6 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       body: `30 units restocked for Pincode ${state.selectedPincode.pincode}! Stock live now!`,
       productId: targetProduct.id,
       pincode: state.selectedPincode.pincode,
-      isEmergencyAlarm: get().highSirenEnabled,
     });
 
     // 3. Stock Tracker Log

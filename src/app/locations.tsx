@@ -15,7 +15,6 @@ import {
   Plus,
   Trash2,
   Check,
-  Navigation,
   Compass,
   ArrowRight,
   ShieldCheck,
@@ -44,7 +43,7 @@ export default function LocationsScreen() {
     if (addresses && addresses.length > 0) {
       syncPincodesFromAddresses(addresses);
     }
-  }, [addresses]);
+  }, [addresses, syncPincodesFromAddresses]);
 
   const handleAdd = () => {
     if (newPincode.trim().length === 6) {
@@ -193,7 +192,7 @@ export default function LocationsScreen() {
         />
         <TextInput
           style={styles.input}
-          placeholder="Label (e.g. Gym, Parents' Home, Coworking)"
+          placeholder="Label (e.g. Gym, Office, Coworking)"
           placeholderTextColor="#9CA3AF"
           value={newLabel}
           onChangeText={setNewLabel}

@@ -5,64 +5,75 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
-  ActivityIndicator,
 } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import {
-  Zap,
-  ShieldCheck,
-  Flame,
-  Dumbbell,
-  Wheat,
-  Droplet,
   Bell,
   MapPin,
   CheckCircle2,
-  ShoppingCart,
-  Plus,
-  Minus,
   Package,
   ExternalLink,
   Globe,
+  Sparkles,
+  Leaf,
+  Info,
+  Scale,
+  BookOpen,
 } from 'lucide-react-native';
 import { useStockStore } from '../../store/useStockStore';
-import { useSessionStore } from '../../store/useSessionStore';
 import { StockBadge } from '../../components/StockBadge';
 import { analyticsService } from '../../services/analyticsService';
 
 export default function ProductDetailsScreen() {
   const { id } = useLocalSearchParams();
-  const router = useRouter();
   const { products, toggleAutoCartForProduct, selectedPincode } = useStockStore();
 
   const product = products.find((p) => p.id === id) || products[0];
   const primaryVariant = product?.variants?.[0];
+
+  const [imageUri, setImageUri] = useState(product?.imageUrl || '');
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    if (product) {
+      analyticsService.logScreenView('ProductDetails', product.title);
+      setImageUri(product.imageUrl || '');
+      setImageError(false);
+    }
+  }, [product?.imageUrl, product?.title, product]);
 
   if (!product) return null;
 
   const isInStock = primaryVariant?.isInStock;
   const isTracked = product.autoCartEnabled ?? false;
 
-  const [imageUri, setImageUri] = useState(product.imageUrl || '');
-  const [imageError, setImageError] = useState(false);
-
-  useEffect(() => {
-    analyticsService.logScreenView('ProductDetails', product.title);
-    setImageUri(product.imageUrl || '');
-    setImageError(false);
-  }, [product.imageUrl, product.title]);
-
   const handleOpenWebview = async () => {
-    let targetUrl = `https://shop.amul.com/en/browse/${product.category || 'protein'}`;
-    if (product.id && product.id.length > 3 && !product.id.startsWith('v_')) {
-      targetUrl = `https://shop.amul.com/en/product/${product.id}`;
+    let targetUrl = product.webUrl || '';
+
+    if (!targetUrl) {
+      if (product.alias) {
+        targetUrl = `https://shop.amul.com/en/product/${product.alias}`;
+      } else {
+        targetUrl = `https://shop.amul.com/en/browse/${product.category || 'protein'}`;
+      }
     }
+
+    console.log('--------------------------------------------------');
+    console.log('🌐 [View on Amul Website CLICKED]');
+    console.log('🌐 Product ID:', product.id);
+    console.log('🌐 Product Title:', product.title);
+    console.log('🌐 Product Alias:', product.alias);
+    console.log('🌐 Opening Target URL:', targetUrl);
+    console.log('--------------------------------------------------');
+
     try {
       await WebBrowser.openBrowserAsync(targetUrl);
-    } catch (e) {}
+    } catch (e) {
+      console.log('❌ WebBrowser Error:', e);
+    }
   };
 
   return (
@@ -110,6 +121,15 @@ export default function ProductDetailsScreen() {
               <MapPin size={12} color="#2563EB" />
               <Text style={styles.pincodeText}>{selectedPincode.label || selectedPincode.pincode}</Text>
             </View>
+            {Boolean(product.metafields?.weight || product.metafields?.uom) && (
+              <View style={styles.metaBadge}>
+                <Scale size={12} color="#047857" />
+                <Text style={styles.metaBadgeText}>
+                  {product.metafields?.weight ? `${product.metafields.weight}` : ''}
+                  {product.metafields?.weight && product.metafields?.uom ? ` ${product.metafields.uom}` : product.metafields?.uom || ''}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -174,50 +194,57 @@ export default function ProductDetailsScreen() {
           </View>
         )}
 
-        {/* Nutrition Macro Facts (if available) */}
-        {product.nutrition?.proteinGrams ? (
+        {/* Product Description */}
+        {product.description ? (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Nutritional Highlights</Text>
-            <View style={styles.macroGrid}>
-              <View style={styles.macroBox}>
-                <View style={[styles.macroIcon, { backgroundColor: '#EFF6FF' }]}>
-                  <Flame size={16} color="#2563EB" />
-                </View>
-                <Text style={styles.macroValue}>{product.nutrition.proteinGrams}g</Text>
-                <Text style={styles.macroLabel}>Protein</Text>
+            <View style={styles.cardHeaderRow}>
+              <View style={[styles.cardHeaderIconBox, { backgroundColor: '#EFF6FF' }]}>
+                <Info size={15} color="#2563EB" />
               </View>
-              <View style={styles.macroBox}>
-                <View style={[styles.macroIcon, { backgroundColor: '#FFF7ED' }]}>
-                  <Dumbbell size={16} color="#EA580C" />
-                </View>
-                <Text style={styles.macroValue}>{product.nutrition.calories}</Text>
-                <Text style={styles.macroLabel}>Calories</Text>
-              </View>
-              <View style={styles.macroBox}>
-                <View style={[styles.macroIcon, { backgroundColor: '#FEF3C7' }]}>
-                  <Wheat size={16} color="#D97706" />
-                </View>
-                <Text style={styles.macroValue}>{product.nutrition.carbsGrams}g</Text>
-                <Text style={styles.macroLabel}>Carbs</Text>
-              </View>
-              <View style={styles.macroBox}>
-                <View style={[styles.macroIcon, { backgroundColor: '#F3E8FF' }]}>
-                  <Droplet size={16} color="#7C3AED" />
-                </View>
-                <Text style={styles.macroValue}>{product.nutrition.fatGrams}g</Text>
-                <Text style={styles.macroLabel}>Fat</Text>
-              </View>
+              <Text style={styles.cardTitle}>Product Description</Text>
             </View>
+            <Text style={styles.descriptionText}>{product.description}</Text>
           </View>
         ) : null}
 
-        {/* Product Description */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Product Description</Text>
-          <Text style={styles.descriptionText}>
-            {product.description || 'Authentic fresh Amul product directly from GCMMF manufacturing centers.'}
-          </Text>
-        </View>
+        {/* Key Benefits */}
+        {product.metafields?.benefits ? (
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <View style={[styles.cardHeaderIconBox, { backgroundColor: '#FEF3C7' }]}>
+                <Sparkles size={15} color="#D97706" />
+              </View>
+              <Text style={styles.cardTitle}>Key Benefits</Text>
+            </View>
+            <Text style={styles.descriptionText}>{product.metafields.benefits}</Text>
+          </View>
+        ) : null}
+
+        {/* Ingredients */}
+        {product.metafields?.ingredients ? (
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <View style={[styles.cardHeaderIconBox, { backgroundColor: '#ECFDF5' }]}>
+                <Leaf size={15} color="#16A34A" />
+              </View>
+              <Text style={styles.cardTitle}>Ingredients</Text>
+            </View>
+            <Text style={styles.descriptionText}>{product.metafields.ingredients}</Text>
+          </View>
+        ) : null}
+
+        {/* How to Use */}
+        {product.metafields?.how_to_useit ? (
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <View style={[styles.cardHeaderIconBox, { backgroundColor: '#F3E8FF' }]}>
+                <BookOpen size={15} color="#7C3AED" />
+              </View>
+              <Text style={styles.cardTitle}>How to Use</Text>
+            </View>
+            <Text style={styles.descriptionText}>{product.metafields.how_to_useit}</Text>
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -497,6 +524,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#065F46',
   },
+  metaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+    marginLeft: 6,
+  },
+  metaBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: 'PlusJakartaSans_700Bold',
+    color: '#047857',
+  },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
@@ -505,51 +548,30 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.06)',
     marginBottom: 12,
   },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  cardHeaderIconBox: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   cardTitle: {
     fontSize: 14,
     fontWeight: '800',
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
     color: '#0F172A',
-    marginBottom: 4,
-  },
-  servingText: {
-    fontSize: 12,
-    color: '#64748B',
-    marginBottom: 12,
-  },
-  macroGrid: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  macroBox: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 10,
-    alignItems: 'center',
-  },
-  macroIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  macroValue: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  macroLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#64748B',
-    marginTop: 2,
   },
   descriptionText: {
     fontSize: 13,
     color: '#475569',
-    lineHeight: 18,
+    lineHeight: 20,
+    fontFamily: 'PlusJakartaSans_500Medium',
   },
   bottomBar: {
     position: 'absolute',

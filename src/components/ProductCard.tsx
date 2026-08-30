@@ -1,21 +1,19 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Switch } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { AppText as Text } from './AppText';
 import { Image } from 'expo-image';
-import { Zap, Bell, Check, ChevronRight, Package } from 'lucide-react-native';
+import { Bell, ChevronRight, Package } from 'lucide-react-native';
 import { AmulProduct } from '../types/amul';
 import { useStockStore } from '../store/useStockStore';
 
 interface ProductCardProps {
   product: AmulProduct;
   onPress: () => void;
-  onQuickBuy?: () => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   onPress,
-  onQuickBuy,
 }) => {
   const { toggleAutoCartForProduct } = useStockStore();
   const primaryVariant = product.variants[0];
@@ -86,18 +84,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {product.title}
           </Text>
 
-          {/* Protein & Nutrition Macro Tag */}
-          {product.nutrition?.proteinGrams ? (
-            <View style={styles.macroTag}>
-              <Text style={styles.macroTagText}>
-                ⚡ {product.nutrition.proteinGrams}g Protein • {product.nutrition.calories} kcal
-              </Text>
-            </View>
-          ) : (
-            <Text style={styles.categorySubtext}>
-              {product.flavor || 'Amul Official'}
-            </Text>
-          )}
+          <Text style={styles.categorySubtext}>
+            {product.flavor || 'Amul Official'}
+          </Text>
 
           {/* Price & Quick Buy */}
           <View style={styles.bottomRow}>
@@ -237,20 +226,7 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     lineHeight: 18,
   },
-  macroTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#F0FDF4',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginTop: 3,
-  },
-  macroTagText: {
-    fontSize: 11,
-    fontWeight: '700',
-    fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#15803D',
-  },
+
   categorySubtext: {
     fontSize: 11,
     fontWeight: '500',

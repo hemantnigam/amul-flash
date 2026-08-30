@@ -88,7 +88,7 @@ export const analyticsService = {
   /**
    * Log User Login via OTP
    */
-  async logUserLogin(userId: string, mobile: string) {
+  async logUserLogin(userId: string, _mobile: string) {
     if (analyticsModule) {
       try {
         await analyticsModule().setUserId(userId);

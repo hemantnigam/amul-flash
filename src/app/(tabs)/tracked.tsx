@@ -24,7 +24,6 @@ export default function TrackedScreen() {
   const router = useRouter();
   const { session, isInitialized } = useSessionStore();
   const {
-    products,
     trackedProductsMap,
     refreshStock,
     isLoadingProducts,
