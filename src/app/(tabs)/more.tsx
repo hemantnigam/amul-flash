@@ -28,11 +28,16 @@ import {
   Music,
   Radio,
   RefreshCw,
+  Sun,
+  Moon,
+  Smartphone,
 } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
 import { useStockStore } from '../../store/useStockStore';
+import { useAppTheme } from '../../hooks/useAppTheme';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
 import { AlarmSoundSelectorModal } from '../../components/AlarmSoundSelectorModal';
+import { ThemeSelectorModal } from '../../components/ThemeSelectorModal';
 import { LOCAL_ALARM_SOUNDS } from '../../constants/alarmSounds';
 
 let UpdatesModule: any = null;
@@ -65,8 +70,11 @@ export default function AccountScreen() {
     isSimulatingDrop,
   } = useStockStore();
 
+  const { colors, isDark, themeMode, systemColorScheme } = useAppTheme();
+
   const [isPincodeModalVisible, setIsPincodeModalVisible] = useState(false);
   const [isSoundModalVisible, setIsSoundModalVisible] = useState(false);
+  const [isThemeModalVisible, setIsThemeModalVisible] = useState(false);
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
 
   const startCountdownTest = async () => {
@@ -89,7 +97,6 @@ export default function AccountScreen() {
   const currentSound =
     LOCAL_ALARM_SOUNDS.find((s) => s.id === selectedAlarmSoundId) || LOCAL_ALARM_SOUNDS[0];
 
-  // Profile Edit Modal State
   const [isEditProfileVisible, setIsEditProfileVisible] = useState(false);
   const [firstName, setFirstName] = useState(userProfile?.firstName || '');
   const [lastName, setLastName] = useState(userProfile?.lastName || '');
@@ -98,72 +105,51 @@ export default function AccountScreen() {
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
 
   const handleCheckUpdate = async () => {
+    if (!UpdatesModule || !UpdatesModule.checkForUpdateAsync) {
+      Alert.alert('OTA Updates', 'OTA Updates are active on production preview builds.');
+      return;
+    }
+
     try {
       setIsCheckingUpdate(true);
-      if (!UpdatesModule || !UpdatesModule.isEnabled) {
-        Alert.alert(
-          'EAS Update Status',
-          'You are running version 1.0.0 on channel preview.'
-        );
-        return;
-      }
       const update = await UpdatesModule.checkForUpdateAsync();
       if (update.isAvailable) {
-        Alert.alert('Update Available', 'Downloading the latest restock update in background...');
         await UpdatesModule.fetchUpdateAsync();
-        Alert.alert('Update Ready', 'Restart app to apply latest update immediately?', [
-          { text: 'Later', style: 'cancel' },
-          { text: 'Restart Now', onPress: () => UpdatesModule.reloadAsync() },
-        ]);
+        Alert.alert(
+          'Update Ready!',
+          'A fresh Amul Flash update has been downloaded. Restart app now?',
+          [
+            { text: 'Later', style: 'cancel' },
+            {
+              text: 'Restart Now',
+              onPress: async () => {
+                await UpdatesModule.reloadAsync();
+              },
+            },
+          ]
+        );
       } else {
-        const id = UpdatesModule.updateId ? UpdatesModule.updateId.slice(0, 8) : '174a3e6';
-        Alert.alert('App Up to Date', `You are running the newest build (${id}).`);
+        Alert.alert('Up to Date', 'You are already running the latest Amul Flash build!');
       }
-    } catch (e: any) {
-      Alert.alert('Update Info', e?.message || 'Up to date with latest commit.');
+    } catch (err: any) {
+      Alert.alert('Update Check', err?.message || 'Could not check for OTA updates right now.');
     } finally {
       setIsCheckingUpdate(false);
     }
   };
 
-  const displayName = userProfile && (userProfile.firstName || userProfile.lastName)
-    ? `${userProfile.firstName} ${userProfile.lastName}`.trim()
-    : session.userName || (addresses.length > 0 ? addresses[0].fullName : (session.mobile ? `+91 ${session.mobile.replace('+91', '')}` : 'Amul User'));
-  const displayEmail = userProfile?.email || '';
-  const displayPhone = userProfile?.phone || (session.mobile ? (session.mobile.startsWith('+') ? session.mobile : `+91 ${session.mobile}`) : 'Not available');
+  const displayName =
+    userProfile?.firstName || userProfile?.lastName
+      ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim()
+      : session.userName || (addresses.length > 0 ? addresses[0].fullName : (session.mobile ? `+91 ${session.mobile.replace('+91', '')}` : 'Amul User'));
 
-  useEffect(() => {
-    console.log('--------------------------------------------------');
-    console.log('🔍 [AccountScreen DEBUG] userProfile:', JSON.stringify(userProfile, null, 2));
-    console.log('🔍 [AccountScreen DEBUG] session:', JSON.stringify(session, null, 2));
-    console.log('🔍 [AccountScreen DEBUG] addresses count:', addresses.length);
-    if (addresses.length > 0) {
-      console.log('🔍 [AccountScreen DEBUG] first address:', JSON.stringify(addresses[0], null, 2));
-    }
-    console.log('--------------------------------------------------');
-  }, [userProfile, session, addresses]);
+  const displayPhone = userProfile?.phone || (session.mobile ? (session.mobile.startsWith('+') ? session.mobile : `+91 ${session.mobile}`) : 'Not available');
+  const displayEmail = userProfile?.email || 'No email set';
 
   const handleOpenEditProfile = () => {
-    console.log('👉 [handleOpenEditProfile CLICKED]');
-    console.log('👉 Current userProfile:', userProfile);
-    console.log('👉 Current displayName:', displayName);
-
-    let fName = userProfile?.firstName || '';
-    let lName = userProfile?.lastName || '';
-    let mail = userProfile?.email || '';
-
-    // Directly populate from the outside displayed name if profile fields are split-empty
-    if (!fName && displayName) {
-      const parts = displayName.trim().split(' ');
-      fName = parts[0] || '';
-      lName = parts.slice(1).join(' ') || '';
-    }
-
-    console.log(`👉 Populating Modal State -> firstName: "${fName}", lastName: "${lName}", email: "${mail}"`);
-
-    setFirstName(fName);
-    setLastName(lName);
-    setEmail(mail);
+    setFirstName(userProfile?.firstName || '');
+    setLastName(userProfile?.lastName || '');
+    setEmail(userProfile?.email || '');
     setIsEditProfileVisible(true);
   };
 
@@ -173,8 +159,8 @@ export default function AccountScreen() {
       let lName = userProfile?.lastName || '';
       let mail = userProfile?.email || '';
 
-      if (!fName && displayName) {
-        const parts = displayName.trim().split(' ');
+      if (!fName && displayName && displayName !== 'Amul User') {
+        const parts = displayName.split(' ');
         fName = parts[0] || '';
         lName = parts.slice(1).join(' ') || '';
       }
@@ -219,20 +205,17 @@ export default function AccountScreen() {
     ]);
   };
 
-  // Auto-fetch fresh profile and user data from Amul cloud on screen focus
   useFocusEffect(
     useCallback(() => {
       loadUserData();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
   );
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Account & Profile</Text>
-        <Text style={styles.headerSub}>Connected to Amul Store</Text>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Account & Profile</Text>
+        <Text style={[styles.headerSub, { color: colors.textSecondary }]}>Connected to Amul Store</Text>
       </View>
 
       <ScrollView
@@ -242,210 +225,225 @@ export default function AccountScreen() {
           <RefreshControl
             refreshing={isLoadingUserData}
             onRefresh={loadUserData}
-            tintColor="#2563EB"
-            colors={['#2563EB']}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
       >
-        {/* User Profile Card */}
-        <View style={styles.userCard}>
-          <View style={styles.avatarCircle}>
+        <View style={[styles.userCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.avatarCircle, { backgroundColor: colors.primary }]}>
             <Text style={styles.avatarLetter}>
               {displayName ? displayName.charAt(0).toUpperCase() : 'A'}
             </Text>
           </View>
           <View style={styles.userTextCol}>
-            <Text style={styles.userName}>{displayName}</Text>
-            <Text style={styles.userPhone}>{displayPhone}</Text>
-            <Text style={styles.userEmail}>{displayEmail}</Text>
+            <Text style={[styles.userName, { color: colors.text }]}>{displayName}</Text>
+            <Text style={[styles.userPhone, { color: colors.primary }]}>{displayPhone}</Text>
+            <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{displayEmail}</Text>
           </View>
           <TouchableOpacity
-            style={styles.editProfileBtn}
+            style={[styles.editProfileBtn, { backgroundColor: isDark ? '#1E293B' : '#EFF6FF' }]}
             onPress={handleOpenEditProfile}
             activeOpacity={0.7}
           >
-            <Edit2 size={14} color="#2563EB" />
-            <Text style={styles.editProfileText}>Edit</Text>
+            <Edit2 size={14} color={colors.primary} />
+            <Text style={[styles.editProfileText, { color: colors.primary }]}>Edit</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Section 1: My Amul Orders */}
-        <Text style={styles.groupHeading}>MY AMUL ACTIVITY</Text>
-        <View style={styles.cardGroup}>
+        <Text style={[styles.groupHeading, { color: colors.textSecondary }]}>MY AMUL ACTIVITY</Text>
+        <View style={[styles.cardGroup, { backgroundColor: colors.surface, borderColor: colors.border }]}>
 
-          {/* Orders Navigation Option */}
           <TouchableOpacity
-            style={styles.cardRow}
+            style={[styles.cardRow, { borderBottomColor: colors.border }]}
             onPress={() => router.push('/orders')}
             activeOpacity={0.7}
           >
             <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#F0FDF4' }]}>
-                <Package size={18} color="#059669" />
+              <View style={[styles.iconBox, { backgroundColor: isDark ? '#064E3B' : '#F0FDF4' }]}>
+                <Package size={18} color={isDark ? '#34D399' : '#059669'} />
               </View>
               <View style={{ flex: 1 }}>
                 <View style={styles.titleBadgeRow}>
-                  <Text style={styles.rowTitle}>Orders</Text>
+                  <Text style={[styles.rowTitle, { color: colors.text }]}>Orders</Text>
                   {orders.length > 0 && (
-                    <View style={[styles.countBadge, { backgroundColor: '#DCFCE7' }]}>
-                      <Text style={[styles.countBadgeText, { color: '#15803D' }]}>
+                    <View style={[styles.countBadge, { backgroundColor: isDark ? '#064E3B' : '#DCFCE7' }]}>
+                      <Text style={[styles.countBadgeText, { color: isDark ? '#34D399' : '#15803D' }]}>
                         {orders.length}
                       </Text>
                     </View>
                   )}
                 </View>
-                <Text style={styles.rowSub}>
+                <Text style={[styles.rowSub, { color: colors.textSecondary }]}>
                   {orders.length > 0
                     ? `${orders.length} past orders • Track courier shipments`
                     : 'View past orders and tracking status'}
                 </Text>
               </View>
             </View>
-            <ChevronRight size={18} color="#94A3B8" />
+            <ChevronRight size={18} color={colors.textMuted} />
           </TouchableOpacity>
 
-          {/* Addresses Navigation Option */}
           <TouchableOpacity
             style={[styles.cardRow, { borderBottomWidth: 0 }]}
             onPress={() => router.push('/addresses')}
             activeOpacity={0.7}
           >
             <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#FEF3C7' }]}>
-                <MapPin size={18} color="#D97706" />
+              <View style={[styles.iconBox, { backgroundColor: isDark ? '#451A03' : '#FEF3C7' }]}>
+                <MapPin size={18} color={isDark ? '#FBBF24' : '#D97706'} />
               </View>
               <View style={{ flex: 1 }}>
                 <View style={styles.titleBadgeRow}>
-                  <Text style={styles.rowTitle}>Addresses</Text>
+                  <Text style={[styles.rowTitle, { color: colors.text }]}>Addresses</Text>
                   {addresses.length > 0 && (
-                    <View style={[styles.countBadge, { backgroundColor: '#FEF3C7' }]}>
-                      <Text style={[styles.countBadgeText, { color: '#B45309' }]}>
+                    <View style={[styles.countBadge, { backgroundColor: isDark ? '#451A03' : '#FEF3C7' }]}>
+                      <Text style={[styles.countBadgeText, { color: isDark ? '#FBBF24' : '#B45309' }]}>
                         {addresses.length}
                       </Text>
                     </View>
                   )}
                 </View>
-                <Text style={styles.rowSub}>
+                <Text style={[styles.rowSub, { color: colors.textSecondary }]}>
                   {addresses.length > 0
                     ? `${addresses.length} saved addresses • Manage delivery locations`
                     : 'Manage saved delivery addresses'}
                 </Text>
               </View>
             </View>
-            <ChevronRight size={18} color="#94A3B8" />
+            <ChevronRight size={18} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
 
-
-
-        {/* Section 3: Delivery Pincode & Radar */}
-        <Text style={styles.groupHeading}>RADAR & AUTOMATION</Text>
-        <View style={styles.cardGroup}>
+        <Text style={[styles.groupHeading, { color: colors.textSecondary }]}>APP PREFERENCES & RADAR</Text>
+        <View style={[styles.cardGroup, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          
           <TouchableOpacity
-            style={styles.cardRow}
+            style={[styles.cardRow, { borderBottomColor: colors.border }]}
+            onPress={() => setIsThemeModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: isDark ? '#1E293B' : '#EFF6FF' }]}>
+                {themeMode === 'dark' ? (
+                  <Moon size={18} color={colors.primary} />
+                ) : themeMode === 'light' ? (
+                  <Sun size={18} color={colors.primary} />
+                ) : (
+                  <Smartphone size={18} color={colors.primary} />
+                )}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowTitle, { color: colors.text }]}>Theme</Text>
+                <Text style={[styles.rowSub, { color: colors.textSecondary }]}>
+                  {themeMode === 'system'
+                    ? `System Default (${systemColorScheme === 'dark' ? 'Dark' : 'Light'})`
+                    : themeMode === 'dark'
+                    ? 'Dark Mode'
+                    : 'Light Mode'}
+                </Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View
+                style={[
+                  styles.themeTag,
+                  {
+                    backgroundColor: colors.surfaceContainer,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.themeTagText, { color: colors.primary }]}>
+                  {themeMode === 'system' ? 'System' : themeMode === 'dark' ? 'Dark' : 'Light'}
+                </Text>
+              </View>
+              <ChevronRight size={18} color={colors.textMuted} />
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.cardRow, { borderBottomColor: colors.border }]}
             onPress={() => setIsPincodeModalVisible(true)}
             activeOpacity={0.7}
           >
             <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#EFF6FF' }]}>
-                <MapPin size={18} color="#2563EB" />
+              <View style={[styles.iconBox, { backgroundColor: colors.surfaceContainer }]}>
+                <MapPin size={18} color={colors.primary} />
               </View>
               <View>
-                <Text style={styles.rowTitle}>Tracked Pincodes</Text>
-                <Text style={styles.rowSub}>
+                <Text style={[styles.rowTitle, { color: colors.text }]}>Tracked Pincodes</Text>
+                <Text style={[styles.rowSub, { color: colors.textSecondary }]}>
                   {selectedPincode?.pincode ? `${selectedPincode.pincode} • ${selectedPincode.label}` : 'Select Tracked Pincode'}
                 </Text>
               </View>
             </View>
-            <ChevronRight size={18} color="#94A3B8" />
+            <ChevronRight size={18} color={colors.textMuted} />
           </TouchableOpacity>
 
-          {/* High Priority Alarm Switch */}
-          <View style={styles.switchRow}>
+          <View style={[styles.switchRow, { borderBottomColor: colors.border }]}>
             <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#FEF2F2' }]}>
-                <Zap size={18} color="#EF4444" />
+              <View style={[styles.iconBox, { backgroundColor: colors.surfaceContainer }]}>
+                <Zap size={18} color={colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>High Priority Alarm</Text>
-                <Text style={styles.rowSub}>Full-screen alert with continuous sound & quick buy</Text>
+                <Text style={[styles.rowTitle, { color: colors.text }]}>High Priority Alarm</Text>
+                <Text style={[styles.rowSub, { color: colors.textSecondary }]}>Full-screen alert with continuous sound & quick buy</Text>
               </View>
             </View>
             <Switch
               value={alarmOverlayEnabled}
               onValueChange={setAlarmOverlayEnabled}
-              trackColor={{ false: '#E2E8F0', true: '#FECACA' }}
-              thumbColor={alarmOverlayEnabled ? '#EF4444' : '#94A3B8'}
+              trackColor={{ false: isDark ? '#2A2A2A' : '#E2E8F0', true: isDark ? '#1D4ED8' : '#BFDBFE' }}
+              thumbColor={alarmOverlayEnabled ? colors.primary : (isDark ? '#525252' : '#94A3B8')}
             />
           </View>
 
-          {/* Custom Notification Sound Picker */}
           <TouchableOpacity
-            style={styles.cardRow}
+            style={[styles.cardRow, { borderBottomColor: colors.border }]}
             onPress={() => setIsSoundModalVisible(true)}
             activeOpacity={0.7}
           >
             <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#EEF2FF' }]}>
-                <Music size={18} color="#4F46E5" />
+              <View style={[styles.iconBox, { backgroundColor: colors.surfaceContainer }]}>
+                <Music size={18} color={colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Custom Notification Sound</Text>
-                <Text style={styles.rowSub}>{currentSound.name} ({currentSound.category})</Text>
+                <Text style={[styles.rowTitle, { color: colors.text }]}>Custom Notification Sound</Text>
+                <Text style={[styles.rowSub, { color: colors.textSecondary }]}>{currentSound.name} ({currentSound.category})</Text>
               </View>
             </View>
-            <ChevronRight size={18} color="#94A3B8" />
+            <ChevronRight size={18} color={colors.textMuted} />
           </TouchableOpacity>
 
-          {/* Tap to test live restock notification */}
+          {/* Test Delayed Restock button (Uncomment to test notification & sound countdown)
           <TouchableOpacity
-            style={styles.cardRow}
-            onPress={async () => {
-              await triggerSimulatedDrop();
-            }}
-            disabled={isSimulatingDrop}
-            activeOpacity={0.7}
-          >
-            <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#EFF6FF' }]}>
-                <BellRing size={18} color="#2563EB" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.rowTitle, { color: '#1D4ED8', fontWeight: '800' }]}>
-                  Test Restock Notification
-                </Text>
-                <Text style={styles.rowSub}>
-                  {isSimulatingDrop ? 'Sending test notification...' : 'Sends high-priority restock alert banner with sound & vibration'}
-                </Text>
-              </View>
-            </View>
-            <ChevronRight size={18} color="#2563EB" />
-          </TouchableOpacity>
-
-          {/* Test Delayed Restock (5s delay) */}
-          <TouchableOpacity
-            style={styles.cardRow}
+            style={[styles.cardRow, { borderBottomColor: colors.border }]}
             onPress={startCountdownTest}
             disabled={isSimulatingDrop || countdownSeconds !== null}
             activeOpacity={0.7}
           >
             <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#FFF7ED' }]}>
-                <Radio size={18} color="#EA580C" />
+              <View style={[styles.iconBox, { backgroundColor: isDark ? '#431407' : '#FFF7ED' }]}>
+                <Radio size={18} color={isDark ? '#FB923C' : '#EA580C'} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.rowTitle, { color: '#C2410C', fontWeight: '800' }]}>
-                  Test Delayed Restock (5s delay)
+                <Text style={[styles.rowTitle, { color: isDark ? '#FB923C' : '#C2410C', fontWeight: '800' }]}>
+                  {countdownSeconds !== null
+                    ? `Triggering in ${countdownSeconds}s...`
+                    : 'Test Delayed Restock (5s delay)'}
                 </Text>
-                <Text style={styles.rowSub}>
-                  Lock phone or minimize app now to test notification & sound
+                <Text style={[styles.rowSub, { color: colors.textSecondary }]}>
+                  {countdownSeconds !== null
+                    ? 'Lock phone or stay in-app to test restock alarm overlay'
+                    : 'Lock phone or minimize app now to test notification & sound'}
                 </Text>
               </View>
             </View>
-            <ChevronRight size={18} color="#EA580C" />
+            <ChevronRight size={18} color={isDark ? '#FB923C' : '#EA580C'} />
           </TouchableOpacity>
+          */}
 
-          {/* Check for Live OTA Updates */}
           <TouchableOpacity
             style={[styles.cardRow, { borderBottomWidth: 0 }]}
             onPress={handleCheckUpdate}
@@ -453,86 +451,99 @@ export default function AccountScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#F0FDF4' }]}>
-                <RefreshCw size={18} color="#16A34A" />
+              <View style={[styles.iconBox, { backgroundColor: colors.surfaceContainer }]}>
+                <RefreshCw size={18} color={colors.text} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.rowTitle, { color: '#15803D', fontWeight: '800' }]}>
-                  {isCheckingUpdate ? 'Checking for updates...' : 'Check for Live OTA Updates'}
+                <Text style={[styles.rowTitle, { color: colors.text, fontWeight: '700' }]}>
+                  {isCheckingUpdate ? 'Checking for update...' : 'Check for App Update'}
                 </Text>
-                <Text style={styles.rowSub}>
+                <Text style={[styles.rowSub, { color: colors.textSecondary }]}>
                   Download latest restock radar updates instantly
                 </Text>
               </View>
             </View>
-            <ChevronRight size={18} color="#16A34A" />
+            <ChevronRight size={18} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
 
-        {/* Sign Out Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut} activeOpacity={0.8}>
-          <LogOut size={16} color="#DC2626" />
-          <Text style={styles.logoutButtonText}>Sign Out of Amul Account</Text>
+        <TouchableOpacity
+          style={[
+            styles.logoutButton,
+            {
+              backgroundColor: isDark ? '#450A0A' : '#FEF2F2',
+              borderColor: isDark ? '#7F1D1D' : '#FECACA',
+            },
+          ]}
+          onPress={handleSignOut}
+          activeOpacity={0.8}
+        >
+          <LogOut size={16} color={isDark ? '#F87171' : '#DC2626'} />
+          <Text style={[styles.logoutButtonText, { color: isDark ? '#F87171' : '#DC2626' }]}>
+            Sign Out of Amul Account
+          </Text>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Pincode Modal */}
       <PincodeSelectorModal
         visible={isPincodeModalVisible}
         onClose={() => setIsPincodeModalVisible(false)}
       />
 
-      {/* Alarm Sound Picker Modal */}
       <AlarmSoundSelectorModal
         visible={isSoundModalVisible}
         onClose={() => setIsSoundModalVisible(false)}
       />
 
-      {/* Edit Profile Modal */}
+      <ThemeSelectorModal
+        visible={isThemeModalVisible}
+        onClose={() => setIsThemeModalVisible(false)}
+      />
+
       <Modal visible={isEditProfileVisible} transparent animationType="fade">
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}
         >
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Amul Profile</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Edit Amul Profile</Text>
               <TouchableOpacity onPress={() => setIsEditProfileVisible(false)}>
-                <X size={20} color="#64748B" />
+                <X size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.inputLabel}>FIRST NAME</Text>
+            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>FIRST NAME</Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: colors.surfaceContainer, borderColor: colors.border, color: colors.text }]}
               value={firstName}
               onChangeText={setFirstName}
               placeholder="First Name"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textMuted}
             />
 
-            <Text style={styles.inputLabel}>LAST NAME</Text>
+            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>LAST NAME</Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: colors.surfaceContainer, borderColor: colors.border, color: colors.text }]}
               value={lastName}
               onChangeText={setLastName}
               placeholder="Last Name"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textMuted}
             />
 
-            <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
+            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>EMAIL ADDRESS</Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: colors.surfaceContainer, borderColor: colors.border, color: colors.text }]}
               value={email}
               onChangeText={setEmail}
               placeholder="Email Address"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textMuted}
               keyboardType="email-address"
               autoCapitalize="none"
             />
 
             <TouchableOpacity
-              style={styles.modalSubmitBtn}
+              style={[styles.modalSubmitBtn, { backgroundColor: colors.primary }]}
               onPress={handleSaveProfile}
               disabled={isSavingProfile}
               activeOpacity={0.8}
@@ -547,23 +558,22 @@ export default function AccountScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* 5-Second Test Countdown Modal */}
       <Modal visible={countdownSeconds !== null} transparent animationType="fade">
         <View style={styles.countdownBackdrop}>
-          <View style={styles.countdownCard}>
-            <View style={styles.countdownCircle}>
-              <Text style={styles.countdownNumber}>{countdownSeconds}</Text>
+          <View style={[styles.countdownCard, { backgroundColor: colors.surface }]}>
+            <View style={[styles.countdownCircle, { backgroundColor: colors.surfaceContainer, borderColor: colors.primary }]}>
+              <Text style={[styles.countdownNumber, { color: colors.primary }]}>{countdownSeconds}</Text>
             </View>
-            <Text style={styles.countdownTitle}>Lock Phone or Minimize NOW!</Text>
-            <Text style={styles.countdownDesc}>
+            <Text style={[styles.countdownTitle, { color: colors.text }]}>Lock Phone or Minimize NOW!</Text>
+            <Text style={[styles.countdownDesc, { color: colors.textSecondary }]}>
               Restock notification will fire in {countdownSeconds}s with your chosen sound & vibration.
             </Text>
             <TouchableOpacity
-              style={styles.countdownCancelBtn}
+              style={[styles.countdownCancelBtn, { backgroundColor: colors.surfaceContainer }]}
               onPress={() => setCountdownSeconds(null)}
               activeOpacity={0.8}
             >
-              <Text style={styles.countdownCancelText}>Cancel Test</Text>
+              <Text style={[styles.countdownCancelText, { color: colors.textSecondary }]}>Cancel Test</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1090,5 +1100,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',
+  },
+  themeTag: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  themeTagText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

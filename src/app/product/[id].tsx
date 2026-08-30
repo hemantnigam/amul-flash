@@ -24,12 +24,14 @@ import {
   BookOpen,
 } from 'lucide-react-native';
 import { useStockStore } from '../../store/useStockStore';
+import { useAppTheme } from '../../hooks/useAppTheme';
 import { StockBadge } from '../../components/StockBadge';
 import { analyticsService } from '../../services/analyticsService';
 
 export default function ProductDetailsScreen() {
   const { id } = useLocalSearchParams();
   const { products, toggleAutoCartForProduct, selectedPincode } = useStockStore();
+  const { colors, isDark } = useAppTheme();
 
   const product = products.find((p) => p.id === id) || products[0];
   const primaryVariant = product?.variants?.[0];
@@ -61,14 +63,6 @@ export default function ProductDetailsScreen() {
       }
     }
 
-    console.log('--------------------------------------------------');
-    console.log('🌐 [View on Amul Website CLICKED]');
-    console.log('🌐 Product ID:', product.id);
-    console.log('🌐 Product Title:', product.title);
-    console.log('🌐 Product Alias:', product.alias);
-    console.log('🌐 Opening Target URL:', targetUrl);
-    console.log('--------------------------------------------------');
-
     try {
       await WebBrowser.openBrowserAsync(targetUrl);
     } catch (e) {
@@ -77,18 +71,18 @@ export default function ProductDetailsScreen() {
   };
 
   return (
-    <View style={styles.screenContainer}>
+    <View style={[styles.screenContainer, { backgroundColor: colors.background }]}>
       <ScrollView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
         {/* Product Image */}
-        <View style={styles.imageCard}>
+        <View style={[styles.imageCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {!imageUri || imageError ? (
-            <View style={{ alignItems: 'center', justifyContent: 'center', height: 220, backgroundColor: '#F8FAFC', borderRadius: 16, width: '100%' }}>
-              <Package size={56} color="#0284C7" />
-              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0284C7', marginTop: 8 }}>Amul Packshot</Text>
+            <View style={{ alignItems: 'center', justifyContent: 'center', height: 220, backgroundColor: colors.surfaceContainer, borderRadius: 16, width: '100%' }}>
+              <Package size={56} color={colors.primary} />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: colors.primary, marginTop: 8 }}>Amul Packshot</Text>
             </View>
           ) : (
             <Image
@@ -108,23 +102,23 @@ export default function ProductDetailsScreen() {
         </View>
 
         {/* Title & Info */}
-        <View style={styles.infoCard}>
-          <Text style={styles.productTitle}>{product.title}</Text>
-          <Text style={styles.categorySubtext}>
+        <View style={[styles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.productTitle, { color: colors.text }]}>{product.title}</Text>
+          <Text style={[styles.categorySubtext, { color: colors.textSecondary }]}>
             {product.category?.toUpperCase()} • {product.flavor || 'Amul Official'}
           </Text>
 
           <View style={styles.priceRow}>
-            <Text style={styles.priceSymbol}>₹</Text>
-            <Text style={styles.priceValue}>{product.defaultPrice}</Text>
-            <View style={styles.pincodeBadge}>
-              <MapPin size={12} color="#2563EB" />
-              <Text style={styles.pincodeText}>{selectedPincode.label || selectedPincode.pincode}</Text>
+            <Text style={[styles.priceSymbol, { color: colors.primary }]}>₹</Text>
+            <Text style={[styles.priceValue, { color: colors.primary }]}>{product.defaultPrice}</Text>
+            <View style={[styles.pincodeBadge, { backgroundColor: colors.surfaceContainer, borderColor: colors.border }]}>
+              <MapPin size={12} color={colors.primary} />
+              <Text style={[styles.pincodeText, { color: colors.text }]}>{selectedPincode.label || selectedPincode.pincode}</Text>
             </View>
             {Boolean(product.metafields?.weight || product.metafields?.uom) && (
-              <View style={styles.metaBadge}>
-                <Scale size={12} color="#047857" />
-                <Text style={styles.metaBadgeText}>
+              <View style={[styles.metaBadge, { backgroundColor: isDark ? '#064E3B' : '#ECFDF5', borderColor: isDark ? '#059669' : '#A7F3D0' }]}>
+                <Scale size={12} color={isDark ? '#34D399' : '#047857'} />
+                <Text style={[styles.metaBadgeText, { color: isDark ? '#34D399' : '#047857' }]}>
                   {product.metafields?.weight ? `${product.metafields.weight}` : ''}
                   {product.metafields?.weight && product.metafields?.uom ? ` ${product.metafields.uom}` : product.metafields?.uom || ''}
                 </Text>
@@ -135,32 +129,32 @@ export default function ProductDetailsScreen() {
 
         {/* Webview Open Button */}
         <TouchableOpacity
-          style={styles.webLinkCard}
+          style={[styles.webLinkCard, { backgroundColor: colors.surface, borderColor: isDark ? '#262626' : '#DBE1FF' }]}
           onPress={handleOpenWebview}
           activeOpacity={0.8}
         >
           <View style={styles.webLinkLeft}>
-            <View style={styles.webLinkIconBox}>
-              <Globe size={18} color="#0037B0" />
+            <View style={[styles.webLinkIconBox, { backgroundColor: isDark ? '#1E1E1E' : '#EFF6FF' }]}>
+              <Globe size={18} color={colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.webLinkTitle}>View on Amul Website</Text>
-              <Text style={styles.webLinkSub}>Tap to open product page on shop.amul.com</Text>
+              <Text style={[styles.webLinkTitle, { color: colors.primary }]}>View on Amul Website</Text>
+              <Text style={[styles.webLinkSub, { color: colors.textSecondary }]}>Tap to open product page on shop.amul.com</Text>
             </View>
           </View>
-          <ExternalLink size={16} color="#0037B0" />
+          <ExternalLink size={16} color={colors.primary} />
         </TouchableOpacity>
 
         {/* Track Switch Card - Restock tracking active for Out of Stock items */}
         {!isInStock ? (
-          <View style={styles.trackCard}>
+          <View style={[styles.trackCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.trackLeft}>
-              <View style={[styles.trackIconBox, isTracked ? styles.trackIconActive : styles.trackIconInactive]}>
-                <Bell size={20} color={isTracked ? '#1D4ED8' : '#64748B'} />
+              <View style={[styles.trackIconBox, { backgroundColor: isTracked ? (isDark ? '#1E1E1E' : '#EFF6FF') : colors.surfaceContainer }]}>
+                <Bell size={20} color={isTracked ? colors.primary : colors.textMuted} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.trackTitle}>Track Restock Radar</Text>
-                <Text style={styles.trackSub}>
+                <Text style={[styles.trackTitle, { color: colors.text }]}>Track Restock Radar</Text>
+                <Text style={[styles.trackSub, { color: colors.textSecondary }]}>
                   {isTracked
                     ? 'Active: Real-time notification alerts enabled for stock drops'
                     : 'Toggle on to get notified instantly when this item restocks'}
@@ -174,19 +168,19 @@ export default function ProductDetailsScreen() {
                 toggleAutoCartForProduct(product.id, product);
                 analyticsService.logTrackStock(product.id, product.title, nextState);
               }}
-              trackColor={{ false: '#E2E8F0', true: '#BFDBFE' }}
-              thumbColor={isTracked ? '#2563EB' : '#94A3B8'}
+              trackColor={{ false: isDark ? '#2A2A2A' : '#E2E8F0', true: isDark ? '#1D4ED8' : '#BFDBFE' }}
+              thumbColor={isTracked ? colors.primary : (isDark ? '#525252' : '#94A3B8')}
             />
           </View>
         ) : (
-          <View style={[styles.trackCard, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}>
+          <View style={[styles.trackCard, { backgroundColor: isDark ? '#052E16' : '#F0FDF4', borderColor: isDark ? '#166534' : '#BBF7D0' }]}>
             <View style={styles.trackLeft}>
-              <View style={[styles.trackIconBox, { backgroundColor: '#DCFCE7' }]}>
-                <CheckCircle2 size={20} color="#16A34A" />
+              <View style={[styles.trackIconBox, { backgroundColor: isDark ? '#0F5132' : '#DCFCE7' }]}>
+                <CheckCircle2 size={20} color={isDark ? '#4ADE80' : '#16A34A'} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.trackTitle, { color: '#15803D' }]}>Item Currently In Stock</Text>
-                <Text style={[styles.trackSub, { color: '#166534' }]}>
+                <Text style={[styles.trackTitle, { color: isDark ? '#4ADE80' : '#15803D' }]}>Item Currently In Stock</Text>
+                <Text style={[styles.trackSub, { color: isDark ? '#86EFAC' : '#166534' }]}>
                   This product is available right now. Restock radar tracking is for out-of-stock items.
                 </Text>
               </View>
@@ -196,53 +190,53 @@ export default function ProductDetailsScreen() {
 
         {/* Product Description */}
         {product.description ? (
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.cardHeaderRow}>
-              <View style={[styles.cardHeaderIconBox, { backgroundColor: '#EFF6FF' }]}>
-                <Info size={15} color="#2563EB" />
+              <View style={[styles.cardHeaderIconBox, { backgroundColor: isDark ? '#1E1E1E' : '#EFF6FF' }]}>
+                <Info size={15} color={colors.primary} />
               </View>
-              <Text style={styles.cardTitle}>Product Description</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Product Description</Text>
             </View>
-            <Text style={styles.descriptionText}>{product.description}</Text>
+            <Text style={[styles.descriptionText, { color: colors.textSecondary }]}>{product.description}</Text>
           </View>
         ) : null}
 
         {/* Key Benefits */}
         {product.metafields?.benefits ? (
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.cardHeaderRow}>
-              <View style={[styles.cardHeaderIconBox, { backgroundColor: '#FEF3C7' }]}>
-                <Sparkles size={15} color="#D97706" />
+              <View style={[styles.cardHeaderIconBox, { backgroundColor: isDark ? '#2A1E00' : '#FEF3C7' }]}>
+                <Sparkles size={15} color={isDark ? '#FBBF24' : '#D97706'} />
               </View>
-              <Text style={styles.cardTitle}>Key Benefits</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Key Benefits</Text>
             </View>
-            <Text style={styles.descriptionText}>{product.metafields.benefits}</Text>
+            <Text style={[styles.descriptionText, { color: colors.textSecondary }]}>{product.metafields.benefits}</Text>
           </View>
         ) : null}
 
         {/* Ingredients */}
         {product.metafields?.ingredients ? (
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.cardHeaderRow}>
-              <View style={[styles.cardHeaderIconBox, { backgroundColor: '#ECFDF5' }]}>
-                <Leaf size={15} color="#16A34A" />
+              <View style={[styles.cardHeaderIconBox, { backgroundColor: isDark ? '#052E16' : '#ECFDF5' }]}>
+                <Leaf size={15} color={isDark ? '#4ADE80' : '#16A34A'} />
               </View>
-              <Text style={styles.cardTitle}>Ingredients</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Ingredients</Text>
             </View>
-            <Text style={styles.descriptionText}>{product.metafields.ingredients}</Text>
+            <Text style={[styles.descriptionText, { color: colors.textSecondary }]}>{product.metafields.ingredients}</Text>
           </View>
         ) : null}
 
         {/* How to Use */}
         {product.metafields?.how_to_useit ? (
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.cardHeaderRow}>
-              <View style={[styles.cardHeaderIconBox, { backgroundColor: '#F3E8FF' }]}>
-                <BookOpen size={15} color="#7C3AED" />
+              <View style={[styles.cardHeaderIconBox, { backgroundColor: isDark ? '#261438' : '#F3E8FF' }]}>
+                <BookOpen size={15} color={isDark ? '#C084FC' : '#7C3AED'} />
               </View>
-              <Text style={styles.cardTitle}>How to Use</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>How to Use</Text>
             </View>
-            <Text style={styles.descriptionText}>{product.metafields.how_to_useit}</Text>
+            <Text style={[styles.descriptionText, { color: colors.textSecondary }]}>{product.metafields.how_to_useit}</Text>
           </View>
         ) : null}
       </ScrollView>

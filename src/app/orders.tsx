@@ -25,10 +25,12 @@ import {
   ArrowRight,
 } from 'lucide-react-native';
 import { useSessionStore } from '../store/useSessionStore';
+import { useAppTheme } from '../hooks/useAppTheme';
 
 export default function OrdersScreen() {
   const router = useRouter();
   const { orders, isLoadingUserData, loadUserData } = useSessionStore();
+  const { colors, isDark } = useAppTheme();
   const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
@@ -54,31 +56,31 @@ export default function OrdersScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => router.back()}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <ChevronLeft size={24} color="#0F172A" />
+          <ChevronLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Order History</Text>
-          <Text style={styles.headerSubtitle}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Order History</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
             {orders.length} {orders.length === 1 ? 'order' : 'orders'} placed on Amul
           </Text>
         </View>
         <TouchableOpacity
-          style={styles.refreshHeaderBtn}
+          style={[styles.refreshHeaderBtn, { backgroundColor: colors.surfaceContainer }]}
           onPress={handleRefresh}
           disabled={isSyncing}
         >
           {isSyncing ? (
-            <ActivityIndicator size="small" color="#2563EB" />
+            <ActivityIndicator size="small" color={colors.primary} />
           ) : (
-            <RefreshCw size={18} color="#2563EB" />
+            <RefreshCw size={18} color={colors.primary} />
           )}
         </TouchableOpacity>
       </View>
@@ -90,8 +92,8 @@ export default function OrdersScreen() {
           <RefreshControl
             refreshing={isLoadingUserData || isSyncing}
             onRefresh={handleRefresh}
-            tintColor="#2563EB"
-            colors={['#2563EB']}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
       >
@@ -99,8 +101,8 @@ export default function OrdersScreen() {
           orders.map((order) => {
             const isDelivered = order.status === 'delivered';
             const isOutForDelivery = order.status === 'out_for_delivery';
-            const statusColor = isDelivered ? '#059669' : isOutForDelivery ? '#2563EB' : '#D97706';
-            const statusBg = isDelivered ? '#ECFDF5' : isOutForDelivery ? '#EFF6FF' : '#FFFBEB';
+            const statusColor = isDelivered ? (isDark ? '#34D399' : '#059669') : isOutForDelivery ? colors.primary : (isDark ? '#FBBF24' : '#D97706');
+            const statusBg = isDelivered ? (isDark ? '#064E3B' : '#ECFDF5') : isOutForDelivery ? (isDark ? '#1E3A8A' : '#EFF6FF') : (isDark ? '#451A03' : '#FFFBEB');
             const statusLabel = isDelivered
               ? 'DELIVERED'
               : isOutForDelivery
@@ -121,12 +123,12 @@ export default function OrdersScreen() {
                   });
 
             return (
-              <View key={order.id} style={styles.orderCard}>
+              <View key={order.id} style={[styles.orderCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 {/* Order Top Bar */}
-                <View style={styles.orderTopBar}>
+                <View style={[styles.orderTopBar, { borderBottomColor: colors.border }]}>
                   <View>
-                    <Text style={styles.orderNumber}>{order.orderNumber}</Text>
-                    <Text style={styles.orderDate}>Placed on {formattedDate}</Text>
+                    <Text style={[styles.orderNumber, { color: colors.text }]}>{order.orderNumber}</Text>
+                    <Text style={[styles.orderDate, { color: colors.textSecondary }]}>Placed on {formattedDate}</Text>
                   </View>
                   <View style={[styles.statusPill, { backgroundColor: statusBg }]}>
                     {isDelivered ? (
@@ -143,13 +145,13 @@ export default function OrdersScreen() {
                 </View>
 
                 {/* Items in Order */}
-                <View style={styles.orderItemsBox}>
+                <View style={[styles.orderItemsBox, { backgroundColor: colors.cardSecondary, borderColor: colors.border }]}>
                   {order.items.map((item, idx) => (
                     <View
                       key={item.id || idx}
                       style={[
                         styles.itemRow,
-                        idx < order.items.length - 1 && styles.itemRowBorder,
+                        idx < order.items.length - 1 && [styles.itemRowBorder, { borderBottomColor: colors.border }],
                       ]}
                     >
                       <Image
@@ -164,72 +166,66 @@ export default function OrdersScreen() {
                         cachePolicy="memory-disk"
                       />
                       <View style={styles.itemInfo}>
-                        <Text style={styles.itemTitle} numberOfLines={2}>
+                        <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={2}>
                           {item.name}
                         </Text>
-                        <Text style={styles.itemSku}>SKU: {item.sku}</Text>
+                        <Text style={[styles.itemSku, { color: colors.textSecondary }]}>SKU: {item.sku}</Text>
                         <View style={styles.itemBottom}>
-                          <Text style={styles.itemQty}>Qty: {item.quantity}</Text>
-                          <Text style={styles.itemPrice}>₹{item.price}</Text>
+                          <Text style={[styles.itemQty, { color: colors.textSecondary }]}>Qty: {item.quantity}</Text>
+                          <Text style={[styles.itemPrice, { color: colors.text }]}>₹{item.price * item.quantity}</Text>
                         </View>
                       </View>
                     </View>
                   ))}
                 </View>
 
-                {/* Order Footer & Tracking */}
-                <View style={styles.orderFooter}>
-                  <View style={styles.footerPriceRow}>
-                    <Text style={styles.footerPriceLabel}>Total Order Value</Text>
-                    <Text style={styles.footerPriceValue}>₹{order.totalAmount}</Text>
-                  </View>
-
+                {/* Total & Delivery Address */}
+                <View style={[styles.orderFooter, { borderTopColor: colors.border }]}>
                   {order.shippingAddress && (
                     <View style={styles.addressRow}>
-                      <MapPin size={13} color="#64748B" />
-                      <Text style={styles.addressText} numberOfLines={1}>
-                        {order.shippingAddress.address}, {order.shippingAddress.city} - {order.shippingAddress.zip}
+                      <MapPin size={13} color={colors.textSecondary} />
+                      <Text style={[styles.addressText, { color: colors.textSecondary }]} numberOfLines={1}>
+                        {order.shippingAddress.address || `${order.shippingAddress.city} - ${order.shippingAddress.zip}`}
                       </Text>
                     </View>
                   )}
+                  <View style={styles.footerPriceRow}>
+                    <Text style={[styles.footerPriceLabel, { color: colors.textSecondary }]}>Total Paid:</Text>
+                    <Text style={[styles.footerPriceValue, { color: colors.primary }]}>₹{order.totalAmount}</Text>
+                  </View>
 
                   {order.trackingNumber && (
-                    <View style={styles.trackingRow}>
-                      <View style={styles.trackingLeft}>
-                        <Truck size={14} color="#2563EB" />
-                        <Text style={styles.trackingAwb}>
-                          AWB: {order.trackingNumber}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        style={styles.trackBtn}
-                        onPress={() => handleTrackShipment(order.trackingNumber)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.trackBtnText}>Track Shipment</Text>
-                        <ExternalLink size={12} color="#2563EB" />
-                      </TouchableOpacity>
-                    </View>
+                    <TouchableOpacity
+                      style={[styles.trackBtn, { backgroundColor: isDark ? '#1E1E1E' : '#EFF6FF' }]}
+                      onPress={() => handleTrackShipment(order.trackingNumber)}
+                      activeOpacity={0.7}
+                    >
+                      <Truck size={14} color={colors.primary} />
+                      <Text style={[styles.trackBtnText, { color: colors.primary }]}>
+                        AWB: {order.trackingNumber}
+                      </Text>
+                      <ExternalLink size={13} color={colors.primary} style={{ marginLeft: 'auto' }} />
+                    </TouchableOpacity>
                   )}
                 </View>
               </View>
             );
           })
         ) : (
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconBox}>
-              <Package size={40} color="#94A3B8" />
+          <View style={[styles.emptyContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={[styles.emptyIconBox, { backgroundColor: isDark ? '#1E1E1E' : '#EFF6FF' }]}>
+              <Package size={40} color={colors.primary} />
             </View>
-            <Text style={styles.emptyTitle}>No Orders Yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Orders placed on Amul with your authenticated account will be tracked here in real-time.
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Orders Found</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+              Your orders placed via Amul Flash or online will automatically appear here.
             </Text>
             <TouchableOpacity
-              style={styles.browseBtn}
+              style={[styles.browseBtn, { backgroundColor: colors.primary }]}
               onPress={() => router.push('/(tabs)')}
-              activeOpacity={0.85}
+              activeOpacity={0.8}
             >
-              <Text style={styles.browseBtnText}>Explore Products</Text>
+              <Text style={styles.browseBtnText}>Browse Amul Store</Text>
               <ArrowRight size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -242,7 +238,6 @@ export default function OrdersScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FAF8FF',
   },
   header: {
     flexDirection: 'row',
@@ -250,15 +245,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
   },
   backBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -268,18 +260,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 17,
     fontWeight: '900',
-    color: '#0F172A',
   },
   headerSubtitle: {
     fontSize: 11,
-    color: '#64748B',
     marginTop: 1,
   },
   refreshHeaderBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -288,11 +277,9 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   orderCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     marginBottom: 16,
   },
   orderTopBar: {
@@ -301,16 +288,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
   },
   orderNumber: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#0F172A',
   },
   orderDate: {
     fontSize: 11,
-    color: '#64748B',
     marginTop: 2,
   },
   statusPill: {
@@ -328,6 +312,10 @@ const styles = StyleSheet.create({
   },
   orderItemsBox: {
     paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 10,
+    paddingHorizontal: 10,
   },
   itemRow: {
     flexDirection: 'row',
@@ -336,13 +324,11 @@ const styles = StyleSheet.create({
   },
   itemRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
   },
   itemThumb: {
     width: 52,
     height: 52,
     borderRadius: 8,
-    backgroundColor: '#F8FAFC',
   },
   itemInfo: {
     flex: 1,
@@ -350,12 +336,10 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
     lineHeight: 17,
   },
   itemSku: {
     fontSize: 10,
-    color: '#64748B',
     marginTop: 2,
   },
   itemBottom: {
@@ -367,17 +351,14 @@ const styles = StyleSheet.create({
   itemQty: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
   },
   itemPrice: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#0037B0',
   },
   orderFooter: {
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
     gap: 8,
   },
   footerPriceRow: {
@@ -388,12 +369,10 @@ const styles = StyleSheet.create({
   footerPriceLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#475569',
   },
   footerPriceValue: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0F172A',
   },
   addressRow: {
     flexDirection: 'row',
@@ -403,57 +382,32 @@ const styles = StyleSheet.create({
   addressText: {
     flex: 1,
     fontSize: 11,
-    color: '#64748B',
-  },
-  trackingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    padding: 10,
-    borderRadius: 10,
-    marginTop: 4,
-  },
-  trackingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  trackingAwb: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#334155',
   },
   trackBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    gap: 6,
+    padding: 10,
+    borderRadius: 10,
+    marginTop: 4,
   },
   trackBtnText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#2563EB',
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 60,
     paddingHorizontal: 20,
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     marginTop: 20,
   },
   emptyIconBox: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -461,18 +415,15 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#0F172A',
     marginBottom: 6,
   },
   emptySubtitle: {
     fontSize: 13,
-    color: '#64748B',
     textAlign: 'center',
     marginBottom: 20,
     lineHeight: 18,
   },
   browseBtn: {
-    backgroundColor: '#1D4ED8',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,

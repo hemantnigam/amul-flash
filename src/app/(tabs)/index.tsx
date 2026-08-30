@@ -18,6 +18,7 @@ import {
 } from 'lucide-react-native';
 import { useStockStore } from '../../store/useStockStore';
 import { useSessionStore } from '../../store/useSessionStore';
+import { useAppTheme } from '../../hooks/useAppTheme';
 import { ProductCard } from '../../components/ProductCard';
 import { DropAlertBanner } from '../../components/DropAlertBanner';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
@@ -27,6 +28,7 @@ import { analyticsService } from '../../services/analyticsService';
 export default function HomeScreen() {
   const router = useRouter();
   const { session, isInitialized, addresses } = useSessionStore();
+  const { colors, isDark } = useAppTheme();
   const {
     products,
     allProductsMap,
@@ -120,23 +122,29 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       {/* Top Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <View style={styles.topRow}>
           <View style={styles.brandTitleCol}>
-            <Text style={styles.brandTitle}>Amul Flash</Text>
-            <Text style={styles.brandSubtitle}>Stock Tracker</Text>
+            <Text style={[styles.brandTitle, { color: colors.text }]}>Amul Flash</Text>
+            <Text style={[styles.brandSubtitle, { color: colors.textSecondary }]}>Stock Tracker</Text>
           </View>
 
           {/* Location Pill */}
           <TouchableOpacity
-            style={styles.locationPill}
+            style={[
+              styles.locationPill,
+              {
+                backgroundColor: colors.surfaceContainer,
+                borderColor: colors.border,
+              },
+            ]}
             onPress={() => setIsPincodeModalVisible(true)}
             activeOpacity={0.8}
           >
-            <MapPin size={13} color="#2563EB" />
-            <Text style={styles.locationText}>
+            <MapPin size={13} color={colors.primary} />
+            <Text style={[styles.locationText, { color: colors.text }]}>
               {selectedPincode?.pincode || 'Select Delivery Hub'}
             </Text>
             <View style={styles.greenLiveDot} />
@@ -144,18 +152,26 @@ export default function HomeScreen() {
         </View>
 
         {/* Search Input */}
-        <View style={styles.searchBar}>
-          <Search size={16} color="#94A3B8" />
+        <View
+          style={[
+            styles.searchBar,
+            {
+              backgroundColor: colors.surfaceContainer,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Search size={16} color={colors.textMuted} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search protein, lassi, whey, organic..."
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={colors.textMuted}
             value={searchQuery}
             onChangeText={handleSearchChange}
           />
           {searchQuery ? (
             <TouchableOpacity onPress={handleClearSearch}>
-              <Text style={styles.clearText}>Clear</Text>
+              <Text style={[styles.clearText, { color: colors.primary }]}>Clear</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -164,7 +180,7 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={['#2563EB']} />}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
       >
         {/* Emergency Drop Alert Banner */}
         {activeDropAlert && (
@@ -185,14 +201,34 @@ export default function HomeScreen() {
             return (
               <TouchableOpacity
                 key={cat.id}
-                style={[styles.categoryChip, isSelected && styles.categoryChipSelected]}
+                style={[
+                  styles.categoryChip,
+                  {
+                    backgroundColor: isSelected
+                      ? colors.primary
+                      : colors.surface,
+                    borderColor: isSelected
+                      ? colors.primary
+                      : colors.border,
+                  },
+                ]}
                 onPress={() => {
                   setSearchQuery('');
                   setSelectedCategory(cat.slug, session.sessionCookie);
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.categoryChipText, isSelected && styles.categoryChipTextSelected]}>
+                <Text
+                  style={[
+                    styles.categoryChipText,
+                    {
+                      color: isSelected
+                        ? '#FFFFFF'
+                        : colors.textSecondary,
+                      fontWeight: isSelected ? '800' : '600',
+                    },
+                  ]}
+                >
                   {cat.name}
                 </Text>
               </TouchableOpacity>
@@ -202,16 +238,16 @@ export default function HomeScreen() {
 
         {isLoadingProducts ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#2563EB" />
-            <Text style={styles.loadingText}>Fetching live catalog from Amul...</Text>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Fetching live catalog from Amul...</Text>
           </View>
         ) : filteredProducts.length > 0 ? (
           <View style={styles.mainContent}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionHeading}>
+              <Text style={[styles.sectionHeading, { color: colors.textSecondary }]}>
                 {searchQuery ? `SEARCH RESULTS ("${searchQuery}")` : `${selectedCategory.toUpperCase()} PRODUCTS`}
               </Text>
-              <Text style={styles.sectionCountText}>{filteredProducts.length} items</Text>
+              <Text style={[styles.sectionCountText, { color: colors.textSecondary }]}>{filteredProducts.length} items</Text>
             </View>
 
             {/* Products List with Track Toggles */}
@@ -227,9 +263,9 @@ export default function HomeScreen() {
           </View>
         ) : (
           <View style={styles.emptyContainer}>
-            <Package size={44} color="#94A3B8" />
-            <Text style={styles.emptyTitle}>No products found</Text>
-            <Text style={styles.emptySubtitle}>
+            <Package size={44} color={colors.textMuted} />
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No products found</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
               Try another category or switch your delivery pincode.
             </Text>
           </View>
@@ -529,7 +565,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   productsList: {
-    gap: 2,
+    gap: 12,
   },
   loadingContainer: {
     paddingVertical: 60,

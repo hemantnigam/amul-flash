@@ -26,6 +26,7 @@ import {
   Check,
 } from 'lucide-react-native';
 import { useSessionStore } from '../store/useSessionStore';
+import { useAppTheme } from '../hooks/useAppTheme';
 
 export default function AddressesScreen() {
   const router = useRouter();
@@ -39,6 +40,7 @@ export default function AddressesScreen() {
     deleteAddress,
     setDefaultAddress,
   } = useSessionStore();
+  const { colors, isDark } = useAppTheme();
 
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -115,29 +117,29 @@ export default function AddressesScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       {/* Top Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => router.back()}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <ChevronLeft size={24} color="#0F172A" />
+          <ChevronLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Delivery Addresses</Text>
-          <Text style={styles.headerSubtitle}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Delivery Addresses</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
             {addresses.length} {addresses.length === 1 ? 'address' : 'addresses'} saved
           </Text>
         </View>
         <TouchableOpacity
-          style={styles.addHeaderBtn}
+          style={[styles.addHeaderBtn, { backgroundColor: colors.surfaceContainer }]}
           onPress={() => setIsAddAddressVisible(true)}
           activeOpacity={0.7}
         >
-          <Plus size={16} color="#2563EB" />
-          <Text style={styles.addHeaderText}>Add</Text>
+          <Plus size={16} color={colors.primary} />
+          <Text style={[styles.addHeaderText, { color: colors.primary }]}>Add</Text>
         </TouchableOpacity>
       </View>
 
@@ -148,8 +150,8 @@ export default function AddressesScreen() {
           <RefreshControl
             refreshing={isLoadingUserData || isSyncing}
             onRefresh={handleRefresh}
-            tintColor="#2563EB"
-            colors={['#2563EB']}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
       >
@@ -161,25 +163,29 @@ export default function AddressesScreen() {
             return (
               <View
                 key={addr.id}
-                style={[styles.addressCard, isDefault && styles.addressCardDefault]}
+                style={[
+                  styles.addressCard,
+                  { backgroundColor: colors.surface, borderColor: isDefault ? colors.primary : colors.border },
+                  isDefault && { backgroundColor: isDark ? '#1C1C1C' : '#FAFCFF' },
+                ]}
               >
                 {/* Top Row: Type pill + Default tag + Delete */}
                 <View style={styles.addressTopRow}>
-                  <View style={styles.addressTypePill}>
+                  <View style={[styles.addressTypePill, { backgroundColor: colors.surfaceContainer }]}>
                     {isOffice ? (
-                      <Building size={12} color="#475569" />
+                      <Building size={12} color={colors.textSecondary} />
                     ) : (
-                      <Home size={12} color="#475569" />
+                      <Home size={12} color={colors.textSecondary} />
                     )}
-                    <Text style={styles.addressTypeText}>
+                    <Text style={[styles.addressTypeText, { color: colors.textSecondary }]}>
                       {addr.addressType.toUpperCase()}
                     </Text>
                   </View>
 
                   {isDefault && (
-                    <View style={styles.defaultPill}>
-                      <CheckCircle2 size={11} color="#059669" />
-                      <Text style={styles.defaultPillText}>DEFAULT ADDRESS</Text>
+                    <View style={[styles.defaultPill, { backgroundColor: isDark ? '#052E16' : '#ECFDF5' }]}>
+                      <CheckCircle2 size={11} color={isDark ? '#4ADE80' : '#059669'} />
+                      <Text style={[styles.defaultPillText, { color: isDark ? '#4ADE80' : '#059669' }]}>DEFAULT ADDRESS</Text>
                     </View>
                   )}
 
@@ -188,27 +194,27 @@ export default function AddressesScreen() {
                     onPress={() => handleDelete(addr.id)}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    <Trash2 size={15} color="#94A3B8" />
+                    <Trash2 size={15} color={colors.textMuted} />
                   </TouchableOpacity>
                 </View>
 
                 {/* Address Details */}
-                <Text style={styles.recipientName}>{addr.fullName}</Text>
-                <Text style={styles.streetAddress}>{addr.address}</Text>
-                <Text style={styles.cityStateZip}>
+                <Text style={[styles.recipientName, { color: colors.text }]}>{addr.fullName}</Text>
+                <Text style={[styles.streetAddress, { color: colors.textSecondary }]}>{addr.address}</Text>
+                <Text style={[styles.cityStateZip, { color: colors.text }]}>
                   {addr.city}, {addr.state} - {addr.zip}
                 </Text>
-                <Text style={styles.phoneText}>Mobile: {addr.phone}</Text>
+                <Text style={[styles.phoneText, { color: colors.primary }]}>Mobile: {addr.phone}</Text>
 
                 {/* Bottom Action: Set as Default */}
                 {!isDefault && (
                   <TouchableOpacity
-                    style={styles.setDefaultBtn}
+                    style={[styles.setDefaultBtn, { borderTopColor: colors.border }]}
                     onPress={() => setDefaultAddress(addr.id)}
                     activeOpacity={0.7}
                   >
-                    <Check size={14} color="#2563EB" />
-                    <Text style={styles.setDefaultText}>Set as Default Delivery Address</Text>
+                    <Check size={14} color={colors.primary} />
+                    <Text style={[styles.setDefaultText, { color: colors.primary }]}>Set as Default Delivery Address</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -216,15 +222,15 @@ export default function AddressesScreen() {
           })
         ) : (
           <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconBox}>
-              <MapPin size={40} color="#94A3B8" />
+            <View style={[styles.emptyIconBox, { backgroundColor: colors.surfaceContainer }]}>
+              <MapPin size={40} color={colors.primary} />
             </View>
-            <Text style={styles.emptyTitle}>No Saved Addresses</Text>
-            <Text style={styles.emptySubtitle}>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Saved Addresses</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
               Add your delivery address to enable quick 1-tap checkout for high-protein drops.
             </Text>
             <TouchableOpacity
-              style={styles.addFirstBtn}
+              style={[styles.addFirstBtn, { backgroundColor: colors.primary }]}
               onPress={() => setIsAddAddressVisible(true)}
               activeOpacity={0.85}
             >
@@ -237,101 +243,109 @@ export default function AddressesScreen() {
 
       {/* Add Address Modal */}
       <Modal visible={isAddAddressVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}>
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderTitleRow}>
-                <MapPin size={18} color="#2563EB" />
-                <Text style={styles.modalTitle}>Add Delivery Address</Text>
+                <MapPin size={18} color={colors.primary} />
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Add Delivery Address</Text>
               </View>
               <TouchableOpacity onPress={() => setIsAddAddressVisible(false)}>
-                <X size={20} color="#64748B" />
+                <X size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
-              <Text style={styles.inputLabel}>Full Name</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Full Name</Text>
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, { backgroundColor: colors.surfaceContainer, borderColor: colors.border, color: colors.text }]}
                 value={addrFullName}
                 onChangeText={setAddrFullName}
                 placeholder="Recipient Name"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
               />
 
-              <Text style={styles.inputLabel}>Mobile Phone (+91)</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Mobile Phone (+91)</Text>
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, { backgroundColor: colors.surfaceContainer, borderColor: colors.border, color: colors.text }]}
                 value={addrPhone}
                 onChangeText={setAddrPhone}
                 placeholder="+91 Phone Number"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 keyboardType="phone-pad"
               />
 
-              <Text style={styles.inputLabel}>Flat / House No. / Street / Landmark</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Flat / House No. / Street / Landmark</Text>
               <TextInput
-                style={[styles.modalInput, { height: 64, textAlignVertical: 'top' }]}
+                style={[styles.modalInput, { backgroundColor: colors.surfaceContainer, borderColor: colors.border, color: colors.text, height: 64, textAlignVertical: 'top' }]}
                 value={addrStreet}
                 onChangeText={setAddrStreet}
                 placeholder="e.g. Flat 402, Sunshine Apartments, MG Road"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 multiline
               />
 
               <View style={styles.inputRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Pincode</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Pincode</Text>
                   <TextInput
-                    style={styles.modalInput}
+                    style={[styles.modalInput, { backgroundColor: colors.surfaceContainer, borderColor: colors.border, color: colors.text }]}
                     value={addrZip}
                     onChangeText={setAddrZip}
                     placeholder="Pincode"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="number-pad"
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>City</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>City</Text>
                   <TextInput
-                    style={styles.modalInput}
+                    style={[styles.modalInput, { backgroundColor: colors.surfaceContainer, borderColor: colors.border, color: colors.text }]}
                     value={addrCity}
                     onChangeText={setAddrCity}
                     placeholder="City"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.textMuted}
                   />
                 </View>
               </View>
 
-              <Text style={styles.inputLabel}>State</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>State</Text>
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, { backgroundColor: colors.surfaceContainer, borderColor: colors.border, color: colors.text }]}
                 value={addrState}
                 onChangeText={setAddrState}
                 placeholder="State"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
               />
 
               {/* Address Type Selection */}
-              <Text style={styles.inputLabel}>Address Type</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Address Type</Text>
               <View style={styles.typeRow}>
                 <TouchableOpacity
-                  style={[styles.typePill, addrType === 'home' && styles.typePillActive]}
+                  style={[
+                    styles.typePill,
+                    { backgroundColor: colors.surfaceContainer, borderColor: colors.border },
+                    addrType === 'home' && [styles.typePillActive, { backgroundColor: isDark ? '#222222' : '#EFF6FF', borderColor: colors.primary }],
+                  ]}
                   onPress={() => setAddrType('home')}
                   activeOpacity={0.7}
                 >
-                  <Home size={14} color={addrType === 'home' ? '#2563EB' : '#64748B'} />
-                  <Text style={[styles.typePillText, addrType === 'home' && styles.typePillTextActive]}>
+                  <Home size={14} color={addrType === 'home' ? colors.primary : colors.textSecondary} />
+                  <Text style={[styles.typePillText, { color: addrType === 'home' ? colors.primary : colors.textSecondary }]}>
                     Home
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.typePill, addrType === 'office' && styles.typePillActive]}
+                  style={[
+                    styles.typePill,
+                    { backgroundColor: colors.surfaceContainer, borderColor: colors.border },
+                    addrType === 'office' && [styles.typePillActive, { backgroundColor: isDark ? '#222222' : '#EFF6FF', borderColor: colors.primary }],
+                  ]}
                   onPress={() => setAddrType('office')}
                   activeOpacity={0.7}
                 >
-                  <Building size={14} color={addrType === 'office' ? '#2563EB' : '#64748B'} />
-                  <Text style={[styles.typePillText, addrType === 'office' && styles.typePillTextActive]}>
+                  <Building size={14} color={addrType === 'office' ? colors.primary : colors.textSecondary} />
+                  <Text style={[styles.typePillText, { color: addrType === 'office' ? colors.primary : colors.textSecondary }]}>
                     Office
                   </Text>
                 </TouchableOpacity>
@@ -339,7 +353,7 @@ export default function AddressesScreen() {
             </ScrollView>
 
             <TouchableOpacity
-              style={styles.modalSubmitBtn}
+              style={[styles.modalSubmitBtn, { backgroundColor: colors.primary }]}
               onPress={handleSaveNewAddress}
               disabled={isSavingAddress}
               activeOpacity={0.8}

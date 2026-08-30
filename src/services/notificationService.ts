@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, AppState } from 'react-native';
 import { LOCAL_ALARM_SOUNDS, LocalSoundItem } from '../constants/alarmSounds';
 import { alarmSoundService } from './alarmSoundService';
 
@@ -13,6 +13,15 @@ export interface NotificationPayload {
 let notifeeModule: any = null;
 try {
   notifeeModule = require('@notifee/react-native').default;
+  if (notifeeModule && typeof notifeeModule.onBackgroundEvent === 'function') {
+    notifeeModule.onBackgroundEvent(async ({ type, detail }: any) => {
+      if (detail?.pressAction?.id === 'stop_alarm') {
+        if (detail?.notification?.id) {
+          await notifeeModule.cancelNotification(detail.notification.id);
+        }
+      }
+    });
+  }
 } catch (_e) {
   notifeeModule = null;
 }
@@ -34,27 +43,46 @@ try {
   expoNotifications = null;
 }
 
-const RESTOCK_CHANNEL_ID = 'amul_restock_alerts';
+async function ensureNotificationChannel(soundId: string = 'digital_clock_beep'): Promise<string> {
+  if (Platform.OS !== 'android') return 'default';
 
-async function ensureNotificationChannel(): Promise<string> {
-  if (!notifeeModule || Platform.OS !== 'android') return RESTOCK_CHANNEL_ID;
+  const soundItem: LocalSoundItem =
+    LOCAL_ALARM_SOUNDS.find((s) => s.id === soundId) || LOCAL_ALARM_SOUNDS[0];
+  const soundResName = soundItem.filename.replace(/\.wav$/i, '');
+  const channelId = `amul_ch_${soundItem.id}`;
 
-  try {
-    const channelId = await notifeeModule.createChannel({
-      id: RESTOCK_CHANNEL_ID,
-      name: 'Amul Restock Alerts',
-      importance: 4, // AndroidImportance.HIGH (Heads-up notification banner)
-      visibility: 1, // AndroidVisibility.PUBLIC (Shows on Lock Screen)
-      sound: 'default',
-      vibration: true,
-      vibrationPattern: [300, 500, 300, 500],
-      badge: true,
-    });
-    return channelId;
-  } catch (err) {
-    console.log('⚠️ [ensureNotificationChannel error]:', err);
-    return RESTOCK_CHANNEL_ID;
+  if (notifeeModule) {
+    try {
+      await notifeeModule.createChannel({
+        id: channelId,
+        name: `Amul: ${soundItem.name}`,
+        importance: 4, // AndroidImportance.HIGH
+        visibility: 1, // AndroidVisibility.PUBLIC
+        sound: soundResName,
+        vibration: true,
+        vibrationPattern: [300, 500, 300, 500],
+        badge: true,
+      });
+    } catch (err) {
+      console.log('⚠️ [Notifee createChannel error]:', err);
+    }
   }
+
+  if (expoNotifications && expoNotifications.setNotificationChannelAsync) {
+    try {
+      await expoNotifications.setNotificationChannelAsync(channelId, {
+        name: `Amul: ${soundItem.name}`,
+        importance: 5, // AndroidImportance.MAX
+        sound: soundResName,
+        vibrationPattern: [0, 500, 250, 500],
+        lightColor: '#2563EB',
+        enableVibrate: true,
+        showBadge: true,
+      });
+    } catch (_e) {}
+  }
+
+  return channelId;
 }
 
 export const NotificationService = {
@@ -64,8 +92,6 @@ export const NotificationService = {
     if (notifeeModule) {
       try {
         await notifeeModule.requestPermission();
-        await ensureNotificationChannel();
-        console.log('✅ [NotificationService] Restock notification channel initialized');
       } catch (err) {
         console.log('⚠️ [NotificationService initialize error]:', err);
       }
@@ -76,6 +102,13 @@ export const NotificationService = {
         await expoNotifications.requestPermissionsAsync();
       } catch (_e) {}
     }
+
+    // Pre-register channels for all alarm sounds
+    for (const s of LOCAL_ALARM_SOUNDS) {
+      try {
+        await ensureNotificationChannel(s.id);
+      } catch (_e) {}
+    }
   },
 
   async sendRestockNotification(payload: NotificationPayload, soundId: string = 'digital_clock_beep') {
@@ -83,16 +116,20 @@ export const NotificationService = {
 
     const soundItem: LocalSoundItem =
       LOCAL_ALARM_SOUNDS.find((s) => s.id === soundId) || LOCAL_ALARM_SOUNDS[0];
+    const soundResName = soundItem.filename.replace(/\.wav$/i, '');
 
-    // Trigger custom audio playback via expo-audio
-    try {
-      alarmSoundService.previewSound(soundItem.id);
-    } catch (_e) {}
+    // Trigger custom audio playback via expo-audio when app is active in foreground
+    if (AppState.currentState === 'active') {
+      try {
+        alarmSoundService.previewSound(soundItem.id);
+      } catch (_e) {}
+    }
+
+    const channelId = await ensureNotificationChannel(soundItem.id);
 
     // 1. Primary delivery via Notifee
     if (notifeeModule && notifeeModule.displayNotification) {
       try {
-        const channelId = await ensureNotificationChannel();
         await notifeeModule.displayNotification({
           title: payload.title,
           body: payload.body,
@@ -104,17 +141,36 @@ export const NotificationService = {
             channelId: channelId,
             importance: 4,
             visibility: 1,
+            sound: soundResName,
+            loopSound: true, // Continuously loop custom audio like an alarm clock
+            ongoing: true, // Prioritize at top of notification shade
+            autoCancel: true,
             pressAction: {
               id: 'default',
               launchActivity: 'default',
             },
+            actions: [
+              {
+                title: '🛑 Stop Alarm',
+                pressAction: {
+                  id: 'stop_alarm',
+                },
+              },
+              {
+                title: '🛒 Open App',
+                pressAction: {
+                  id: 'open_app',
+                  launchActivity: 'default',
+                },
+              },
+            ],
             vibrationPattern: [300, 500, 300, 500],
           },
           ios: {
-            sound: 'default',
+            sound: soundItem.filename,
           },
         });
-        console.log('🔔 [NotificationService] Restock notification dispatched with sound:', soundItem.name);
+        console.log('🔔 [NotificationService] Restock notification dispatched with looping sound:', soundResName);
         return;
       } catch (err) {
         console.log('❌ [NotificationService displayNotification error]:', err);
@@ -128,12 +184,13 @@ export const NotificationService = {
           content: {
             title: payload.title,
             body: payload.body,
+            sound: soundResName,
             data: {
               productId: payload.productId || '',
               pincode: payload.pincode || '',
             },
           },
-          trigger: null, // Display immediately
+          trigger: { channelId } as any,
         });
       } catch (_e) {}
     }
@@ -148,15 +205,16 @@ export const NotificationService = {
 
     const soundItem: LocalSoundItem =
       LOCAL_ALARM_SOUNDS.find((s) => s.id === soundId) || LOCAL_ALARM_SOUNDS[0];
+    const soundResName = soundItem.filename.replace(/\.wav$/i, '');
 
-    console.log(`⏱️ [NotificationService] Scheduling ${delaySeconds}s delayed notification for:`, payload.title);
+    console.log(`⏱️ [NotificationService] Scheduling ${delaySeconds}s delayed looping alarm with sound: ${soundResName}`);
+
+    const channelId = await ensureNotificationChannel(soundItem.id);
+    const triggerTime = Date.now() + delaySeconds * 1000;
 
     // 1. Primary: Trigger notification via Notifee timestamp trigger
     if (notifeeModule && notifeeModule.createTriggerNotification) {
       try {
-        const channelId = await ensureNotificationChannel();
-        const triggerTime = Date.now() + delaySeconds * 1000;
-
         await notifeeModule.createTriggerNotification(
           {
             title: payload.title,
@@ -169,14 +227,33 @@ export const NotificationService = {
               channelId: channelId,
               importance: 4,
               visibility: 1,
+              sound: soundResName,
+              loopSound: true, // Continuously loop custom audio like an alarm clock
+              ongoing: true, // Prioritize at top of notification shade
+              autoCancel: true,
               pressAction: {
                 id: 'default',
                 launchActivity: 'default',
               },
+              actions: [
+                {
+                  title: '🛑 Stop Alarm',
+                  pressAction: {
+                    id: 'stop_alarm',
+                  },
+                },
+                {
+                  title: '🛒 Open App',
+                  pressAction: {
+                    id: 'open_app',
+                    launchActivity: 'default',
+                  },
+                },
+              ],
               vibrationPattern: [300, 500, 300, 500],
             },
             ios: {
-              sound: 'default',
+              sound: soundItem.filename,
             },
           },
           {
@@ -184,7 +261,8 @@ export const NotificationService = {
             timestamp: triggerTime,
           }
         );
-        console.log('✅ [NotificationService] Notifee timestamp trigger scheduled successfully');
+        console.log('✅ [NotificationService] Notifee timestamp trigger scheduled successfully with looping sound:', soundResName);
+        return;
       } catch (err) {
         console.log('⚠️ [Notifee createTriggerNotification error]:', err);
       }
@@ -197,6 +275,7 @@ export const NotificationService = {
           content: {
             title: payload.title,
             body: payload.body,
+            sound: soundResName,
             data: {
               productId: payload.productId || '',
               pincode: payload.pincode || '',
@@ -205,18 +284,12 @@ export const NotificationService = {
           trigger: {
             type: 'timeInterval',
             seconds: delaySeconds,
+            channelId,
             repeats: false,
           } as any,
         });
       } catch (_e) {}
     }
-
-    // 3. Local JS setTimeout for sound playback if app remains in memory
-    setTimeout(() => {
-      try {
-        alarmSoundService.previewSound(soundItem.id);
-      } catch (_e) {}
-    }, delaySeconds * 1000);
   },
 
   async cancelAllNotifications() {

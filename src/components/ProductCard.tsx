@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import { Bell, ChevronRight, Package } from 'lucide-react-native';
 import { AmulProduct } from '../types/amul';
 import { useStockStore } from '../store/useStockStore';
+import { useAppTheme } from '../hooks/useAppTheme';
 
 interface ProductCardProps {
   product: AmulProduct;
@@ -16,10 +17,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onPress,
 }) => {
   const { toggleAutoCartForProduct } = useStockStore();
+  const { colors, isDark } = useAppTheme();
   const primaryVariant = product.variants[0];
   const isInStock = primaryVariant?.isInStock;
   const stockCount = primaryVariant?.stockCount || 0;
-  const isTracked = product.autoCartEnabled ?? true;
+  const isTracked = product.autoCartEnabled ?? false;
   const [imageUri, setImageUri] = React.useState(product.imageUrl || '');
   const [imageError, setImageError] = React.useState(false);
 
@@ -30,39 +32,104 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+      ]}
       onPress={onPress}
       activeOpacity={0.88}
     >
       {/* Top Bar: Stock Status & Track Toggle */}
       <View style={styles.topHeader}>
-        <View style={[styles.stockPill, isInStock ? styles.stockPillIn : styles.stockPillOut]}>
-          <View style={[styles.pulseDot, { backgroundColor: isInStock ? '#10B981' : '#EF4444' }]} />
-          <Text style={[styles.stockPillText, { color: isInStock ? '#047857' : '#B91C1C' }]}>
+        <View
+          style={[
+            styles.stockPill,
+            {
+              backgroundColor: isInStock
+                ? isDark
+                  ? '#052E16'
+                  : '#ECFDF5'
+                : isDark
+                ? '#450A0A'
+                : '#FEF2F2',
+              borderColor: isInStock
+                ? isDark
+                  ? '#166534'
+                  : '#A7F3D0'
+                : isDark
+                ? '#991B1B'
+                : '#FECACA',
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.pulseDot,
+              { backgroundColor: isInStock ? '#22C55E' : '#EF4444' },
+            ]}
+          />
+          <Text
+            style={[
+              styles.stockPillText,
+              {
+                color: isInStock
+                  ? isDark
+                    ? '#4ADE80'
+                    : '#047857'
+                  : isDark
+                  ? '#F87171'
+                  : '#B91C1C',
+              },
+            ]}
+          >
             {isInStock ? `IN STOCK (${stockCount})` : 'OUT OF STOCK'}
           </Text>
         </View>
 
-        {/* Minimal Track Switch */}
-        <TouchableOpacity
-          style={[styles.trackButton, isTracked ? styles.trackButtonActive : styles.trackButtonInactive]}
-          onPress={() => toggleAutoCartForProduct(product.id)}
-          activeOpacity={0.7}
-        >
-          <Bell size={12} color={isTracked ? '#1D4ED8' : '#94A3B8'} />
-          <Text style={[styles.trackButtonText, isTracked ? styles.trackTextActive : styles.trackTextInactive]}>
-            {isTracked ? 'Tracking' : 'Track'}
-          </Text>
-        </TouchableOpacity>
+        {/* Minimal Track Switch - ONLY FOR OUT OF STOCK ITEMS */}
+        {!isInStock && (
+          <TouchableOpacity
+            style={[
+              styles.trackButton,
+              {
+                backgroundColor: isTracked
+                  ? isDark
+                    ? '#1E1E1E'
+                    : '#EFF6FF'
+                  : isDark
+                  ? '#171717'
+                  : '#F8FAFC',
+                borderColor: isTracked ? colors.primary : colors.border,
+              },
+            ]}
+            onPress={() => toggleAutoCartForProduct(product.id)}
+            activeOpacity={0.7}
+          >
+            <Bell size={12} color={isTracked ? colors.primary : colors.textMuted} />
+            <Text
+              style={[
+                styles.trackButtonText,
+                { color: isTracked ? colors.primary : colors.textMuted },
+              ]}
+            >
+              {isTracked ? 'Tracking' : 'Track'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.contentRow}>
         {/* Product Image */}
-        <View style={styles.imageWrapper}>
+        <View style={[styles.imageWrapper, { backgroundColor: isDark ? '#171717' : '#FFFFFF' }]}>
           {!imageUri || imageError ? (
             <View style={styles.imageFallbackContainer}>
-              <Package size={28} color="#0284C7" />
-              <Text style={styles.imageFallbackText} numberOfLines={1}>Amul</Text>
+              <Package size={28} color={colors.primary} />
+              <Text style={[styles.imageFallbackText, { color: colors.textSecondary }]} numberOfLines={1}>
+                Amul
+              </Text>
             </View>
           ) : (
             <Image
@@ -80,27 +147,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Product Info */}
         <View style={styles.infoCol}>
-          <Text style={styles.title} numberOfLines={2}>
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
             {product.title}
           </Text>
 
-          <Text style={styles.categorySubtext}>
+          <Text style={[styles.categorySubtext, { color: colors.textSecondary }]}>
             {product.flavor || 'Amul Official'}
           </Text>
 
           {/* Price & Quick Buy */}
           <View style={styles.bottomRow}>
             <View style={styles.priceCol}>
-              <Text style={styles.priceText}>₹{product.defaultPrice}</Text>
+              <Text style={[styles.priceText, { color: colors.primary }]}>₹{product.defaultPrice}</Text>
             </View>
 
             <TouchableOpacity
-              style={styles.actionButton}
+              style={[styles.actionButton, { backgroundColor: colors.primary }]}
               onPress={onPress}
               activeOpacity={0.8}
             >
               <Text style={styles.actionButtonText}>View Details</Text>
-              <ChevronRight size={13} color="#FFFFFF" />
+              <ChevronRight size={14} color="#FFFFFF" strokeWidth={2.5} />
             </TouchableOpacity>
           </View>
         </View>
@@ -111,40 +178,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     elevation: 2,
-    marginBottom: 12,
   },
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 10,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
   },
   stockPill: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 999,
+    borderRadius: 6,
+    borderWidth: 1,
     gap: 5,
-  },
-  stockPillIn: {
-    backgroundColor: '#ECFDF5',
-  },
-  stockPillOut: {
-    backgroundColor: '#FEF2F2',
   },
   pulseDot: {
     width: 6,
@@ -159,19 +215,11 @@ const styles = StyleSheet.create({
   trackButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 999,
     gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
     borderWidth: 1,
-  },
-  trackButtonActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#BFDBFE',
-  },
-  trackButtonInactive: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#E2E8F0',
   },
   trackButtonText: {
     fontSize: 11,

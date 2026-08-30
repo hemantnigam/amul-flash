@@ -4,9 +4,11 @@ import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, Radio, User } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
+import { useAppTheme } from '../../hooks/useAppTheme';
 
 export default function TabLayout() {
   const { session, isInitialized } = useSessionStore();
+  const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
 
   // If user is not logged in or auth is still checking, do not render dashboard tabs
@@ -22,8 +24,8 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#2563EB',
-        tabBarInactiveTintColor: '#64748B',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
         tabBarButton: (props) => (
           <Pressable
             {...(props as any)}
@@ -38,10 +40,10 @@ export default function TabLayout() {
           height: tabHeight,
           paddingBottom: bottomInset,
           paddingTop: 8,
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#E2E8F0',
+          backgroundColor: colors.tabBarBg,
+          borderTopColor: colors.border,
           borderTopWidth: 1,
-          boxShadow: '0 -2px 10px rgba(0,0,0,0.04)',
+          boxShadow: isDark ? '0 -2px 10px rgba(0,0,0,0.4)' : '0 -2px 10px rgba(0,0,0,0.04)',
           elevation: 8,
         },
         tabBarItemStyle: {

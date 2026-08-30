@@ -23,11 +23,13 @@ import { Theme } from '../constants/theme';
 import { BrandLogoHeader } from '../components/BrandLogoHeader';
 import { AmulApiClient } from '../services/amulApi';
 import { useSessionStore } from '../store/useSessionStore';
+import { useAppTheme } from '../hooks/useAppTheme';
 import { analyticsService } from '../services/analyticsService';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useSessionStore();
+  const { colors, isDark } = useAppTheme();
 
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [mobile, setMobile] = useState('');
@@ -131,7 +133,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
@@ -143,30 +145,30 @@ export default function LoginScreen() {
           </View>
 
           {/* Main Auth Card */}
-          <View style={styles.authCard}>
+          <View style={[styles.authCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             {step === 'phone' ? (
               <>
                 <View style={styles.cardHeader}>
-                  <View style={styles.iconCircle}>
-                    <Smartphone size={20} color={Theme.colors.primary} />
+                  <View style={[styles.iconCircle, { backgroundColor: colors.surfaceContainer }]}>
+                    <Smartphone size={20} color={colors.primary} />
                   </View>
                   <View style={styles.cardHeaderTextCol}>
-                    <Text style={styles.cardTitle}>Mobile Verification</Text>
-                    <Text style={styles.cardSubtitle}>
+                    <Text style={[styles.cardTitle, { color: colors.text }]}>Mobile Verification</Text>
+                    <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
                       Enter your phone number to receive an Amul OTP
                     </Text>
                   </View>
                 </View>
 
                 {/* Phone Input Box */}
-                <View style={styles.inputContainer}>
-                  <View style={styles.countryCodeBadge}>
-                    <Text style={styles.countryCodeText}>🇮🇳 +91</Text>
+                <View style={[styles.inputContainer, { backgroundColor: colors.surfaceContainer, borderColor: colors.border }]}>
+                  <View style={[styles.countryCodeBadge, { backgroundColor: colors.surfaceContainerHigh, borderRightColor: colors.border }]}>
+                    <Text style={[styles.countryCodeText, { color: colors.text }]}>🇮🇳 +91</Text>
                   </View>
                   <TextInput
-                    style={styles.textInput}
+                    style={[styles.textInput, { color: colors.text }]}
                     placeholder="Enter mobile number"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="phone-pad"
                     autoComplete="tel"
                     maxLength={10}
@@ -178,7 +180,7 @@ export default function LoginScreen() {
 
                 {/* Submit Button */}
                 <TouchableOpacity
-                  style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
+                  style={[styles.primaryButton, { backgroundColor: colors.primary }, isLoading && styles.buttonDisabled]}
                   onPress={handleSendOTP}
                   disabled={isLoading}
                   activeOpacity={0.8}
@@ -196,12 +198,12 @@ export default function LoginScreen() {
             ) : (
               <>
                 <View style={styles.cardHeader}>
-                  <View style={[styles.iconCircle, { backgroundColor: '#ECFDF5' }]}>
-                    <CheckCircle2 size={20} color="#10B981" />
+                  <View style={[styles.iconCircle, { backgroundColor: isDark ? '#064E3B' : '#ECFDF5' }]}>
+                    <CheckCircle2 size={20} color={isDark ? '#34D399' : '#10B981'} />
                   </View>
                   <View style={styles.cardHeaderTextCol}>
-                    <Text style={styles.cardTitle}>Enter 6-Digit OTP</Text>
-                    <Text style={styles.cardSubtitle}>
+                    <Text style={[styles.cardTitle, { color: colors.text }]}>Enter 6-Digit OTP</Text>
+                    <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
                       Sent to +91 {mobile}
                     </Text>
                   </View>
@@ -215,7 +217,14 @@ export default function LoginScreen() {
                       ref={(ref) => {
                         otpInputs.current[index] = ref;
                       }}
-                      style={[styles.otpInput, digit ? styles.otpInputFilled : null]}
+                      style={[
+                        styles.otpInput,
+                        {
+                          backgroundColor: colors.surfaceContainer,
+                          borderColor: digit ? colors.primary : colors.border,
+                          color: colors.text,
+                        },
+                      ]}
                       keyboardType="number-pad"
                       textContentType="oneTimeCode"
                       autoComplete="sms-otp"
@@ -233,9 +242,9 @@ export default function LoginScreen() {
 
                 {/* Resend Timer */}
                 <View style={styles.resendRow}>
-                  <Clock size={13} color="#64748B" />
+                  <Clock size={13} color={colors.textSecondary} />
                   {resendTimer > 0 ? (
-                    <Text style={styles.resendTimerText}>
+                    <Text style={[styles.resendTimerText, { color: colors.textSecondary }]}>
                       Resend code in {resendTimer}s
                     </Text>
                   ) : (
@@ -246,14 +255,14 @@ export default function LoginScreen() {
                       }}
                       activeOpacity={0.7}
                     >
-                      <Text style={styles.resendLinkText}>Resend OTP Code</Text>
+                      <Text style={[styles.resendLinkText, { color: colors.primary }]}>Resend OTP Code</Text>
                     </TouchableOpacity>
                   )}
                 </View>
 
                 {/* Verify Button */}
                 <TouchableOpacity
-                  style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
+                  style={[styles.primaryButton, { backgroundColor: colors.primary }, isLoading && styles.buttonDisabled]}
                   onPress={() => handleVerifyOTP()}
                   disabled={isLoading}
                   activeOpacity={0.8}
@@ -275,7 +284,7 @@ export default function LoginScreen() {
                     setOtp(['', '', '', '', '', '']);
                   }}
                 >
-                  <Text style={styles.changeNumberText}>Change Phone Number</Text>
+                  <Text style={[styles.changeNumberText, { color: colors.primary }]}>Change Phone Number</Text>
                 </TouchableOpacity>
               </>
             )}

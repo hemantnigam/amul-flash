@@ -1,3 +1,4 @@
+import { AppState } from 'react-native';
 import { create } from 'zustand';
 import { AmulProduct, PincodeLocation, ActivityLog, RestockEvent, AmulCategory } from '../types/amul';
 import { AmulApiClient } from '../services/amulApi';
@@ -354,6 +355,18 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
     if (!targetProduct) return;
 
+    const dropEvent: RestockEvent = {
+      id: `drop_${Date.now()}_${targetProduct.id}`,
+      productId: targetProduct.id,
+      productName: targetProduct.title,
+      pincode: state.selectedPincode.pincode || '110044',
+      timestamp: Date.now(),
+      unitsAdded: 30,
+      survivalDurationSecs: 180,
+      variantName: targetProduct.variants[0]?.name || 'Standard Pack',
+    };
+
+    // 1. Schedule background system notification
     await NotificationService.scheduleDelayedNotification(
       {
         title: `⚡ Restock Alert: ${targetProduct.title}`,
@@ -364,6 +377,20 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       delaySeconds,
       state.selectedAlarmSoundId || 'digital_clock_beep'
     );
+
+    // 2. Schedule in-app alarm event overlay + continuous audio when the delay ends (only if app is active in foreground)
+    setTimeout(() => {
+      if (AppState.currentState === 'active') {
+        get().triggerAlarmEvent(dropEvent);
+      }
+      get().addActivityLog({
+        type: 'restock',
+        title: `Test Restock Alert: ${targetProduct.title}`,
+        description: `Notification sent for Hub ${state.selectedPincode.pincode || '110044'}`,
+        pincode: state.selectedPincode.pincode || '110044',
+        status: 'success',
+      });
+    }, delaySeconds * 1000);
   },
 
   triggerAlarmEvent: (event: RestockEvent) => {
@@ -375,6 +402,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
   dismissAlarmEvent: () => {
     alarmSoundService.stopAlarm();
+    NotificationService.cancelAllNotifications();
     set({ activeAlarmEvent: null });
   },
 
@@ -384,6 +412,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
   dismissDropAlert: () => {
     alarmSoundService.stopAlarm();
+    NotificationService.cancelAllNotifications();
     set({ activeDropAlert: null, activeAlarmEvent: null });
   },
 

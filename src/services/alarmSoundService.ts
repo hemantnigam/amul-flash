@@ -1,4 +1,4 @@
-import { Platform, Vibration } from 'react-native';
+import { Platform, Vibration, AppState } from 'react-native';
 import { LOCAL_ALARM_SOUNDS, LocalSoundItem } from '../constants/alarmSounds';
 
 let expoAudioModule: any = null;
@@ -90,16 +90,24 @@ class AlarmSoundService {
     }
   }
 
+  getIsPreviewing(): boolean {
+    return this.isPreviewing;
+  }
+
+  getIsRinging(): boolean {
+    return this.isRinging;
+  }
+
   async previewSound(soundId: string) {
     console.log('▶️ [AlarmSoundService.previewSound] soundId:', soundId);
     await this.stopPreview();
     if (this.isRinging) return;
     this.isPreviewing = true;
 
-    // Trigger preview vibration
+    // Trigger single non-repeating vibration
     if (Platform.OS !== 'web') {
       try {
-        Vibration.vibrate([0, 300, 150, 300], true);
+        Vibration.vibrate([0, 300, 150, 300], false);
       } catch (_e) {}
     }
 
@@ -111,21 +119,21 @@ class AlarmSoundService {
     if (expoAudioModule && typeof expoAudioModule.createAudioPlayer === 'function') {
       try {
         const player = expoAudioModule.createAudioPlayer(targetSound.fileSource);
-        player.loop = true;
+        player.loop = false;
         player.volume = 1.0;
 
-        // Auto-loop guarantee listener for preview
+        // Auto-stop preview when audio finishes
         if (typeof player.addListener === 'function') {
           player.addListener('playbackStatusUpdate', (status: any) => {
             if (status?.didJustFinish && this.isPreviewing) {
-              player.seekTo(0).then(() => player.play()).catch(() => {});
+              this.stopPreview();
             }
           });
         }
 
         previewPlayer = player;
         player.play();
-        console.log('✅ [previewSound] Playing continuously via expo-audio (loop = true)');
+        console.log('✅ [previewSound] Playing preview via expo-audio');
         return;
       } catch (err) {
         console.log('⚠️ [expo-audio preview error]:', err);
@@ -253,3 +261,13 @@ class AlarmSoundService {
 }
 
 export const alarmSoundService = new AlarmSoundService();
+
+if (Platform.OS !== 'web') {
+  AppState.addEventListener('change', (nextState) => {
+    if (nextState !== 'active') {
+      if (alarmSoundService.getIsPreviewing()) {
+        alarmSoundService.stopPreview();
+      }
+    }
+  });
+}

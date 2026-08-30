@@ -16,6 +16,7 @@ import {
 } from 'lucide-react-native';
 import { LOCAL_ALARM_SOUNDS, LocalSoundItem } from '../constants/alarmSounds';
 import { useStockStore } from '../store/useStockStore';
+import { useAppTheme } from '../hooks/useAppTheme';
 import { alarmSoundService } from '../services/alarmSoundService';
 
 interface AlarmSoundSelectorModalProps {
@@ -28,6 +29,7 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
   onClose,
 }) => {
   const { selectedAlarmSoundId, setSelectedAlarmSoundId } = useStockStore();
+  const { colors, isDark } = useAppTheme();
   const [playingId, setPlayingId] = useState<string | null>(null);
 
   // Stop audio on close or unmount
@@ -64,13 +66,13 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
         onClose();
       }}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+      <View style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}>
+        <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {/* Header */}
-          <View style={styles.header}>
+          <View style={[styles.header, { borderBottomColor: colors.border }]}>
             <View>
-              <Text style={styles.title}>Custom Notification Sound</Text>
-              <Text style={styles.subTitle}>
+              <Text style={[styles.title, { color: colors.text }]}>Custom Notification Sound</Text>
+              <Text style={[styles.subTitle, { color: colors.textSecondary }]}>
                 Select the sound played when tracked items drop
               </Text>
             </View>
@@ -79,10 +81,10 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
                 alarmSoundService.stopPreview();
                 onClose();
               }}
-              style={styles.closeBtn}
+              style={[styles.closeBtn, { backgroundColor: colors.surfaceContainer }]}
               activeOpacity={0.7}
             >
-              <X size={20} color="#64748B" />
+              <X size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -101,15 +103,32 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
                   key={item.id}
                   style={[
                     styles.soundCard,
-                    isSelected && styles.soundCardSelected,
+                    {
+                      backgroundColor: isSelected
+                        ? isDark
+                          ? '#1E1E1E'
+                          : '#EFF6FF'
+                        : colors.cardSecondary,
+                      borderColor: isSelected ? colors.primary : colors.border,
+                    },
                   ]}
                 >
                   {/* Left: Play / Pause Preview Button */}
                   <TouchableOpacity
                     style={[
                       styles.playBtn,
-                      isPlaying && styles.playBtnActive,
-                      isSelected && !isPlaying && styles.playBtnSelected,
+                      {
+                        backgroundColor: isPlaying
+                          ? '#EF4444'
+                          : isDark
+                          ? '#222222'
+                          : '#FFFFFF',
+                        borderColor: isPlaying
+                          ? '#EF4444'
+                          : isSelected
+                          ? colors.primary
+                          : colors.border,
+                      },
                     ]}
                     onPress={() => handleTogglePlay(item)}
                     activeOpacity={0.8}
@@ -119,8 +138,8 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
                     ) : (
                       <Play
                         size={15}
-                        color={isSelected ? '#2563EB' : '#475569'}
-                        fill={isSelected ? '#2563EB' : '#475569'}
+                        color={isSelected ? colors.primary : colors.textSecondary}
+                        fill={isSelected ? colors.primary : colors.textSecondary}
                         style={{ marginLeft: 2 }}
                       />
                     )}
@@ -136,7 +155,7 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
                       <Text
                         style={[
                           styles.soundName,
-                          isSelected && styles.soundNameSelected,
+                          { color: isSelected ? colors.primary : colors.text },
                         ]}
                       >
                         {item.name}
@@ -144,20 +163,28 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
                       <View
                         style={[
                           styles.categoryBadge,
-                          isSelected && styles.categoryBadgeSelected,
+                          {
+                            backgroundColor: isSelected
+                              ? isDark
+                                ? '#1E3A8A'
+                                : 'rgba(37, 99, 235, 0.12)'
+                              : isDark
+                              ? '#374151'
+                              : 'rgba(100, 116, 139, 0.1)',
+                          },
                         ]}
                       >
                         <Text
                           style={[
                             styles.categoryBadgeText,
-                            isSelected && styles.categoryBadgeTextSelected,
+                            { color: isSelected ? colors.primary : colors.textSecondary },
                           ]}
                         >
                           {item.category}
                         </Text>
                       </View>
                     </View>
-                    <Text style={styles.soundDesc}>{item.description}</Text>
+                    <Text style={[styles.soundDesc, { color: colors.textSecondary }]}>{item.description}</Text>
                   </TouchableOpacity>
 
                   {/* Right: Selection Checkmark */}
@@ -167,11 +194,11 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
                     activeOpacity={0.7}
                   >
                     {isSelected ? (
-                      <View style={styles.checkCircle}>
+                      <View style={[styles.checkCircle, { backgroundColor: colors.primary }]}>
                         <Check size={14} color="#FFFFFF" strokeWidth={3} />
                       </View>
                     ) : (
-                      <View style={styles.unselectedRadio} />
+                      <View style={[styles.unselectedRadio, { borderColor: colors.outline, backgroundColor: 'transparent' }]} />
                     )}
                   </TouchableOpacity>
                 </View>
@@ -181,7 +208,7 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
 
           {/* Done Button */}
           <TouchableOpacity
-            style={styles.doneBtn}
+            style={[styles.doneBtn, { backgroundColor: colors.primary }]}
             onPress={() => {
               alarmSoundService.stopPreview();
               onClose();

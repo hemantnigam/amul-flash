@@ -18,11 +18,13 @@ import {
 } from 'lucide-react-native';
 import { useStockStore } from '../../store/useStockStore';
 import { useSessionStore } from '../../store/useSessionStore';
+import { useAppTheme } from '../../hooks/useAppTheme';
 import { ProductCard } from '../../components/ProductCard';
 
 export default function TrackedScreen() {
   const router = useRouter();
   const { session, isInitialized } = useSessionStore();
+  const { colors, isDark } = useAppTheme();
   const {
     trackedProductsMap,
     refreshStock,
@@ -46,16 +48,16 @@ export default function TrackedScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <View style={styles.topRow}>
           <View>
             <View style={styles.titleRow}>
-              <Radio size={20} color="#2563EB" />
-              <Text style={styles.headerTitle}>Tracked Items</Text>
+              <Radio size={20} color={colors.primary} />
+              <Text style={[styles.headerTitle, { color: colors.text }]}>Tracked Items</Text>
             </View>
-            <Text style={styles.headerSub}>
+            <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
               Active Radar monitoring Amul stock drops
             </Text>
           </View>
@@ -63,24 +65,24 @@ export default function TrackedScreen() {
 
         {/* Live Radar Summary Stats */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <View style={styles.statDot} />
-            <Text style={styles.statLabel}>Tracked:</Text>
-            <Text style={styles.statValue}>{trackedProducts.length}</Text>
+          <View style={[styles.statCard, { backgroundColor: colors.surfaceContainer, borderColor: colors.border }]}>
+            <View style={[styles.statDot, { backgroundColor: colors.primary }]} />
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Tracked:</Text>
+            <Text style={[styles.statValue, { color: colors.text }]}>{trackedProducts.length}</Text>
           </View>
 
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: colors.surfaceContainer, borderColor: colors.border }]}>
             <Zap size={13} color="#10B981" />
-            <Text style={styles.statLabel}>In Stock:</Text>
-            <Text style={[styles.statValue, { color: inStockTracked.length > 0 ? '#10B981' : '#64748B' }]}>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>In Stock:</Text>
+            <Text style={[styles.statValue, { color: inStockTracked.length > 0 ? '#10B981' : colors.textSecondary }]}>
               {inStockTracked.length}
             </Text>
           </View>
 
-          <View style={styles.statCard}>
-            <ShieldCheck size={13} color="#2563EB" />
-            <Text style={styles.statLabel}>Radar:</Text>
-            <Text style={[styles.statValue, { color: '#2563EB' }]}>LIVE</Text>
+          <View style={[styles.statCard, { backgroundColor: colors.surfaceContainer, borderColor: colors.border }]}>
+            <ShieldCheck size={13} color={colors.primary} />
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Radar:</Text>
+            <Text style={[styles.statValue, { color: colors.primary }]}>LIVE</Text>
           </View>
         </View>
       </View>
@@ -93,22 +95,23 @@ export default function TrackedScreen() {
           <RefreshControl
             refreshing={isRefreshing || isLoadingProducts}
             onRefresh={onRefresh}
-            tintColor="#2563EB"
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
       >
         {trackedProducts.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconCircle}>
-              <Radio size={36} color="#2563EB" />
+            <View style={[styles.emptyIconCircle, { backgroundColor: colors.surfaceContainer, borderColor: colors.border }]}>
+              <Radio size={36} color={colors.primary} />
             </View>
-            <Text style={styles.emptyTitle}>No Tracked Items Yet</Text>
-            <Text style={styles.emptySubtitle}>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Tracked Items Yet</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
               Turn on the "Track" switch on any Amul protein or grocery product to receive instant &lt;500ms drop alerts and 1-tap checkout.
             </Text>
 
             <TouchableOpacity
-              style={styles.browseButton}
+              style={[styles.browseButton, { backgroundColor: colors.primary }]}
               onPress={() => router.push('/(tabs)')}
               activeOpacity={0.8}
             >
@@ -207,7 +210,7 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
   },
   productsList: {
-    gap: 2,
+    gap: 12,
   },
   emptyContainer: {
     paddingVertical: 80,
