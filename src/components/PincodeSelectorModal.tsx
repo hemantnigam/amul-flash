@@ -92,10 +92,9 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
                   >
                     <View style={styles.pincodeInfo}>
                       <View style={styles.labelRow}>
-                        <Text style={styles.itemLabel}>{item.label}</Text>
-                        <View style={styles.pincodeBadge}>
-                          <Text style={styles.pincodeBadgeText}>{item.pincode}</Text>
-                        </View>
+                        <Text style={styles.itemLabel}>
+                          {item.label.includes(item.pincode) ? item.label : `${item.label} (${item.pincode})`}
+                        </Text>
                         {item.isSavedAddress && (
                           <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#ECFDF5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, gap: 3 }}>
                             <ShieldCheck size={11} color="#059669" />

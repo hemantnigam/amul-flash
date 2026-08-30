@@ -127,13 +127,12 @@ export default function LocationsScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.titleRow}>
-                  <Text style={styles.itemLabel}>{item.label}</Text>
-                  <View style={styles.pill}>
-                    <Text style={styles.pillText}>{item.pincode}</Text>
-                  </View>
-                  {item.distanceKm !== undefined && (
+                  <Text style={styles.itemLabel}>
+                    {item.label.includes(item.pincode) ? item.label : `${item.label} (${item.pincode})`}
+                  </Text>
+                  {item.distanceKm !== undefined && item.distanceKm > 0 && (
                     <Text style={styles.distanceText}>
-                      {item.distanceKm === 0 ? 'Primary' : `${item.distanceKm} km`}
+                      {item.distanceKm} km
                     </Text>
                   )}
                 </View>

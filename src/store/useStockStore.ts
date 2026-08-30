@@ -226,13 +226,9 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       if (rawPin) {
         const pinStr = String(rawPin).trim();
         if (pinStr.length === 6 && !userPincodes.some((p) => p.pincode === pinStr)) {
-          const typeName = addr.addressType
-            ? `${addr.addressType.charAt(0).toUpperCase() + addr.addressType.slice(1)}`
-            : (idx === 0 ? 'Home' : `Address ${idx + 1}`);
-
-          const label = addr.fullName
-            ? `${addr.fullName}'s ${typeName}`
-            : (addr.city ? `${addr.city} (${typeName})` : typeName);
+          const rawType = (addr.addressType || (idx === 0 ? 'Home' : `Address ${idx + 1}`)).trim();
+          const typeName = rawType.charAt(0).toUpperCase() + rawType.slice(1);
+          const label = `${typeName} (${pinStr})`;
 
           const fullAddress = [
             addr.address || addr.addressLine1,
