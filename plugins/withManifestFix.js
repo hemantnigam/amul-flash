@@ -1,6 +1,6 @@
-const { withAndroidManifest, withMainActivity } = require('expo/config-plugins');
+const { withAndroidManifest } = require('expo/config-plugins');
 
-function withLockScreenManifest(config) {
+function withFirebaseManifestFix(config) {
   return withAndroidManifest(config, async (config) => {
     const androidManifest = config.modResults.manifest;
     const application = androidManifest.application?.[0];
@@ -11,18 +11,7 @@ function withLockScreenManifest(config) {
     }
     androidManifest.$['xmlns:tools'] = 'http://schemas.android.com/tools';
 
-    // 1. Configure MainActivity to show when locked, turn screen on, and show for all users
-    if (application && Array.isArray(application.activity)) {
-      application.activity.forEach((activity) => {
-        if (!activity.$) activity.$ = {};
-        activity.$['android:showWhenLocked'] = 'true';
-        activity.$['android:turnScreenOn'] = 'true';
-        activity.$['android:showForAllUsers'] = 'true';
-        activity.$['android:showOnLockScreen'] = 'true';
-      });
-    }
-
-    // 2. Tag all firebase notification meta-data with tools:replace
+    // Tag all firebase notification meta-data with tools:replace
     if (application && Array.isArray(application['meta-data'])) {
       application['meta-data'].forEach((metaData) => {
         const name = metaData.$?.['android:name'];
@@ -35,7 +24,7 @@ function withLockScreenManifest(config) {
         }
       });
 
-      // 3. Remove duplicate default_notification_color entries if multiple exist
+      // Remove duplicate default_notification_color entries if multiple exist
       let seenColor = false;
       application['meta-data'] = application['meta-data'].filter((metaData) => {
         const name = metaData.$?.['android:name'];
@@ -51,49 +40,6 @@ function withLockScreenManifest(config) {
   });
 }
 
-function withLockScreenMainActivity(config) {
-  return withMainActivity(config, async (config) => {
-    let contents = config.modResults.contents;
-
-    if (!contents.includes('setShowWhenLocked')) {
-      const lockFlagsCode = `
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O_MR1) {
-      setShowWhenLocked(true)
-      setTurnScreenOn(true)
-      val keyguardManager = getSystemService(android.content.Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
-      keyguardManager?.requestDismissKeyguard(this, null)
-    }
-    window.addFlags(
-      android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-      android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-      android.view.WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
-      android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-    )`;
-
-      // 1. If super.onCreate(...) already exists in MainActivity.kt, inject right after it
-      const superOnCreateMatch = contents.match(/super\.onCreate\([^)]*\)/);
-      if (superOnCreateMatch) {
-        contents = contents.replace(
-          superOnCreateMatch[0],
-          `${superOnCreateMatch[0]}${lockFlagsCode}`
-        );
-      } else {
-        // 2. If onCreate does not exist, define single onCreate
-        const classMatch = contents.match(/class MainActivity\s*:\s*ReactActivity\(\)\s*\{/);
-        if (classMatch) {
-          contents = contents.replace(
-            classMatch[0],
-            `${classMatch[0]}\n  override fun onCreate(savedInstanceState: android.os.Bundle?) {\n    super.onCreate(savedInstanceState)${lockFlagsCode}\n  }\n`
-          );
-        }
-      }
-    }
-
-    config.modResults.contents = contents;
-    return config;
-  });
-}
-
 module.exports = function withManifestFix(config) {
-  return withLockScreenMainActivity(withLockScreenManifest(config));
+  return withFirebaseManifestFix(config);
 };

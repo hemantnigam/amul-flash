@@ -28,17 +28,9 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "USE_FULL_SCREEN_INTENT",
-        "SYSTEM_ALERT_WINDOW",
-        "SCHEDULE_EXACT_ALARM",
-        "USE_EXACT_ALARM",
-        "WAKE_LOCK",
-        "VIBRATE",
-        "DISABLE_KEYGUARD",
-        "RECEIVE_BOOT_COMPLETED",
         "POST_NOTIFICATIONS",
-        "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
       ]
     },
     "web": {

@@ -1,7 +1,6 @@
 import { AmulApiClient } from './amulApi';
 import { useStockStore } from '../store/useStockStore';
 import { NotificationService } from './notificationService';
-import { alarmSoundService } from './alarmSoundService';
 import { RestockEvent } from '../types/amul';
 
 class StockRadarService {
@@ -46,7 +45,6 @@ class StockRadarService {
       if (!liveProducts || liveProducts.length === 0) return;
 
       const trackedMap = state.trackedProductsMap || {};
-      const soundId = state.selectedAlarmSoundId || 'digital_clock_beep';
 
       for (const liveProd of liveProducts) {
         const isNowInStock = Boolean(liveProd.variants[0]?.isInStock);
@@ -68,25 +66,18 @@ class StockRadarService {
             variantName: liveProd.variants[0]?.name || 'Standard',
           };
 
-          // 1. Trigger Full Screen Alarm Overlay & Audio
-          if (state.alarmOverlayEnabled) {
-            alarmSoundService.startAlarm(soundId);
-            useStockStore.setState({
-              activeDropAlert: restockEvent,
-              activeAlarmEvent: restockEvent,
-            });
-          }
+          // 1. Show in-app banner if user is currently inside app
+          useStockStore.setState({
+            activeDropAlert: restockEvent,
+          });
 
-          // 2. Dispatch High Priority Emergency Notification (Wakes Lock Screen)
-          await NotificationService.triggerEmergencyAlarm(
-            {
-              title: `⚡ LIVE RESTOCK: ${liveProd.title}`,
-              body: `Stock is now live for Pincode ${pincode}! Tap to purchase immediately.`,
-              productId: liveProd.id,
-              pincode: pincode,
-            },
-            soundId
-          );
+          // 2. Dispatch High-Priority Restock Notification
+          await NotificationService.sendRestockNotification({
+            title: `⚡ Restock Alert: ${liveProd.title}`,
+            body: `Stock is now live for Pincode ${pincode}! Tap to buy now.`,
+            productId: liveProd.id,
+            pincode: pincode,
+          });
 
           // 3. Log to Activity Feed
           state.addActivityLog({

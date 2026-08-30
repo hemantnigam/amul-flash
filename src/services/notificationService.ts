@@ -1,5 +1,4 @@
-import { Platform, Alert } from 'react-native';
-import { LOCAL_ALARM_SOUNDS, LocalSoundItem } from '../constants/alarmSounds';
+import { Platform } from 'react-native';
 
 export interface NotificationPayload {
   title: string;
@@ -26,7 +25,6 @@ try {
         shouldShowAlert: true,
         shouldPlaySound: true,
         shouldSetBadge: true,
-        priority: 'max',
       }),
     });
   }
@@ -34,27 +32,26 @@ try {
   expoNotifications = null;
 }
 
-const VISUAL_ALERT_CHANNEL_ID = 'amul_restock_emergency_alarm_v18';
+const RESTOCK_CHANNEL_ID = 'amul_restock_alerts';
 
-async function ensureAlertChannel(): Promise<string> {
-  if (!notifeeModule || Platform.OS !== 'android') return VISUAL_ALERT_CHANNEL_ID;
+async function ensureNotificationChannel(): Promise<string> {
+  if (!notifeeModule || Platform.OS !== 'android') return RESTOCK_CHANNEL_ID;
 
   try {
     const channelId = await notifeeModule.createChannel({
-      id: VISUAL_ALERT_CHANNEL_ID,
-      name: 'Amul Emergency Restock Alarm',
-      importance: 4, // AndroidImportance.HIGH (Required by Android to wake display)
-      visibility: 1, // AndroidVisibility.PUBLIC (Shows on all lock screens)
+      id: RESTOCK_CHANNEL_ID,
+      name: 'Amul Restock Alerts',
+      importance: 4, // AndroidImportance.HIGH (Heads-up notification banner)
+      visibility: 1, // AndroidVisibility.PUBLIC (Shows on Lock Screen)
       sound: 'default',
       vibration: true,
-      vibrationPattern: [300, 600, 300, 600],
-      bypassDnd: true,
+      vibrationPattern: [300, 500, 300, 500],
       badge: true,
     });
     return channelId;
   } catch (err) {
-    console.log('⚠️ [ensureAlertChannel error]:', err);
-    return VISUAL_ALERT_CHANNEL_ID;
+    console.log('⚠️ [ensureNotificationChannel error]:', err);
+    return RESTOCK_CHANNEL_ID;
   }
 }
 
@@ -65,149 +62,56 @@ export const NotificationService = {
     if (notifeeModule) {
       try {
         await notifeeModule.requestPermission();
-        await ensureAlertChannel();
-        console.log('✅ [NotificationService] Restock alert channel initialized');
+        await ensureNotificationChannel();
+        console.log('✅ [NotificationService] Restock notification channel initialized');
       } catch (err) {
-        console.log('⚠️ [Notifee initialize error]:', err);
+        console.log('⚠️ [NotificationService initialize error]:', err);
       }
+    }
+
+    if (expoNotifications && expoNotifications.requestPermissionsAsync) {
+      try {
+        await expoNotifications.requestPermissionsAsync();
+      } catch (_e) {}
     }
   },
 
-  async checkAndRequestAlarmPermission(): Promise<boolean> {
-    if (Platform.OS !== 'android' || !notifeeModule) return true;
-    try {
-      const settings = await notifeeModule.getNotificationSettings();
-      console.log('📱 [NotificationService] Android Alarm Permission:', settings.android?.alarm);
-      // In Android 13/14, 0 = disabled, 1 = enabled
-      if (settings.android?.alarm === 0) {
-        Alert.alert(
-          '⏰ Exact Alarm Permission Needed',
-          'To wake your phone screen at the exact second a restock occurs while your phone is locked, Android requires "Alarms & Reminders" permission.\n\nPlease toggle it ON in the next screen.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Open Settings',
-              onPress: async () => {
-                await notifeeModule.openAlarmSettings();
-              },
-            },
-          ]
-        );
-        return false;
-      }
-      return true;
-    } catch (e) {
-      console.log('⚠️ [checkAndRequestAlarmPermission error]:', e);
-      return true;
-    }
-  },
-
-  async triggerEmergencyAlarm(payload: NotificationPayload, soundId: string = 'digital_clock_beep') {
+  async sendRestockNotification(payload: NotificationPayload) {
     if (Platform.OS === 'web') return;
 
-    const soundItem: LocalSoundItem =
-      LOCAL_ALARM_SOUNDS.find((s) => s.id === soundId) || LOCAL_ALARM_SOUNDS[0];
-
+    // 1. Primary delivery via Notifee
     if (notifeeModule && notifeeModule.displayNotification) {
       try {
-        const channelId = await ensureAlertChannel();
+        const channelId = await ensureNotificationChannel();
         await notifeeModule.displayNotification({
           title: payload.title,
           body: payload.body,
           data: {
             productId: payload.productId || '',
             pincode: payload.pincode || '',
-            soundId: soundId,
-            isAlarmTrigger: 'true',
           },
           android: {
             channelId: channelId,
             importance: 4,
-            category: 'alarm',
-            visibility: 1, // AndroidVisibility.PUBLIC (Display on lock screen)
-            wakeUpScreen: true,
+            visibility: 1,
             pressAction: {
               id: 'default',
               launchActivity: 'default',
             },
-            fullScreenAction: {
-              id: 'default',
-              launchActivity: 'default',
-            },
-            vibrationPattern: [300, 600, 300, 600],
+            vibrationPattern: [300, 500, 300, 500],
           },
           ios: {
-            critical: true,
-            criticalVolume: 1.0,
+            sound: 'default',
           },
         });
-        console.log('🚨 [Notifee] Visual drop banner displayed for:', soundItem.name);
+        console.log('🔔 [NotificationService] Restock notification dispatched:', payload.title);
+        return;
       } catch (err) {
-        console.log('❌ [Notifee triggerEmergencyAlarm error]:', err);
-      }
-    }
-  },
-
-  async scheduleDelayedLockScreenAlarm(
-    payload: NotificationPayload,
-    delaySeconds: number = 8,
-    soundId: string = 'digital_clock_beep'
-  ) {
-    if (Platform.OS === 'web') return;
-
-    const triggerTimestamp = Date.now() + delaySeconds * 1000;
-
-    // 1. Primary Native Clock Alarm via Notifee AlarmManager.setAlarmClock
-    if (notifeeModule && notifeeModule.createTriggerNotification) {
-      try {
-        const channelId = await ensureAlertChannel();
-
-        await notifeeModule.createTriggerNotification(
-          {
-            title: payload.title,
-            body: payload.body,
-            data: {
-              productId: payload.productId || '',
-              pincode: payload.pincode || '',
-              soundId: soundId,
-              isAlarmTrigger: 'true',
-            },
-            android: {
-              channelId: channelId,
-              importance: 4, // AndroidImportance.HIGH
-              category: 'alarm',
-              visibility: 1, // AndroidVisibility.PUBLIC (Shows on Lock Screen)
-              wakeUpScreen: true, // Turns display ON
-              pressAction: {
-                id: 'default',
-                launchActivity: 'default',
-              },
-              fullScreenAction: {
-                id: 'default',
-                launchActivity: 'default',
-              },
-              vibrationPattern: [300, 600, 300, 600],
-            },
-            ios: {
-              critical: true,
-              criticalVolume: 1.0,
-            },
-          },
-          {
-            type: 0, // TriggerType.TIMESTAMP
-            timestamp: triggerTimestamp,
-            alarmManager: {
-              type: 0, // AlarmType.SET_ALARM_CLOCK (Uses Android's setAlarmClock() - the highest priority clock alarm!)
-            },
-          }
-        );
-        console.log(`⏰ [Notifee] Scheduled Native AlarmClock via Android AlarmManager for ${delaySeconds}s from now (AlarmType.SET_ALARM_CLOCK)`);
-      } catch (err) {
-        console.log('❌ [Notifee scheduleDelayedLockScreenAlarm error]:', err);
+        console.log('❌ [NotificationService displayNotification error]:', err);
       }
     }
 
-    // 2. Redundant scheduler via Expo Notifications
+    // 2. Fallback via Expo Notifications
     if (expoNotifications && expoNotifications.scheduleNotificationAsync) {
       try {
         await expoNotifications.scheduleNotificationAsync({
@@ -217,14 +121,9 @@ export const NotificationService = {
             data: {
               productId: payload.productId || '',
               pincode: payload.pincode || '',
-              soundId: soundId,
-              isAlarmTrigger: 'true',
             },
           },
-          trigger: {
-            type: 'timeInterval',
-            seconds: delaySeconds,
-          },
+          trigger: null, // Display immediately
         });
       } catch (_e) {}
     }

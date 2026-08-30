@@ -11,7 +11,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   KeyboardAvoidingView,
-  Linking,
 } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import { AppTextInput as TextInput } from '../../components/AppTextInput';
@@ -27,30 +26,17 @@ import {
   Package,
   X,
   BellRing,
-  Music,
-  Radio,
   RefreshCw,
-  ShieldCheck,
 } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
 import { useStockStore } from '../../store/useStockStore';
-import { NotificationService } from '../../services/notificationService';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
-import { AlarmSoundSelectorModal } from '../../components/AlarmSoundSelectorModal';
-import { LOCAL_ALARM_SOUNDS } from '../../constants/alarmSounds';
 
 let UpdatesModule: any = null;
 try {
   UpdatesModule = require('expo-updates');
 } catch (_e) {
   UpdatesModule = null;
-}
-
-let notifeeModule: any = null;
-try {
-  notifeeModule = require('@notifee/react-native').default;
-} catch (_e) {
-  notifeeModule = null;
 }
 
 export default function AccountScreen() {
@@ -72,20 +58,11 @@ export default function AccountScreen() {
 
   const {
     selectedPincode,
-    alarmOverlayEnabled,
-    setAlarmOverlayEnabled,
-    selectedAlarmSoundId,
     triggerSimulatedDrop,
-    triggerDelayedDropTest,
     isSimulatingDrop,
   } = useStockStore();
 
   const [isPincodeModalVisible, setIsPincodeModalVisible] = useState(false);
-  const [isSoundModalVisible, setIsSoundModalVisible] = useState(false);
-
-  // Find active sound name
-  const currentSound =
-    LOCAL_ALARM_SOUNDS.find((s) => s.id === selectedAlarmSoundId) || LOCAL_ALARM_SOUNDS[0];
 
   // Profile Edit Modal State
   const [isEditProfileVisible, setIsEditProfileVisible] = useState(false);
@@ -123,40 +100,6 @@ export default function AccountScreen() {
       setIsCheckingUpdate(false);
     }
   };
-
-  const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
-
-  const handleOpenAlarmSettings = async () => {
-    try {
-      if (notifeeModule && notifeeModule.openAlarmSettings) {
-        await notifeeModule.openAlarmSettings();
-      } else {
-        await Linking.openSettings();
-      }
-    } catch (_e) {
-      Linking.openSettings();
-    }
-  };
-
-  const startCountdownTest = async () => {
-    const hasPermission = await NotificationService.checkAndRequestAlarmPermission();
-    if (!hasPermission) return;
-
-    setCountdownSeconds(8);
-    await triggerDelayedDropTest(8);
-  };
-
-  useEffect(() => {
-    if (countdownSeconds === null) return;
-    if (countdownSeconds === 0) {
-      setCountdownSeconds(null);
-      return;
-    }
-    const timer = setTimeout(() => {
-      setCountdownSeconds((prev) => (prev !== null && prev > 0 ? prev - 1 : null));
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [countdownSeconds]);
 
   const displayName = userProfile && (userProfile.firstName || userProfile.lastName)
     ? `${userProfile.firstName} ${userProfile.lastName}`.trim()
@@ -430,43 +373,6 @@ export default function AccountScreen() {
             />
           </View>
 
-          {/* Stock Drop Alarm Switch */}
-          <View style={styles.switchRow}>
-            <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#FEF2F2' }]}>
-                <BellRing size={18} color="#EF4444" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Stock Drop Alarm (Full Screen)</Text>
-                <Text style={styles.rowSub}>Rings clock alarm with sound & vibration on drops</Text>
-              </View>
-            </View>
-            <Switch
-              value={alarmOverlayEnabled}
-              onValueChange={setAlarmOverlayEnabled}
-              trackColor={{ false: '#E2E8F0', true: '#FECACA' }}
-              thumbColor={alarmOverlayEnabled ? '#EF4444' : '#94A3B8'}
-            />
-          </View>
-
-          {/* Alarm Ringtone & Music Picker */}
-          <TouchableOpacity
-            style={styles.cardRow}
-            onPress={() => setIsSoundModalVisible(true)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#EEF2FF' }]}>
-                <Music size={18} color="#4F46E5" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Alarm Ringtone & Music</Text>
-                <Text style={styles.rowSub}>{currentSound.name} ({currentSound.category})</Text>
-              </View>
-            </View>
-            <ChevronRight size={18} color="#94A3B8" />
-          </TouchableOpacity>
-
           {/* Tap to test live restock notification */}
           <TouchableOpacity
             style={styles.cardRow}
@@ -477,64 +383,19 @@ export default function AccountScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#FFF7ED' }]}>
-                <Zap size={18} color="#EA580C" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.rowTitle, { color: '#C2410C', fontWeight: '800' }]}>
-                  Test Instant Alarm
-                </Text>
-                <Text style={styles.rowSub}>
-                  {isSimulatingDrop ? 'Simulating restock...' : 'Triggers full-screen clock alarm overlay immediately'}
-                </Text>
-              </View>
-            </View>
-            <ChevronRight size={18} color="#EA580C" />
-          </TouchableOpacity>
-
-          {/* Test Lock Screen Wake Alarm (8s delay) */}
-          <TouchableOpacity
-            style={styles.cardRow}
-            onPress={startCountdownTest}
-            disabled={isSimulatingDrop || countdownSeconds !== null}
-            activeOpacity={0.7}
-          >
-            <View style={styles.rowLeft}>
               <View style={[styles.iconBox, { backgroundColor: '#EFF6FF' }]}>
-                <Radio size={18} color="#2563EB" />
+                <BellRing size={18} color="#2563EB" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.rowTitle, { color: '#1D4ED8', fontWeight: '800' }]}>
-                  Test Lock-Screen Wake Alarm (8s delay)
+                  Test Restock Notification
                 </Text>
                 <Text style={styles.rowSub}>
-                  Tap this, lock your phone, and watch the alarm wake your locked screen
+                  {isSimulatingDrop ? 'Sending test notification...' : 'Sends high-priority restock alert banner with sound & vibration'}
                 </Text>
               </View>
             </View>
             <ChevronRight size={18} color="#2563EB" />
-          </TouchableOpacity>
-
-          {/* Alarm & Lock Screen Permissions */}
-          <TouchableOpacity
-            style={styles.cardRow}
-            onPress={handleOpenAlarmSettings}
-            activeOpacity={0.7}
-          >
-            <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#FAF5FF' }]}>
-                <ShieldCheck size={18} color="#9333EA" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.rowTitle, { color: '#7E22CE', fontWeight: '800' }]}>
-                  Alarm & Lock Screen Permissions
-                </Text>
-                <Text style={styles.rowSub}>
-                  Ensure "Alarms & Reminders" is allowed to wake screen on time
-                </Text>
-              </View>
-            </View>
-            <ChevronRight size={18} color="#9333EA" />
           </TouchableOpacity>
 
           {/* Check for Live OTA Updates */}
@@ -553,7 +414,7 @@ export default function AccountScreen() {
                   {isCheckingUpdate ? 'Checking for updates...' : 'Check for Live OTA Updates'}
                 </Text>
                 <Text style={styles.rowSub}>
-                  Download latest restock radar & sound updates instantly
+                  Download latest restock radar updates instantly
                 </Text>
               </View>
             </View>
@@ -572,12 +433,6 @@ export default function AccountScreen() {
       <PincodeSelectorModal
         visible={isPincodeModalVisible}
         onClose={() => setIsPincodeModalVisible(false)}
-      />
-
-      {/* Alarm Sound Picker Modal */}
-      <AlarmSoundSelectorModal
-        visible={isSoundModalVisible}
-        onClose={() => setIsSoundModalVisible(false)}
       />
 
       {/* Edit Profile Modal */}
@@ -637,28 +492,6 @@ export default function AccountScreen() {
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Lock Screen Countdown Modal */}
-      <Modal visible={countdownSeconds !== null} transparent animationType="fade">
-        <View style={styles.countdownBackdrop}>
-          <View style={styles.countdownCard}>
-            <View style={styles.countdownCircle}>
-              <Text style={styles.countdownNumber}>{countdownSeconds}</Text>
-            </View>
-            <Text style={styles.countdownTitle}>Lock Your Phone NOW!</Text>
-            <Text style={styles.countdownDesc}>
-              Alarm scheduled via Android AlarmManager. Press power button to lock screen and test wake.
-            </Text>
-            <TouchableOpacity
-              style={styles.countdownCancelBtn}
-              onPress={() => setCountdownSeconds(null)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.countdownCancelText}>Cancel Test</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
       </Modal>
     </SafeAreaView>
   );

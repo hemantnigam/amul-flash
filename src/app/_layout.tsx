@@ -5,8 +5,6 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NotificationService } from '../services/notificationService';
 import { useSessionStore } from '../store/useSessionStore';
-import { useStockStore } from '../store/useStockStore';
-import { alarmSoundService } from '../services/alarmSoundService';
 import { AmulApiClient } from '../services/amulApi';
 import { BrandLogoHeader } from '../components/BrandLogoHeader';
 
@@ -19,38 +17,11 @@ import {
   Sora_800ExtraBold,
 } from '@expo-google-fonts/sora';
 
-import { FullScreenAlarmOverlay } from '../components/FullScreenAlarmOverlay';
-
 let notifeeModule: any = null;
 try {
   notifeeModule = require('@notifee/react-native').default;
 } catch (_e) {
   notifeeModule = null;
-}
-
-if (notifeeModule && notifeeModule.onBackgroundEvent) {
-  notifeeModule.onBackgroundEvent(async ({ type, detail }: any) => {
-    console.log('📱 [Notifee onBackgroundEvent] Fired with type:', type);
-    if (type === 7 || type === 0) return;
-
-    const notif = detail?.notification;
-    if (notif?.data?.isAlarmTrigger === 'true' || notif?.data?.productId) {
-      const soundId = notif.data?.soundId || useStockStore.getState().selectedAlarmSoundId;
-      alarmSoundService.startAlarm(soundId);
-      useStockStore.setState({
-        activeAlarmEvent: {
-          id: `drop_${Date.now()}`,
-          productId: notif.data?.productId || 'protein',
-          productName: notif.title || 'Restock Alert',
-          pincode: notif.data?.pincode || useStockStore.getState().selectedPincode.pincode,
-          timestamp: Date.now(),
-          unitsAdded: 30,
-          survivalDurationSecs: 180,
-          variantName: 'Standard Pack',
-        },
-      });
-    }
-  });
 }
 
 export default function RootLayout() {
@@ -73,50 +44,25 @@ export default function RootLayout() {
     });
     loadSavedSession();
 
-    // Check if app was launched by clicking a notification on Lock Screen
+    // Handle cold-start notification click
     if (notifeeModule && notifeeModule.getInitialNotification) {
       notifeeModule.getInitialNotification().then((initialNotification: any) => {
-        const notif = initialNotification?.notification;
-        if (notif?.data?.isAlarmTrigger === 'true' || notif?.data?.productId) {
-          const soundId = notif.data?.soundId || useStockStore.getState().selectedAlarmSoundId;
-          alarmSoundService.startAlarm(soundId);
-          useStockStore.setState({
-            activeAlarmEvent: {
-              id: `drop_${Date.now()}`,
-              productId: notif.data?.productId || 'protein',
-              productName: notif.title || 'Restock Alert',
-              pincode: notif.data?.pincode || useStockStore.getState().selectedPincode.pincode,
-              timestamp: Date.now(),
-              unitsAdded: 30,
-              survivalDurationSecs: 180,
-              variantName: 'Standard Pack',
-            },
-          });
+        const prodId = initialNotification?.notification?.data?.productId;
+        if (prodId) {
+          router.push(`/product/${prodId}`);
         }
       });
     }
 
-    // Listen for notification deliver & press interactions (DELIVERED = 3, PRESS = 1, ACTION_PRESS = 2)
+    // Handle foreground notification click
     if (notifeeModule && notifeeModule.onForegroundEvent) {
       const unsubscribe = notifeeModule.onForegroundEvent(({ type, detail }: any) => {
-        if (type === 7 || type === 0) return;
-
-        const notif = detail?.notification;
-        if (notif?.data?.isAlarmTrigger === 'true' || notif?.data?.productId) {
-          const soundId = notif.data?.soundId || useStockStore.getState().selectedAlarmSoundId;
-          alarmSoundService.startAlarm(soundId);
-          useStockStore.setState({
-            activeAlarmEvent: {
-              id: `drop_${Date.now()}`,
-              productId: notif.data?.productId || 'protein',
-              productName: notif.title || 'Restock Alert',
-              pincode: notif.data?.pincode || useStockStore.getState().selectedPincode.pincode,
-              timestamp: Date.now(),
-              unitsAdded: 30,
-              survivalDurationSecs: 180,
-              variantName: 'Standard Pack',
-            },
-          });
+        // Type 1 = PRESS, Type 2 = ACTION_PRESS
+        if (type === 1 || type === 2) {
+          const prodId = detail?.notification?.data?.productId;
+          if (prodId) {
+            router.push(`/product/${prodId}`);
+          }
         }
       });
       return () => unsubscribe();
@@ -201,7 +147,6 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-      <FullScreenAlarmOverlay />
     </SafeAreaProvider>
   );
 }
@@ -212,34 +157,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAF8FF',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  brandTitleAmul: {
-    fontSize: 34,
-    fontWeight: '900',
-    fontFamily: 'PlusJakartaSans_800ExtraBold_Italic',
-    color: '#0037B0',
-    letterSpacing: -0.5,
-    fontStyle: 'italic',
-  },
-  flashBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FF6B00',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 2,
-  },
-  flashText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '900',
-    fontFamily: 'PlusJakartaSans_800ExtraBold',
-    letterSpacing: 0.5,
   },
 });

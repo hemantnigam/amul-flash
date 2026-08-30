@@ -1,9 +1,8 @@
 import { create } from 'zustand';
-import { AmulProduct, AmulCategory, PincodeLocation, ActivityLog, RestockEvent } from '../types/amul';
-import { NotificationService } from '../services/notificationService';
-import { AmulApiClient, DEFAULT_CATEGORIES } from '../services/amulApi';
-import { alarmSoundService } from '../services/alarmSoundService';
+import { AmulProduct, PincodeLocation, ActivityLog, RestockEvent, AmulCategory } from '../types/amul';
+import { AmulApiClient } from '../services/amulApi';
 import { stockRadarService } from '../services/radarService';
+import { NotificationService } from '../services/notificationService';
 
 interface StockStoreState {
   products: AmulProduct[];
@@ -13,9 +12,6 @@ interface StockStoreState {
   selectedPincode: PincodeLocation;
   activityLogs: ActivityLog[];
   activeDropAlert: RestockEvent | null;
-  activeAlarmEvent: RestockEvent | null;
-  alarmOverlayEnabled: boolean;
-  selectedAlarmSoundId: string;
   isSimulatingDrop: boolean;
   isLoadingProducts: boolean;
   lastUpdated: number;
@@ -30,12 +26,7 @@ interface StockStoreState {
   syncPincodesFromAddresses: (addresses: any[]) => void;
   toggleAutoCartForProduct: (productId: string, productObj?: AmulProduct) => void;
   triggerSimulatedDrop: (productId?: string) => Promise<void>;
-  triggerDelayedDropTest: (delaySeconds?: number) => Promise<void>;
   dismissDropAlert: () => void;
-  setAlarmOverlayEnabled: (enabled: boolean) => void;
-  setSelectedAlarmSoundId: (soundId: string) => void;
-  triggerAlarmEvent: (event: RestockEvent) => void;
-  dismissAlarmEvent: () => void;
   addActivityLog: (log: Omit<ActivityLog, 'id' | 'timestamp'>) => void;
   refreshStock: (sessionCookie?: string) => Promise<void>;
   fetchAllCategoriesProducts: (sessionCookie?: string) => Promise<void>;
@@ -52,15 +43,12 @@ const DEFAULT_USER_PINCODE: PincodeLocation = {
 
 export const useStockStore = create<StockStoreState>((set, get) => ({
   products: [],
-  categories: DEFAULT_CATEGORIES,
+  categories: [],
   selectedCategory: 'protein',
   pincodes: [],
   selectedPincode: DEFAULT_USER_PINCODE,
   activityLogs: [],
   activeDropAlert: null,
-  activeAlarmEvent: null,
-  alarmOverlayEnabled: true,
-  selectedAlarmSoundId: 'digital_clock_beep',
   isSimulatingDrop: false,
   isLoadingProducts: false,
   lastUpdated: Date.now(),
@@ -72,8 +60,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     try {
       // 1. Fetch live categories
       const liveCategories = await AmulApiClient.fetchCategories(sessionCookie);
-      const activeCategories = liveCategories.length > 0 ? liveCategories : DEFAULT_CATEGORIES;
-      set({ categories: activeCategories });
+      set({ categories: liveCategories });
 
       // 2. Fetch live products for selected category from Amul API
       const substoreId = get().selectedPincode.storeId || '66505ff5145c16635e6cc74d';
@@ -102,7 +89,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
       // 4. Start Live Stock Radar Polling
       stockRadarService.startMonitoring();
-    } catch (e) {
+    } catch (_e) {
       set({ isLoadingProducts: false });
     }
   },
@@ -130,111 +117,105 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
         isLoadingProducts: false,
         lastUpdated: Date.now(),
       });
-    } catch (e) {
+    } catch (_e) {
       set({ isLoadingProducts: false });
     }
   },
 
   fetchAllCategoriesProducts: async (sessionCookie?: string) => {
     try {
+      const categories = get().categories;
       const substoreId = get().selectedPincode.storeId || '66505ff5145c16635e6cc74d';
-      const categories = get().categories || DEFAULT_CATEGORIES;
-      const trackedMap = get().trackedProductsMap;
+      const currentSlug = get().selectedCategory;
 
-      const priorityCats = categories.slice(0, 6);
-      for (const cat of priorityCats) {
-        if (cat.slug !== get().selectedCategory) {
-          const catProducts = await AmulApiClient.fetchStoreProducts(cat.slug, substoreId, sessionCookie);
-          if (catProducts && catProducts.length > 0) {
-            const updatedMap = { ...get().allProductsMap };
-            catProducts.forEach((p) => {
-              updatedMap[p.id] = {
-                ...p,
-                autoCartEnabled: trackedMap[p.id] !== undefined ? Boolean(trackedMap[p.id]) : false,
-              };
+      for (const cat of categories) {
+        if (cat.slug === currentSlug) continue;
+        try {
+          const prods = await AmulApiClient.fetchStoreProducts(cat.slug, substoreId, sessionCookie);
+          if (prods && prods.length > 0) {
+            set((state) => {
+              const updated = { ...state.allProductsMap };
+              prods.forEach((p) => {
+                updated[p.id] = {
+                  ...p,
+                  autoCartEnabled: state.trackedProductsMap[p.id] !== undefined ? Boolean(state.trackedProductsMap[p.id]) : false,
+                };
+              });
+              return { allProductsMap: updated };
             });
-            set({ allProductsMap: updatedMap });
           }
-        }
+        } catch (_err) {}
       }
-    } catch (e) {}
+    } catch (_e) {}
   },
 
-  setSelectedPincode: async (pincode, sessionCookie?: string) => {
-    set({ selectedPincode: pincode, isLoadingProducts: true, lastUpdated: Date.now() });
-
-    get().addActivityLog({
-      type: 'info' as any,
-      title: `Switched location to ${pincode.label} (${pincode.pincode})`,
-      description: `Active store cluster set to ${pincode.storeId}`,
-      status: 'info',
-    });
-
+  setSelectedPincode: async (pincode: PincodeLocation, sessionCookie?: string) => {
+    set({ selectedPincode: pincode, isLoadingProducts: true });
     try {
-      const liveProducts = await AmulApiClient.fetchStoreProducts(get().selectedCategory, pincode.storeId, sessionCookie);
+      const substoreId = pincode.storeId || '66505ff5145c16635e6cc74d';
+      const liveProducts = await AmulApiClient.fetchStoreProducts(get().selectedCategory, substoreId, sessionCookie);
+
       const trackedMap = get().trackedProductsMap;
       const hydratedProducts = liveProducts.map((p) => ({
         ...p,
-        autoCartEnabled: trackedMap[p.id] !== undefined ? true : p.autoCartEnabled,
+        autoCartEnabled: trackedMap[p.id] !== undefined ? Boolean(trackedMap[p.id]) : false,
       }));
 
-      set({ products: hydratedProducts, isLoadingProducts: false });
-    } catch (e) {
+      const newAllMap = { ...get().allProductsMap };
+      hydratedProducts.forEach((p) => {
+        newAllMap[p.id] = p;
+      });
+
+      set({
+        products: hydratedProducts,
+        allProductsMap: newAllMap,
+        isLoadingProducts: false,
+        lastUpdated: Date.now(),
+      });
+
+      // Background re-fetch all categories with new store
+      get().fetchAllCategoriesProducts(sessionCookie);
+    } catch (_e) {
       set({ isLoadingProducts: false });
     }
   },
 
-  addPincode: (pincode) => {
+  addPincode: (pincode: PincodeLocation) => {
     set((state) => {
-      const updated = [...state.pincodes, pincode];
-      const shouldSelect = !state.selectedPincode.pincode;
+      const exists = state.pincodes.some((p) => p.pincode === pincode.pincode);
+      if (exists) return state;
+      return {
+        pincodes: [...state.pincodes, pincode],
+      };
+    });
+  },
+
+  removePincode: (pincodeStr: string) => {
+    set((state) => {
+      const updated = state.pincodes.filter((p) => p.pincode !== pincodeStr);
+      const isSelected = state.selectedPincode.pincode === pincodeStr;
       return {
         pincodes: updated,
-        selectedPincode: shouldSelect ? pincode : state.selectedPincode,
+        selectedPincode: isSelected
+          ? updated[0] || DEFAULT_USER_PINCODE
+          : state.selectedPincode,
       };
     });
   },
 
-  removePincode: (pincodeStr) => {
-    set((state) => {
-      const target = state.pincodes.find((p) => p.pincode === pincodeStr);
-      if (target?.isSavedAddress) return state;
-
-      const remaining = state.pincodes.filter((p) => p.pincode !== pincodeStr);
-      let newSelected = state.selectedPincode;
-      if (state.selectedPincode.pincode === pincodeStr) {
-        newSelected = remaining.length > 0 ? remaining[0] : DEFAULT_USER_PINCODE;
-      }
-      return {
-        pincodes: remaining,
-        selectedPincode: newSelected,
-      };
-    });
-  },
-
-  syncPincodesFromAddresses: (addresses) => {
+  syncPincodesFromAddresses: (addresses: any[]) => {
     if (!addresses || addresses.length === 0) return;
 
-    const userPincodes: PincodeLocation[] = [];
-
-    addresses.forEach((addr: any) => {
-      const pin = addr.pincode || addr.zip || addr.postcode;
-      if (pin && String(pin).trim().length === 6) {
-        const pinStr = String(pin).trim();
-        const exists = userPincodes.some((p) => p.pincode === pinStr);
-        if (!exists) {
-          userPincodes.push({
-            pincode: pinStr,
-            label: addr.name ? `${addr.name}'s Address` : (addr.city || 'Saved Address'),
-            address: `${addr.addressLine1 || addr.address || 'Saved Delivery Address'}${addr.city ? ', ' + addr.city : ''}`,
-            storeId: '66505ff5145c16635e6cc74d',
-            isDefault: addr.isDefault || userPincodes.length === 0,
-            isSavedAddress: true,
-            serviceable: true,
-          });
-        }
-      }
-    });
+    const userPincodes: PincodeLocation[] = addresses.map((addr, idx) => ({
+      pincode: addr.pincode || '',
+      label: addr.addressType || (idx === 0 ? 'Home' : `Address ${idx + 1}`),
+      address: [addr.addressLine1, addr.addressLine2, addr.city, addr.state]
+        .filter(Boolean)
+        .join(', '),
+      storeId: '66505ff5145c16635e6cc74d',
+      isDefault: addr.isDefault || idx === 0,
+      serviceable: true,
+    })).filter(p => !!p.pincode);
 
     if (userPincodes.length > 0) {
       const customPincodes = get().pincodes.filter(
@@ -286,98 +267,43 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
     set({ isSimulatingDrop: true });
 
-    // Create the restock drop event payload (WITHOUT mutating real product in-stock state)
     const dropEvent: RestockEvent = {
       id: `drop_${Date.now()}`,
       productId: targetProduct.id,
       productName: targetProduct.title,
-      pincode: state.selectedPincode.pincode,
+      pincode: state.selectedPincode.pincode || '110044',
       timestamp: Date.now(),
       unitsAdded: 30,
       survivalDurationSecs: 180,
       variantName: targetProduct.variants[0]?.name || 'Standard Pack',
     };
 
-    if (state.alarmOverlayEnabled) {
-      alarmSoundService.startAlarm(state.selectedAlarmSoundId);
-      set({
-        activeDropAlert: dropEvent,
-        activeAlarmEvent: dropEvent,
-        isSimulatingDrop: false,
-        lastUpdated: Date.now(),
-      });
-    } else {
-      set({
-        activeDropAlert: dropEvent,
-        isSimulatingDrop: false,
-        lastUpdated: Date.now(),
-      });
-    }
+    set({
+      activeDropAlert: dropEvent,
+      isSimulatingDrop: false,
+      lastUpdated: Date.now(),
+    });
 
-    // Play Emergency Alarm & Notification
-    await NotificationService.triggerEmergencyAlarm(
-      {
-        title: `⚡ TEST RESTOCK DROP: ${targetProduct.title}`,
-        body: `Testing alarm sound & overlay for Pincode ${state.selectedPincode.pincode}!`,
-        productId: targetProduct.id,
-        pincode: state.selectedPincode.pincode,
-      },
-      state.selectedAlarmSoundId
-    );
+    // Send standard push notification
+    await NotificationService.sendRestockNotification({
+      title: `⚡ Restock Alert: ${targetProduct.title}`,
+      body: `Stock is now live for Hub ${state.selectedPincode.pincode || '110044'}! Tap to view.`,
+      productId: targetProduct.id,
+      pincode: state.selectedPincode.pincode || '110044',
+    });
 
     // Stock Tracker Log
     get().addActivityLog({
       type: 'restock',
-      title: `Test Drop Alert: ${targetProduct.title}`,
-      description: `Alarm tested for Hub ${state.selectedPincode.pincode}`,
-      pincode: state.selectedPincode.pincode,
+      title: `Test Restock Alert: ${targetProduct.title}`,
+      description: `Notification sent for Hub ${state.selectedPincode.pincode || '110044'}`,
+      pincode: state.selectedPincode.pincode || '110044',
       status: 'success',
     });
   },
 
-  triggerDelayedDropTest: async (delaySeconds = 8) => {
-    const state = get();
-    const targetProduct =
-      state.products.find((p) => !p.variants[0]?.isInStock) || state.products[0];
-    const soundId = state.selectedAlarmSoundId || 'digital_clock_beep';
-
-    console.log(`⏱️ [triggerDelayedDropTest] Scheduling native AlarmManager alarm for ${delaySeconds}s from now.`);
-
-    await NotificationService.scheduleDelayedLockScreenAlarm(
-      {
-        title: `⚡ TEST RESTOCK DROP: ${targetProduct ? targetProduct.title : 'Amul Whey Protein'}`,
-        body: `Lock-Screen Wake Alarm Test for Pincode ${state.selectedPincode.pincode}!`,
-        productId: targetProduct ? targetProduct.id : 'protein',
-        pincode: state.selectedPincode.pincode,
-      },
-      delaySeconds,
-      soundId
-    );
-  },
-
-  setAlarmOverlayEnabled: (enabled: boolean) => {
-    set({ alarmOverlayEnabled: enabled });
-  },
-
-  setSelectedAlarmSoundId: (soundId: string) => {
-    set({ selectedAlarmSoundId: soundId });
-  },
-
-  triggerAlarmEvent: (event: RestockEvent) => {
-    if (get().alarmOverlayEnabled) {
-      alarmSoundService.startAlarm(get().selectedAlarmSoundId);
-      set({ activeAlarmEvent: event });
-    }
-  },
-
-  dismissAlarmEvent: () => {
-    alarmSoundService.stopAlarm();
-    set({ activeAlarmEvent: null });
-  },
-
   dismissDropAlert: () => {
-    alarmSoundService.stopAlarm();
-    set({ activeDropAlert: null, activeAlarmEvent: null });
+    set({ activeDropAlert: null });
   },
 
   addActivityLog: (log) => {
