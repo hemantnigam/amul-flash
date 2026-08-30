@@ -30,6 +30,7 @@ interface StockStoreState {
   syncPincodesFromAddresses: (addresses: any[]) => void;
   toggleAutoCartForProduct: (productId: string, productObj?: AmulProduct) => void;
   triggerSimulatedDrop: (productId?: string) => Promise<void>;
+  triggerDelayedDropTest: (delaySeconds?: number) => Promise<void>;
   dismissDropAlert: () => void;
   triggerAlarmEvent: (event: RestockEvent) => void;
   dismissAlarmEvent: () => void;
@@ -311,6 +312,25 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       pincode: state.selectedPincode.pincode || '110044',
       status: 'success',
     });
+  },
+
+  triggerDelayedDropTest: async (delaySeconds = 5) => {
+    const state = get();
+    const targetProduct =
+      state.products.find((p) => !p.variants[0]?.isInStock) || state.products[0];
+
+    if (!targetProduct) return;
+
+    await NotificationService.scheduleDelayedNotification(
+      {
+        title: `⚡ Restock Alert: ${targetProduct.title}`,
+        body: `Stock is now live for Hub ${state.selectedPincode.pincode || '110044'}! Tap to view.`,
+        productId: targetProduct.id,
+        pincode: state.selectedPincode.pincode || '110044',
+      },
+      delaySeconds,
+      state.selectedAlarmSoundId || 'digital_clock_beep'
+    );
   },
 
   triggerAlarmEvent: (event: RestockEvent) => {

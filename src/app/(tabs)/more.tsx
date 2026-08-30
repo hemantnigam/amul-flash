@@ -27,6 +27,7 @@ import {
   X,
   BellRing,
   Music,
+  Radio,
   RefreshCw,
 } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
@@ -65,11 +66,30 @@ export default function AccountScreen() {
     alarmOverlayEnabled,
     setAlarmOverlayEnabled,
     triggerSimulatedDrop,
+    triggerDelayedDropTest,
     isSimulatingDrop,
   } = useStockStore();
 
   const [isPincodeModalVisible, setIsPincodeModalVisible] = useState(false);
   const [isSoundModalVisible, setIsSoundModalVisible] = useState(false);
+  const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
+
+  const startCountdownTest = async () => {
+    setCountdownSeconds(5);
+    await triggerDelayedDropTest(5);
+  };
+
+  useEffect(() => {
+    if (countdownSeconds === null) return;
+    if (countdownSeconds === 0) {
+      setCountdownSeconds(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setCountdownSeconds((prev) => (prev !== null && prev > 0 ? prev - 1 : null));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [countdownSeconds]);
 
   const currentSound =
     LOCAL_ALARM_SOUNDS.find((s) => s.id === selectedAlarmSoundId) || LOCAL_ALARM_SOUNDS[0];
@@ -445,6 +465,29 @@ export default function AccountScreen() {
             <ChevronRight size={18} color="#2563EB" />
           </TouchableOpacity>
 
+          {/* Test Delayed Restock (5s delay) */}
+          <TouchableOpacity
+            style={styles.cardRow}
+            onPress={startCountdownTest}
+            disabled={isSimulatingDrop || countdownSeconds !== null}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#FFF7ED' }]}>
+                <Radio size={18} color="#EA580C" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowTitle, { color: '#C2410C', fontWeight: '800' }]}>
+                  Test Delayed Restock (5s delay)
+                </Text>
+                <Text style={styles.rowSub}>
+                  Lock phone or minimize app now to test notification & sound
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color="#EA580C" />
+          </TouchableOpacity>
+
           {/* Check for Live OTA Updates */}
           <TouchableOpacity
             style={[styles.cardRow, { borderBottomWidth: 0 }]}
@@ -545,6 +588,28 @@ export default function AccountScreen() {
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* 5-Second Test Countdown Modal */}
+      <Modal visible={countdownSeconds !== null} transparent animationType="fade">
+        <View style={styles.countdownBackdrop}>
+          <View style={styles.countdownCard}>
+            <View style={styles.countdownCircle}>
+              <Text style={styles.countdownNumber}>{countdownSeconds}</Text>
+            </View>
+            <Text style={styles.countdownTitle}>Lock Phone or Minimize NOW!</Text>
+            <Text style={styles.countdownDesc}>
+              Restock notification will fire in {countdownSeconds}s with your chosen sound & vibration.
+            </Text>
+            <TouchableOpacity
+              style={styles.countdownCancelBtn}
+              onPress={() => setCountdownSeconds(null)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.countdownCancelText}>Cancel Test</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
