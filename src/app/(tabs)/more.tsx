@@ -114,6 +114,27 @@ export default function AccountScreen() {
     }
   };
 
+  const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
+
+  const startCountdownTest = async () => {
+    setCountdownSeconds(8);
+    await triggerDelayedDropTest(8);
+  };
+
+  useEffect(() => {
+    if (countdownSeconds === null) return;
+    if (countdownSeconds === 0) {
+      setCountdownSeconds(null);
+      triggerSimulatedDrop();
+      return;
+    }
+    const timer = setTimeout(() => {
+      setCountdownSeconds((prev) => (prev !== null && prev > 0 ? prev - 1 : null));
+    }, 1000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countdownSeconds]);
+
   const displayName = userProfile && (userProfile.firstName || userProfile.lastName)
     ? `${userProfile.firstName} ${userProfile.lastName}`.trim()
     : session.userName || (addresses.length > 0 ? addresses[0].fullName : (session.mobile ? `+91 ${session.mobile.replace('+91', '')}` : 'Amul User'));
@@ -451,15 +472,8 @@ export default function AccountScreen() {
           {/* Test Lock Screen Wake Alarm (8s delay) */}
           <TouchableOpacity
             style={styles.cardRow}
-            onPress={async () => {
-              Alert.alert(
-                '🔒 Lock Screen Alarm Test',
-                'Native alarm scheduled!\n\nPress your phone power button to LOCK the screen now.\n\nThe alarm will ring in 8 seconds.',
-                [{ text: 'OK' }]
-              );
-              await triggerDelayedDropTest(8);
-            }}
-            disabled={isSimulatingDrop}
+            onPress={startCountdownTest}
+            disabled={isSimulatingDrop || countdownSeconds !== null}
             activeOpacity={0.7}
           >
             <View style={styles.rowLeft}>
@@ -579,11 +593,96 @@ export default function AccountScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Lock Screen Countdown Modal */}
+      <Modal visible={countdownSeconds !== null} transparent animationType="fade">
+        <View style={styles.countdownBackdrop}>
+          <View style={styles.countdownCard}>
+            <View style={styles.countdownCircle}>
+              <Text style={styles.countdownNumber}>{countdownSeconds}</Text>
+            </View>
+            <Text style={styles.countdownTitle}>Lock Your Phone NOW!</Text>
+            <Text style={styles.countdownDesc}>
+              Alarm scheduled via Android AlarmManager. Press power button to lock screen and test wake.
+            </Text>
+            <TouchableOpacity
+              style={styles.countdownCancelBtn}
+              onPress={() => setCountdownSeconds(null)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.countdownCancelText}>Cancel Test</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  countdownBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  countdownCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 28,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 340,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  countdownCircle: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 4,
+    borderColor: '#2563EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  countdownNumber: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: '#1D4ED8',
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+  },
+  countdownTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0F172A',
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  countdownDesc: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 20,
+  },
+  countdownCancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+  },
+  countdownCancelText: {
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   safeArea: {
     flex: 1,
     backgroundColor: '#FAF8FF',
