@@ -1,4 +1,4 @@
-import { Platform, Vibration, AppState } from 'react-native';
+import { Platform, Vibration, AppState, AppStateStatus } from 'react-native';
 import { LOCAL_ALARM_SOUNDS, LocalSoundItem } from '../constants/alarmSounds';
 
 let expoAudioModule: any = null;
@@ -263,7 +263,7 @@ class AlarmSoundService {
 export const alarmSoundService = new AlarmSoundService();
 
 if (Platform.OS !== 'web') {
-  AppState.addEventListener('change', (nextState) => {
+  AppState.addEventListener('change', (nextState: AppStateStatus) => {
     if (nextState !== 'active') {
       if (alarmSoundService.getIsPreviewing()) {
         alarmSoundService.stopPreview();

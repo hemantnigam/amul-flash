@@ -41,6 +41,7 @@ export default function LocationsScreen() {
   const [newLabel, setNewLabel] = useState('');
 
   useEffect(() => {
+    analyticsService.logScreenView('LocationsScreen');
     if (addresses && addresses.length > 0) {
       syncPincodesFromAddresses(addresses);
     }

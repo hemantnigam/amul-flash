@@ -28,7 +28,7 @@ import { analyticsService } from '../../services/analyticsService';
 export default function HomeScreen() {
   const router = useRouter();
   const { session, isInitialized, addresses } = useSessionStore();
-  const { colors, isDark } = useAppTheme();
+  const { colors } = useAppTheme();
   const {
     products,
     allProductsMap,

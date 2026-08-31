@@ -19,7 +19,6 @@ import {
   CheckCircle2,
   Clock,
 } from 'lucide-react-native';
-import { Theme } from '../constants/theme';
 import { BrandLogoHeader } from '../components/BrandLogoHeader';
 import { AmulApiClient } from '../services/amulApi';
 import { useSessionStore } from '../store/useSessionStore';

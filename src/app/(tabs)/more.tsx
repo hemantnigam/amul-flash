@@ -24,7 +24,6 @@ import {
   Edit2,
   Package,
   X,
-  BellRing,
   Music,
   Radio,
   RefreshCw,
@@ -65,7 +64,6 @@ export default function AccountScreen() {
     selectedAlarmSoundId,
     alarmOverlayEnabled,
     setAlarmOverlayEnabled,
-    triggerSimulatedDrop,
     triggerDelayedDropTest,
     isSimulatingDrop,
   } = useStockStore();

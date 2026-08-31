@@ -6,7 +6,6 @@ import {
   AmulOrder,
   ProductMetafields,
 } from '../types/amul';
-import { INITIAL_PINCODES } from '../constants/products';
 
 /**
  * Pure JS SHA-256 implementation - zero native module dependency, 100% cross-platform
@@ -428,11 +427,10 @@ export const AmulApiClient = {
     } catch (e) {
     }
 
-    const fallback = INITIAL_PINCODES.find((p) => p.pincode === pincode);
     return {
-      store_id: fallback?.storeId || `STORE_${pincode}`,
+      store_id: `STORE_${pincode}`,
       serviceable: true,
-      city: fallback?.label || 'Custom Hub',
+      city: 'Custom Hub',
     };
   },
 

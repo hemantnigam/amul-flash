@@ -427,12 +427,14 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
     set({ isSimulatingDrop: true });
 
+    const activePincode = state.selectedPincode.pincode || state.pincodes[0]?.pincode || '';
+
     try {
       const dropEvent: RestockEvent = {
         id: `drop_${Date.now()}`,
         productId: targetProduct.id,
         productName: targetProduct.title,
-        pincode: state.selectedPincode.pincode || '110044',
+        pincode: activePincode,
         timestamp: Date.now(),
         unitsAdded: 30,
         survivalDurationSecs: 180,
@@ -446,9 +448,9 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       await NotificationService.sendRestockNotification(
         {
           title: `⚡ Restock Alert: ${targetProduct.title}`,
-          body: `Stock is now live for Hub ${state.selectedPincode.pincode || '110044'}! Tap to view.`,
+          body: activePincode ? `Stock is now live for Hub ${activePincode}! Tap to view.` : 'Stock is now live! Tap to view.',
           productId: targetProduct.id,
-          pincode: state.selectedPincode.pincode || '110044',
+          pincode: activePincode,
         },
         state.selectedAlarmSoundId || 'digital_clock_beep'
       );
@@ -457,8 +459,8 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       get().addActivityLog({
         type: 'restock',
         title: `Test Restock Alert: ${targetProduct.title}`,
-        description: `Notification sent for Hub ${state.selectedPincode.pincode || '110044'}`,
-        pincode: state.selectedPincode.pincode || '110044',
+        description: activePincode ? `Notification sent for Hub ${activePincode}` : 'Notification sent for live restock',
+        pincode: activePincode,
         status: 'success',
       });
     } finally {
@@ -473,11 +475,13 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
     if (!targetProduct) return;
 
+    const activePincode = state.selectedPincode.pincode || state.pincodes[0]?.pincode || '';
+
     const dropEvent: RestockEvent = {
       id: `drop_${Date.now()}_${targetProduct.id}`,
       productId: targetProduct.id,
       productName: targetProduct.title,
-      pincode: state.selectedPincode.pincode || '110044',
+      pincode: activePincode,
       timestamp: Date.now(),
       unitsAdded: 30,
       survivalDurationSecs: 180,
@@ -488,9 +492,9 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     await NotificationService.scheduleDelayedNotification(
       {
         title: `⚡ Restock Alert: ${targetProduct.title}`,
-        body: `Stock is now live for Hub ${state.selectedPincode.pincode || '110044'}! Tap to view.`,
+        body: activePincode ? `Stock is now live for Hub ${activePincode}! Tap to view.` : 'Stock is now live! Tap to view.',
         productId: targetProduct.id,
-        pincode: state.selectedPincode.pincode || '110044',
+        pincode: activePincode,
       },
       delaySeconds,
       state.selectedAlarmSoundId || 'digital_clock_beep'
@@ -504,8 +508,8 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       get().addActivityLog({
         type: 'restock',
         title: `Test Restock Alert: ${targetProduct.title}`,
-        description: `Notification sent for Hub ${state.selectedPincode.pincode || '110044'}`,
-        pincode: state.selectedPincode.pincode || '110044',
+        description: activePincode ? `Notification sent for Hub ${activePincode}` : 'Notification sent for live restock',
+        pincode: activePincode,
         status: 'success',
       });
     }, delaySeconds * 1000);

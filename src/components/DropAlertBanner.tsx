@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { AppText as Text } from './AppText';
 import { Zap, Clock, X } from 'lucide-react-native';
-import { Theme } from '../constants/theme';
+import { CommonTheme } from '../constants/theme';
+import { useAppTheme } from '../hooks/useAppTheme';
 import { RestockEvent } from '../types/amul';
 
 interface DropAlertBannerProps {
@@ -16,6 +17,7 @@ export const DropAlertBanner: React.FC<DropAlertBannerProps> = ({
   onPayNow,
   onDismiss,
 }) => {
+  const { colors, isDark } = useAppTheme();
   const [secondsRemaining, setSecondsRemaining] = useState(alert.survivalDurationSecs || 165);
 
   useEffect(() => {
@@ -32,7 +34,15 @@ export const DropAlertBanner: React.FC<DropAlertBannerProps> = ({
   };
 
   return (
-    <View style={styles.bannerContainer}>
+    <View
+      style={[
+        styles.bannerContainer,
+        {
+          backgroundColor: isDark ? '#1E1B4B' : '#1E1B4B',
+          borderColor: isDark ? '#4338CA' : '#3730A3',
+        },
+      ]}
+    >
       <View style={styles.topRow}>
         <View style={styles.badgeRow}>
           <View style={styles.flashBadge}>
@@ -40,7 +50,7 @@ export const DropAlertBanner: React.FC<DropAlertBannerProps> = ({
             <Text style={styles.flashText}>LIVE RESTOCK DROP</Text>
           </View>
           <View style={styles.timerChip}>
-            <Clock size={12} color={Theme.colors.statusDangerText} />
+            <Clock size={12} color="#EF4444" />
             <Text style={styles.timerText}>{formatTime(secondsRemaining)} left</Text>
           </View>
         </View>
@@ -57,7 +67,7 @@ export const DropAlertBanner: React.FC<DropAlertBannerProps> = ({
 
       <View style={styles.actionRow}>
         <TouchableOpacity
-          style={styles.payNowBtn}
+          style={[styles.payNowBtn, { backgroundColor: colors.primary }]}
           onPress={() => onPayNow(alert)}
           activeOpacity={0.8}
         >
@@ -71,14 +81,12 @@ export const DropAlertBanner: React.FC<DropAlertBannerProps> = ({
 
 const styles = StyleSheet.create({
   bannerContainer: {
-    backgroundColor: '#1E1B4B',
-    borderRadius: Theme.radius.xl,
-    padding: Theme.spacing.lg,
-    marginHorizontal: Theme.spacing.containerMargin,
-    marginTop: Theme.spacing.md,
+    borderRadius: CommonTheme.radius.xl,
+    padding: CommonTheme.spacing.lg,
+    marginHorizontal: CommonTheme.spacing.containerMargin,
+    marginTop: CommonTheme.spacing.md,
     borderWidth: 1,
-    borderColor: '#4338CA',
-    ...Theme.shadows.active,
+    ...CommonTheme.shadows.active,
   },
   topRow: {
     flexDirection: 'row',
@@ -94,10 +102,10 @@ const styles = StyleSheet.create({
   flashBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Theme.colors.statusDangerText,
+    backgroundColor: '#DC2626',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: Theme.radius.full,
+    borderRadius: CommonTheme.radius.full,
     gap: 4,
   },
   flashText: {
@@ -109,20 +117,20 @@ const styles = StyleSheet.create({
   timerChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Theme.colors.statusDangerBg,
+    backgroundColor: '#450A0A',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: Theme.radius.full,
+    borderRadius: CommonTheme.radius.full,
     gap: 4,
   },
   timerText: {
     fontSize: 11,
     fontWeight: '700',
-    color: Theme.colors.statusDangerText,
+    color: '#F87171',
   },
   closeBtn: {
     padding: 4,
-    borderRadius: Theme.radius.full,
+    borderRadius: CommonTheme.radius.full,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   productTitle: {
@@ -145,9 +153,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Theme.colors.primaryContainer,
     paddingVertical: 12,
-    borderRadius: Theme.radius.lg,
+    borderRadius: CommonTheme.radius.lg,
     gap: 6,
   },
   payNowText: {
