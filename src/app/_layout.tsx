@@ -52,6 +52,7 @@ export default function RootLayout() {
   useEffect(() => {
     NotificationService.initialize();
     useThemeStore.getState().loadSavedTheme();
+    useStockStore.getState().loadSavedPreferences();
     AmulApiClient.onSessionExpired(() => {
       logout();
     });

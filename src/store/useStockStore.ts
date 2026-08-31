@@ -1,10 +1,19 @@
 import { AppState } from 'react-native';
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AmulProduct, PincodeLocation, ActivityLog, RestockEvent, AmulCategory } from '../types/amul';
 import { AmulApiClient } from '../services/amulApi';
 import { stockRadarService } from '../services/radarService';
 import { NotificationService } from '../services/notificationService';
 import { alarmSoundService } from '../services/alarmSoundService';
+
+const STORAGE_KEYS = {
+  TRACKED_PRODUCTS: '@amul_tracked_products',
+  ALARM_SOUND: '@amul_selected_alarm_sound',
+  ALARM_OVERLAY: '@amul_alarm_overlay_enabled',
+  PINCODES: '@amul_user_pincodes',
+  SELECTED_PINCODE: '@amul_selected_pincode',
+};
 
 interface StockStoreState {
   products: AmulProduct[];
@@ -22,7 +31,9 @@ interface StockStoreState {
   selectedAlarmSoundId: string;
   activeAlarmEvent: RestockEvent | null;
   alarmOverlayEnabled: boolean;
+  isPreferencesLoaded: boolean;
 
+  loadSavedPreferences: () => Promise<void>;
   loadInitialData: (sessionCookie?: string) => Promise<void>;
   setSelectedCategory: (categorySlug: string, sessionCookie?: string) => Promise<void>;
   setSelectedPincode: (pincode: PincodeLocation, sessionCookie?: string) => Promise<void>;
@@ -67,10 +78,80 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
   trackedProductsMap: {},
   allProductsMap: {},
   selectedAlarmSoundId: 'digital_clock_beep',
+  isPreferencesLoaded: false,
+
+  loadSavedPreferences: async () => {
+    try {
+      const [savedTracked, savedSound, savedOverlay, savedPincodes, savedSelectedPin] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.TRACKED_PRODUCTS),
+        AsyncStorage.getItem(STORAGE_KEYS.ALARM_SOUND),
+        AsyncStorage.getItem(STORAGE_KEYS.ALARM_OVERLAY),
+        AsyncStorage.getItem(STORAGE_KEYS.PINCODES),
+        AsyncStorage.getItem(STORAGE_KEYS.SELECTED_PINCODE),
+      ]);
+
+      let trackedMap: Record<string, AmulProduct> = get().trackedProductsMap;
+      if (savedTracked) {
+        try {
+          const parsed = JSON.parse(savedTracked);
+          if (parsed && typeof parsed === 'object') {
+            trackedMap = parsed;
+          }
+        } catch (_e) {}
+      }
+
+      let soundId = get().selectedAlarmSoundId;
+      if (savedSound) {
+        soundId = savedSound;
+      }
+
+      let overlay = get().alarmOverlayEnabled;
+      if (savedOverlay !== null && savedOverlay !== undefined) {
+        overlay = savedOverlay === 'true';
+      }
+
+      let pincodes = get().pincodes;
+      if (savedPincodes) {
+        try {
+          const parsedPins = JSON.parse(savedPincodes);
+          if (Array.isArray(parsedPins) && parsedPins.length > 0) {
+            pincodes = parsedPins;
+          }
+        } catch (_e) {}
+      }
+
+      let selectedPincode = get().selectedPincode;
+      if (savedSelectedPin) {
+        try {
+          const parsedSelected = JSON.parse(savedSelectedPin);
+          if (parsedSelected?.pincode) {
+            selectedPincode = parsedSelected;
+          }
+        } catch (_e) {}
+      }
+
+      set({
+        trackedProductsMap: trackedMap,
+        selectedAlarmSoundId: soundId,
+        alarmOverlayEnabled: overlay,
+        pincodes,
+        selectedPincode,
+        isPreferencesLoaded: true,
+      });
+    } catch (e) {
+      console.log('⚠️ [useStockStore] Error loading saved preferences:', e);
+      set({ isPreferencesLoaded: true });
+    }
+  },
 
   loadInitialData: async (sessionCookie?: string) => {
     set({ isLoadingProducts: true });
     try {
+      // Ensure saved preferences & tracked products are loaded from AsyncStorage first
+      if (!get().isPreferencesLoaded) {
+        await get().loadSavedPreferences();
+      }
+
       // 1. Fetch live categories
       const liveCategories = await AmulApiClient.fetchCategories(sessionCookie);
       set({ categories: liveCategories });
@@ -79,11 +160,24 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       const substoreId = get().selectedPincode.storeId || '66505ff5145c16635e6cc74d';
       const liveProducts = await AmulApiClient.fetchStoreProducts(get().selectedCategory, substoreId, sessionCookie);
 
-      const trackedMap = get().trackedProductsMap;
-      const hydratedProducts = liveProducts.map((p) => ({
-        ...p,
-        autoCartEnabled: trackedMap[p.id] !== undefined ? Boolean(trackedMap[p.id]) : false,
-      }));
+      const trackedMap = { ...get().trackedProductsMap };
+      let hasTrackedUpdates = false;
+
+      const hydratedProducts = liveProducts.map((p) => {
+        const isTracked = trackedMap[p.id] !== undefined;
+        if (isTracked) {
+          trackedMap[p.id] = { ...p, autoCartEnabled: true };
+          hasTrackedUpdates = true;
+        }
+        return {
+          ...p,
+          autoCartEnabled: isTracked,
+        };
+      });
+
+      if (hasTrackedUpdates) {
+        AsyncStorage.setItem(STORAGE_KEYS.TRACKED_PRODUCTS, JSON.stringify(trackedMap)).catch(() => {});
+      }
 
       const newAllMap = { ...get().allProductsMap };
       hydratedProducts.forEach((p) => {
@@ -93,6 +187,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       set({
         products: hydratedProducts,
         allProductsMap: newAllMap,
+        trackedProductsMap: trackedMap,
         isLoadingProducts: false,
         lastUpdated: Date.now(),
       });
@@ -164,6 +259,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
   setSelectedPincode: async (pincode: PincodeLocation, sessionCookie?: string) => {
     set({ selectedPincode: pincode, isLoadingProducts: true });
+    AsyncStorage.setItem(STORAGE_KEYS.SELECTED_PINCODE, JSON.stringify(pincode)).catch(() => {});
     try {
       const substoreId = pincode.storeId || '66505ff5145c16635e6cc74d';
       const liveProducts = await AmulApiClient.fetchStoreProducts(get().selectedCategory, substoreId, sessionCookie);
@@ -197,8 +293,10 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     set((state) => {
       const exists = state.pincodes.some((p) => p.pincode === pincode.pincode);
       if (exists) return state;
+      const updated = [...state.pincodes, pincode];
+      AsyncStorage.setItem(STORAGE_KEYS.PINCODES, JSON.stringify(updated)).catch(() => {});
       return {
-        pincodes: [...state.pincodes, pincode],
+        pincodes: updated,
       };
     });
   },
@@ -207,11 +305,16 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     set((state) => {
       const updated = state.pincodes.filter((p) => p.pincode !== pincodeStr);
       const isSelected = state.selectedPincode.pincode === pincodeStr;
+      const nextSelected = isSelected
+        ? updated[0] || DEFAULT_USER_PINCODE
+        : state.selectedPincode;
+      AsyncStorage.setItem(STORAGE_KEYS.PINCODES, JSON.stringify(updated)).catch(() => {});
+      if (isSelected) {
+        AsyncStorage.setItem(STORAGE_KEYS.SELECTED_PINCODE, JSON.stringify(nextSelected)).catch(() => {});
+      }
       return {
         pincodes: updated,
-        selectedPincode: isSelected
-          ? updated[0] || DEFAULT_USER_PINCODE
-          : state.selectedPincode,
+        selectedPincode: nextSelected,
       };
     });
   },
@@ -245,7 +348,6 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
             address: fullAddress || `Delivery Hub for ${pinStr}`,
             storeId: addr.storeId || '66505ff5145c16635e6cc74d',
             isDefault: Boolean(addr.isDefault) || idx === 0,
-            isSavedAddress: true,
             serviceable: true,
             distanceKm: 0,
           });
@@ -266,6 +368,9 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
         ? combined.find((p) => p.pincode === currentSelected.pincode)!
         : (combined.find((p) => p.isDefault) || combined[0]);
 
+      AsyncStorage.setItem(STORAGE_KEYS.PINCODES, JSON.stringify(combined)).catch(() => {});
+      AsyncStorage.setItem(STORAGE_KEYS.SELECTED_PINCODE, JSON.stringify(targetSelected)).catch(() => {});
+
       set({
         pincodes: combined,
         selectedPincode: targetSelected,
@@ -282,19 +387,32 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
         delete newTrackedMap[productId];
       } else {
         const targetProduct =
-          productObj || state.products.find((p) => p.id === productId);
+          productObj || state.products.find((p) => p.id === productId) || state.allProductsMap[productId];
         if (targetProduct) {
           newTrackedMap[productId] = { ...targetProduct, autoCartEnabled: true };
         }
       }
 
+      AsyncStorage.setItem(STORAGE_KEYS.TRACKED_PRODUCTS, JSON.stringify(newTrackedMap)).catch((e) => {
+        console.log('⚠️ Failed to persist tracked products map:', e);
+      });
+
       const updatedProducts = state.products.map((p) =>
         p.id === productId ? { ...p, autoCartEnabled: !isCurrentlyTracked } : p
       );
 
+      const updatedAllMap = { ...state.allProductsMap };
+      if (updatedAllMap[productId]) {
+        updatedAllMap[productId] = {
+          ...updatedAllMap[productId],
+          autoCartEnabled: !isCurrentlyTracked,
+        };
+      }
+
       return {
         trackedProductsMap: newTrackedMap,
         products: updatedProducts,
+        allProductsMap: updatedAllMap,
       };
     });
   },
@@ -408,6 +526,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
   setAlarmOverlayEnabled: (enabled: boolean) => {
     set({ alarmOverlayEnabled: enabled });
+    AsyncStorage.setItem(STORAGE_KEYS.ALARM_OVERLAY, String(enabled)).catch(() => {});
   },
 
   dismissDropAlert: () => {
@@ -418,6 +537,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
   setSelectedAlarmSoundId: (soundId: string) => {
     set({ selectedAlarmSoundId: soundId });
+    AsyncStorage.setItem(STORAGE_KEYS.ALARM_SOUND, soundId).catch(() => {});
   },
 
   addActivityLog: (log) => {
