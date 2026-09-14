@@ -638,10 +638,8 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
   },
 
   triggerAlarmEvent: (event: RestockEvent) => {
-    if (get().alarmOverlayEnabled) {
-      alarmSoundService.startAlarm(get().selectedAlarmSoundId);
-      set({ activeAlarmEvent: event, activeDropAlert: event });
-    }
+    alarmSoundService.startAlarm(get().selectedAlarmSoundId || 'digital_clock_beep');
+    set({ activeAlarmEvent: event, activeDropAlert: event });
   },
 
   dismissAlarmEvent: () => {

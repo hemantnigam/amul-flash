@@ -98,6 +98,9 @@ async function main() {
         pincode: '110044',
         title: '⚡ Restock Alert: Protein Blueberry Lassi',
         body: 'Stock is live for Hub 110044 (30 units)! Tap to buy now.',
+        soundId: 'digital_clock_beep',
+        unitsAdded: '30',
+        timestamp: String(Date.now()),
       },
       android: {
         priority: 'high',
@@ -106,6 +109,7 @@ async function main() {
           sound: 'mixkit_alarm_digital_clock_beep_989',
           default_sound: false,
           notification_priority: 'PRIORITY_MAX',
+          tag: `amul_drop_${Date.now()}`,
         },
       },
       apns: {

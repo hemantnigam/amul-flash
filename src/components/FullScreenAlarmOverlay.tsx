@@ -235,7 +235,7 @@ export const FullScreenAlarmOverlay: React.FC = () => {
             <View style={styles.priceRow}>
               <Text style={styles.priceLabel}>Price: </Text>
               <Text style={styles.priceValue}>
-                ₹{product?.defaultPrice || product?.variants[0]?.price || 500}
+                ₹{product?.defaultPrice || product?.variants?.[0]?.price || 500}
               </Text>
             </View>
           </View>
