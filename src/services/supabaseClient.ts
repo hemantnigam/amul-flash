@@ -8,11 +8,40 @@ const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
 let supabaseInstance: SupabaseClient | null = null;
 
+const ExpoSafeStorage = {
+  getItem: async (key: string): Promise<string | null> => {
+    if (Platform.OS === 'web' && typeof window === 'undefined') {
+      return null;
+    }
+    try {
+      return await AsyncStorage.getItem(key);
+    } catch (_e) {
+      return null;
+    }
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    if (Platform.OS === 'web' && typeof window === 'undefined') {
+      return;
+    }
+    try {
+      await AsyncStorage.setItem(key, value);
+    } catch (_e) {}
+  },
+  removeItem: async (key: string): Promise<void> => {
+    if (Platform.OS === 'web' && typeof window === 'undefined') {
+      return;
+    }
+    try {
+      await AsyncStorage.removeItem(key);
+    } catch (_e) {}
+  },
+};
+
 if (SUPABASE_URL && SUPABASE_ANON_KEY) {
   try {
     supabaseInstance = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
-        storage: AsyncStorage,
+        storage: ExpoSafeStorage,
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: false,
