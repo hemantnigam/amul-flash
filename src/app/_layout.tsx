@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -38,12 +38,33 @@ try {
   expoNotificationsModule = null;
 }
 
-let firebaseMessagingModule: any = null;
-try {
-  const mod = require('@react-native-firebase/messaging');
-  firebaseMessagingModule = typeof mod === 'function' ? mod : (typeof mod?.default === 'function' ? mod.default : mod);
-} catch (_e) {
-  firebaseMessagingModule = null;
+function getFirebaseMessagingInstance(): any {
+  if (Platform.OS === 'web') return null;
+  try {
+    const mod = require('@react-native-firebase/messaging');
+    if (!mod) return null;
+    if (typeof mod.getMessaging === 'function') {
+      return mod.getMessaging();
+    }
+    if (mod.default && typeof mod.default.getMessaging === 'function') {
+      return mod.default.getMessaging();
+    }
+    if (typeof mod === 'function') {
+      return mod();
+    }
+    if (typeof mod.default === 'function') {
+      return mod.default();
+    }
+    if (typeof mod.onMessage === 'function') {
+      return mod;
+    }
+    if (mod.default && typeof mod.default.onMessage === 'function') {
+      return mod.default;
+    }
+    return null;
+  } catch (_e) {
+    return null;
+  }
 }
 
 export default function RootLayout() {
@@ -107,21 +128,20 @@ export default function RootLayout() {
 
     // 1. Firebase Messaging Foreground onMessage Listener (Scenario B - App Open)
     let fbUnsubscribe: any = null;
-    if (firebaseMessagingModule && typeof firebaseMessagingModule === 'function') {
-      try {
-        const messagingInstance = firebaseMessagingModule();
-        if (messagingInstance && typeof messagingInstance.onMessage === 'function') {
-          fbUnsubscribe = messagingInstance.onMessage(async (remoteMessage: any) => {
-            console.log('🔥 [RootLayout] Firebase Foreground message received:', remoteMessage);
-            handleNotificationPayload(
-              remoteMessage?.notification?.title || remoteMessage?.data?.title || '⚡ Amul Restock Alert!',
-              remoteMessage?.data || {}
-            );
-          });
-        }
-      } catch (fbErr) {
-        console.log('⚠️ [RootLayout] Firebase onMessage attach error:', fbErr);
+    try {
+      const messagingInstance = getFirebaseMessagingInstance();
+      if (messagingInstance && typeof messagingInstance.onMessage === 'function') {
+        fbUnsubscribe = messagingInstance.onMessage(async (remoteMessage: any) => {
+          console.log('🔥 [RootLayout] Firebase Foreground message received:', remoteMessage);
+          handleNotificationPayload(
+            remoteMessage?.notification?.title || remoteMessage?.data?.title || '⚡ Amul Restock Alert!',
+            remoteMessage?.data || {}
+          );
+        });
+        console.log('✅ [RootLayout] Firebase onMessage listener attached');
       }
+    } catch (fbErr) {
+      console.log('⚠️ [RootLayout] Firebase onMessage attach error:', fbErr);
     }
 
     // 2. Handle cold-start notification click (Notifee)

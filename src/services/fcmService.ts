@@ -6,15 +6,32 @@ import { RestockEvent } from '../types/amul';
 
 const FCM_TOKEN_STORAGE_KEY = '@amul_fcm_token';
 
-let messagingModule: any = null;
-function getFirebaseMessaging() {
+function getFirebaseMessagingInstance(): any {
   if (Platform.OS === 'web') return null;
-  if (messagingModule) return messagingModule;
   try {
     const mod = require('@react-native-firebase/messaging');
-    messagingModule = typeof mod === 'function' ? mod : (typeof mod?.default === 'function' ? mod.default : mod);
-    return messagingModule;
-  } catch (_err) {
+    if (!mod) return null;
+    if (typeof mod.getMessaging === 'function') {
+      return mod.getMessaging();
+    }
+    if (mod.default && typeof mod.default.getMessaging === 'function') {
+      return mod.default.getMessaging();
+    }
+    if (typeof mod === 'function') {
+      return mod();
+    }
+    if (typeof mod.default === 'function') {
+      return mod.default();
+    }
+    if (typeof mod.onMessage === 'function') {
+      return mod;
+    }
+    if (mod.default && typeof mod.default.onMessage === 'function') {
+      return mod.default;
+    }
+    return null;
+  } catch (err) {
+    console.log('⚠️ [FCMService] Error resolving Firebase Messaging instance:', err);
     return null;
   }
 }
@@ -42,16 +59,17 @@ class FCMService {
   }
 
   async initialize(onTokenReceived?: (token: string) => void): Promise<string> {
-    const fbMessaging = getFirebaseMessaging();
+    const fb = getFirebaseMessagingInstance();
 
-    if (fbMessaging) {
+    if (fb) {
       // 1. Foreground messages (Scenario B - In-App Restock Siren) - Register IMMEDIATELY
       try {
-        if (typeof fbMessaging().onMessage === 'function') {
-          fbMessaging().onMessage(async (remoteMessage: any) => {
+        if (typeof fb.onMessage === 'function') {
+          fb.onMessage(async (remoteMessage: any) => {
             console.log('📩 [FCMService] Foreground message received via Firebase:', remoteMessage);
             await this.handleIncomingRestockPayload(remoteMessage);
           });
+          console.log('✅ [FCMService] Firebase onMessage listener attached successfully');
         }
       } catch (onMsgErr) {
         console.log('⚠️ [FCMService] onMessage setup error:', onMsgErr);
@@ -59,8 +77,8 @@ class FCMService {
 
       // 2. Background notification tap
       try {
-        if (typeof fbMessaging().onNotificationOpenedApp === 'function') {
-          fbMessaging().onNotificationOpenedApp(async (remoteMessage: any) => {
+        if (typeof fb.onNotificationOpenedApp === 'function') {
+          fb.onNotificationOpenedApp(async (remoteMessage: any) => {
             console.log('📲 [FCMService] App opened from background notification via Firebase:', remoteMessage);
             await this.handleIncomingRestockPayload(remoteMessage);
           });
@@ -69,8 +87,8 @@ class FCMService {
 
       // 3. Cold start notification
       try {
-        if (typeof fbMessaging().getInitialNotification === 'function') {
-          const initialMessage = await fbMessaging().getInitialNotification();
+        if (typeof fb.getInitialNotification === 'function') {
+          const initialMessage = await fb.getInitialNotification();
           if (initialMessage) {
             console.log('🚀 [FCMService] Cold-start notification via Firebase:', initialMessage);
             await this.handleIncomingRestockPayload(initialMessage);
@@ -80,7 +98,9 @@ class FCMService {
 
       // 4. Request Permission
       try {
-        await fbMessaging().requestPermission();
+        if (typeof fb.requestPermission === 'function') {
+          await fb.requestPermission();
+        }
       } catch (permErr) {
         console.log('⚠️ [FCMService] requestPermission note:', permErr);
       }
@@ -88,16 +108,16 @@ class FCMService {
       // 5. iOS registration
       if (Platform.OS === 'ios') {
         try {
-          if (!fbMessaging().isDeviceRegisteredForRemoteMessages) {
-            await fbMessaging().registerDeviceForRemoteMessages();
+          if (typeof fb.registerDeviceForRemoteMessages === 'function' && !fb.isDeviceRegisteredForRemoteMessages) {
+            await fb.registerDeviceForRemoteMessages();
           }
         } catch (_iosErr) {}
       }
 
       // 6. Token refresh listener
       try {
-        if (typeof fbMessaging().onTokenRefresh === 'function') {
-          fbMessaging().onTokenRefresh(async (newToken: string) => {
+        if (typeof fb.onTokenRefresh === 'function') {
+          fb.onTokenRefresh(async (newToken: string) => {
             this.currentToken = newToken;
             await AsyncStorage.setItem(FCM_TOKEN_STORAGE_KEY, newToken);
             console.log('🔄 [FCMService] FCM Token refreshed:', newToken.slice(0, 15) + '...');
@@ -162,37 +182,37 @@ class FCMService {
     // 1. Fire full-screen in-app alarm siren & overlay (Scenario B)
     useStockStore.getState().triggerAlarmEvent(restockEvent);
 
-      // 2. Dispatch local high-priority notification if app is in background
-      if (Platform.OS !== 'web' && typeof NotificationService?.sendRestockNotification === 'function') {
-        await NotificationService.sendRestockNotification(
-          {
-            title,
-            body,
-            productId,
-            pincode,
-          },
-          soundId
-        );
-      }
+    // 2. Dispatch local high-priority notification if app is in background
+    if (Platform.OS !== 'web' && typeof NotificationService?.sendRestockNotification === 'function') {
+      await NotificationService.sendRestockNotification(
+        {
+          title,
+          body,
+          productId,
+          pincode,
+        },
+        soundId
+      );
+    }
 
-      // 3. Log to activity logs
-      useStockStore.getState().addActivityLog({
-        type: 'restock',
-        title: `Cloud Restock Alert: ${restockEvent.productName}`,
-        description: pincode ? `Cloud drop alert delivered for Hub ${pincode}` : 'Cloud drop alert delivered',
-        pincode: pincode,
-        status: 'success',
-      });
+    // 3. Log to activity logs
+    useStockStore.getState().addActivityLog({
+      type: 'restock',
+      title: `Cloud Restock Alert: ${restockEvent.productName}`,
+      description: pincode ? `Cloud drop alert delivered for Hub ${pincode}` : 'Cloud drop alert delivered',
+      pincode: pincode,
+      status: 'success',
+    });
   }
 
   /**
    * Subscribe device to a product / pincode topic
    */
   async subscribeToTopic(topic: string): Promise<boolean> {
-    const fb = getFirebaseMessaging();
-    if (!fb) return false;
+    const fb = getFirebaseMessagingInstance();
+    if (!fb || typeof fb.subscribeToTopic !== 'function') return false;
     try {
-      await fb().subscribeToTopic(topic);
+      await fb.subscribeToTopic(topic);
       console.log(`📡 [FCMService] Subscribed to topic: ${topic}`);
       return true;
     } catch (err) {
@@ -205,10 +225,10 @@ class FCMService {
    * Unsubscribe device from a topic
    */
   async unsubscribeFromTopic(topic: string): Promise<boolean> {
-    const fb = getFirebaseMessaging();
-    if (!fb) return false;
+    const fb = getFirebaseMessagingInstance();
+    if (!fb || typeof fb.unsubscribeFromTopic !== 'function') return false;
     try {
-      await fb().unsubscribeFromTopic(topic);
+      await fb.unsubscribeFromTopic(topic);
       console.log(`📡 [FCMService] Unsubscribed from topic: ${topic}`);
       return true;
     } catch (err) {
@@ -227,10 +247,10 @@ class FCMService {
     }
 
     // 1. Try Firebase Messaging SDK
-    const fbMessaging = getFirebaseMessaging();
-    if (fbMessaging) {
+    const fb = getFirebaseMessagingInstance();
+    if (fb && typeof fb.getToken === 'function') {
       try {
-        const token = await fbMessaging().getToken();
+        const token = await fb.getToken();
         if (token && typeof token === 'string' && token.length > 25) {
           this.currentToken = token;
           await AsyncStorage.setItem(FCM_TOKEN_STORAGE_KEY, token);
@@ -273,9 +293,9 @@ export const fcmService = new FCMService();
 
 // Register background message handler outside of component lifecycle
 try {
-  const fb = getFirebaseMessaging();
-  if (fb && typeof fb().setBackgroundMessageHandler === 'function') {
-    fb().setBackgroundMessageHandler(async (remoteMessage: any) => {
+  const fb = getFirebaseMessagingInstance();
+  if (fb && typeof fb.setBackgroundMessageHandler === 'function') {
+    fb.setBackgroundMessageHandler(async (remoteMessage: any) => {
       console.log('🌙 [FCMService] Background message received via Firebase:', remoteMessage);
       await fcmService.handleIncomingRestockPayload(remoteMessage);
     });
