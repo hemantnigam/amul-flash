@@ -44,10 +44,10 @@ async function fetchLatestDevice() {
     return { token: arg, soundId: 'alert_alarm' };
   }
 
-  let url = `${SUPABASE_URL}/rest/v1/devices?select=fcm_token,selected_sound_id,phone_number,is_active&order=last_active_at.desc&limit=1`;
+  let url = `${SUPABASE_URL}/rest/v1/devices?select=fcm_token,selected_sound_id,phone_number,is_active&is_active=eq.true&order=last_active_at.desc&limit=1`;
   if (arg && /^\d{10}$/.test(arg)) {
     // 10-digit Phone Number passed
-    url = `${SUPABASE_URL}/rest/v1/devices?select=fcm_token,selected_sound_id,phone_number,is_active&phone_number=eq.${arg}&order=last_active_at.desc&limit=1`;
+    url = `${SUPABASE_URL}/rest/v1/devices?select=fcm_token,selected_sound_id,phone_number,is_active&phone_number=eq.${arg}&is_active=eq.true&order=last_active_at.desc&limit=1`;
     console.log(`📱 Searching active device for phone number: ${arg}`);
   }
 
