@@ -121,7 +121,34 @@ export default function RootLayout() {
       });
     }
 
-    // Handle Expo Notifications response (tap / click)
+    // Handle Expo Notifications RECEIVED in foreground (Scenario B - App open)
+    let expoReceivedSub: any = null;
+    if (expoNotificationsModule && expoNotificationsModule.addNotificationReceivedListener) {
+      try {
+        expoReceivedSub = expoNotificationsModule.addNotificationReceivedListener((notification: any) => {
+          console.log('⚡ [Foreground Push Received]:', notification);
+          const data = notification?.request?.content?.data || {};
+          const title = notification?.request?.content?.title || '⚡ Amul Restock Alert!';
+          const prodId = data.productId || data.product_id;
+          const pincode = data.pincode || useStockStore.getState().selectedPincode.pincode;
+
+          if (prodId) {
+            useStockStore.getState().triggerAlarmEvent({
+              id: `drop_${Date.now()}_${prodId}`,
+              productId: prodId,
+              productName: title.replace(/^⚡ Restock Alert:\s*/, ''),
+              pincode: pincode,
+              timestamp: Date.now(),
+              unitsAdded: Number(data.unitsAdded || 30),
+              survivalDurationSecs: 180,
+              variantName: data.variantName || 'Standard Pack',
+            });
+          }
+        });
+      } catch (_e) {}
+    }
+
+    // Handle Expo Notifications response (tap / click in background or cold start)
     let expoSub: any = null;
     if (expoNotificationsModule && expoNotificationsModule.addNotificationResponseReceivedListener) {
       try {
@@ -150,6 +177,9 @@ export default function RootLayout() {
       }
       if (expoSub && typeof expoSub.remove === 'function') {
         expoSub.remove();
+      }
+      if (expoReceivedSub && typeof expoReceivedSub.remove === 'function') {
+        expoReceivedSub.remove();
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
