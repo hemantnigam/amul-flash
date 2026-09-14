@@ -65,27 +65,63 @@ export default function RootLayout() {
     });
     loadSavedSession();
 
-    // Handle cold-start notification click (Notifee)
+    // Helper to safely trigger alarm event from any notification payload
+    const handleNotificationPayload = (title: string, data: any) => {
+      console.log('🚨 [RootLayout] Handling notification payload:', { title, data });
+      if (!data) data = {};
+      let prodId = data.productId || data.product_id || data.id;
+      if (!prodId && typeof data.body === 'string' && data.body.includes('productId')) {
+        try {
+          const parsed = JSON.parse(data.body);
+          prodId = parsed.productId || parsed.product_id;
+        } catch (_e) {}
+      }
+
+      if (!prodId) {
+        const trackedKeys = Object.keys(useStockStore.getState().trackedProductsMap);
+        prodId = trackedKeys[0] || useStockStore.getState().products[0]?.id || '66505ff5145c16635e6cc74d';
+      }
+
+      const pincode = data.pincode || useStockStore.getState().selectedPincode.pincode || 'all';
+      const cleanTitle = (title || data.title || 'Amul Restock Alert').replace(/^⚡\s*(Restock Alert:\s*)?/i, '');
+
+      useStockStore.getState().triggerAlarmEvent({
+        id: `drop_${Date.now()}_${prodId}`,
+        productId: prodId,
+        productName: cleanTitle || 'Amul Protein Product',
+        pincode: pincode,
+        timestamp: Date.now(),
+        unitsAdded: Number(data.unitsAdded || data.stockCount || 30),
+        survivalDurationSecs: 300,
+        variantName: data.variantName || 'Standard Pack',
+      });
+    };
+
+    // 1. Handle cold-start notification click (Notifee)
     if (notifeeModule && notifeeModule.getInitialNotification) {
       notifeeModule.getInitialNotification().then((initialNotification: any) => {
-        const prodId = initialNotification?.notification?.data?.productId;
-        const pincode = initialNotification?.notification?.data?.pincode;
-        if (prodId) {
-          useStockStore.getState().triggerAlarmEvent({
-            id: `drop_${Date.now()}_${prodId}`,
-            productId: prodId,
-            productName: initialNotification?.notification?.title || 'Amul Restock Alert',
-            pincode: pincode || useStockStore.getState().selectedPincode.pincode,
-            timestamp: Date.now(),
-            unitsAdded: 30,
-            survivalDurationSecs: 180,
-            variantName: 'Standard Pack',
-          });
+        if (initialNotification?.notification) {
+          handleNotificationPayload(
+            initialNotification.notification.title || '',
+            initialNotification.notification.data
+          );
         }
-      });
+      }).catch(() => {});
     }
 
-    // Handle foreground notification click (Notifee)
+    // 2. Handle cold-start notification click (Expo Notifications)
+    if (expoNotificationsModule && expoNotificationsModule.getLastNotificationResponseAsync) {
+      expoNotificationsModule.getLastNotificationResponseAsync().then((response: any) => {
+        if (response?.notification) {
+          handleNotificationPayload(
+            response.notification.request?.content?.title || '',
+            response.notification.request?.content?.data
+          );
+        }
+      }).catch(() => {});
+    }
+
+    // 3. Handle foreground notification click (Notifee)
     let notifeeUnsubscribe: any = null;
     if (notifeeModule && notifeeModule.onForegroundEvent) {
       notifeeUnsubscribe = notifeeModule.onForegroundEvent(({ type, detail }: any) => {
@@ -103,70 +139,38 @@ export default function RootLayout() {
           if (detail?.notification?.id) {
             notifeeModule.cancelNotification(detail.notification.id);
           }
-          const prodId = detail?.notification?.data?.productId;
-          const pincode = detail?.notification?.data?.pincode;
-          if (prodId) {
-            useStockStore.getState().triggerAlarmEvent({
-              id: `drop_${Date.now()}_${prodId}`,
-              productId: prodId,
-              productName: detail?.notification?.title || 'Amul Restock Alert',
-              pincode: pincode || useStockStore.getState().selectedPincode.pincode,
-              timestamp: Date.now(),
-              unitsAdded: 30,
-              survivalDurationSecs: 180,
-              variantName: 'Standard Pack',
-            });
-          }
+          handleNotificationPayload(
+            detail?.notification?.title || '',
+            detail?.notification?.data
+          );
         }
       });
     }
 
-    // Handle Expo Notifications RECEIVED in foreground (Scenario B - App open)
+    // 4. Handle Expo Notifications RECEIVED in foreground (Scenario B - App open)
     let expoReceivedSub: any = null;
     if (expoNotificationsModule && expoNotificationsModule.addNotificationReceivedListener) {
       try {
         expoReceivedSub = expoNotificationsModule.addNotificationReceivedListener((notification: any) => {
-          console.log('⚡ [Foreground Push Received]:', notification);
-          const data = notification?.request?.content?.data || {};
-          const title = notification?.request?.content?.title || '⚡ Amul Restock Alert!';
-          const prodId = data.productId || data.product_id;
-          const pincode = data.pincode || useStockStore.getState().selectedPincode.pincode;
-
-          if (prodId) {
-            useStockStore.getState().triggerAlarmEvent({
-              id: `drop_${Date.now()}_${prodId}`,
-              productId: prodId,
-              productName: title.replace(/^⚡ Restock Alert:\s*/, ''),
-              pincode: pincode,
-              timestamp: Date.now(),
-              unitsAdded: Number(data.unitsAdded || 30),
-              survivalDurationSecs: 180,
-              variantName: data.variantName || 'Standard Pack',
-            });
-          }
+          console.log('⚡ [Expo Notification Received in Foreground]:', notification);
+          handleNotificationPayload(
+            notification?.request?.content?.title || '',
+            notification?.request?.content?.data
+          );
         });
       } catch (_e) {}
     }
 
-    // Handle Expo Notifications response (tap / click in background or cold start)
+    // 5. Handle Expo Notifications response (tap / click in background or cold start)
     let expoSub: any = null;
     if (expoNotificationsModule && expoNotificationsModule.addNotificationResponseReceivedListener) {
       try {
         expoSub = expoNotificationsModule.addNotificationResponseReceivedListener((response: any) => {
-          const prodId = response?.notification?.request?.content?.data?.productId;
-          const pincode = response?.notification?.request?.content?.data?.pincode;
-          if (prodId) {
-            useStockStore.getState().triggerAlarmEvent({
-              id: `drop_${Date.now()}_${prodId}`,
-              productId: prodId,
-              productName: response?.notification?.request?.content?.title || 'Amul Restock Alert',
-              pincode: pincode || useStockStore.getState().selectedPincode.pincode,
-              timestamp: Date.now(),
-              unitsAdded: 30,
-              survivalDurationSecs: 180,
-              variantName: 'Standard Pack',
-            });
-          }
+          console.log('👆 [Expo Notification Tapped]:', response);
+          handleNotificationPayload(
+            response?.notification?.request?.content?.title || '',
+            response?.notification?.request?.content?.data
+          );
         });
       } catch (_e) {}
     }

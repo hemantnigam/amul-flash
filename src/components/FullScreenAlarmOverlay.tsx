@@ -117,24 +117,25 @@ export const FullScreenAlarmOverlay: React.FC = () => {
     };
   }, [activeAlarmEvent, pulseAnim, ringScale1, ringOpacity1, ringScale2, ringOpacity2]);
 
-  if (!activeAlarmEvent) return null;
-
   // Find product image and details
-  const product =
-    allProductsMap[activeAlarmEvent.productId] ||
-    products.find((p) => p.id === activeAlarmEvent.productId);
+  const product = activeAlarmEvent
+    ? allProductsMap[activeAlarmEvent.productId] ||
+      products.find((p) => p.id === activeAlarmEvent.productId)
+    : null;
 
   const handleStopAlarm = () => {
     dismissAlarmEvent();
   };
 
   const handleViewProduct = () => {
-    const targetId = activeAlarmEvent.productId;
+    const targetId = activeAlarmEvent?.productId;
     dismissAlarmEvent();
     if (targetId) {
       router.push(`/product/${targetId}`);
     }
   };
+
+  if (!activeAlarmEvent) return null;
 
   return (
     <Modal
@@ -142,6 +143,7 @@ export const FullScreenAlarmOverlay: React.FC = () => {
       transparent={false}
       animationType="fade"
       statusBarTranslucent
+      onRequestClose={handleStopAlarm}
     >
       <View style={styles.container}>
         {/* Top Emergency Tag & Clock */}
@@ -211,18 +213,18 @@ export const FullScreenAlarmOverlay: React.FC = () => {
 
           <View style={styles.productInfoCol}>
             <Text style={styles.productName} numberOfLines={2}>
-              {activeAlarmEvent.productName}
+              {activeAlarmEvent?.productName || 'Amul Restock Alert'}
             </Text>
 
             <View style={styles.productBadgesRow}>
               <View style={styles.stockBadge}>
                 <Zap size={12} color="#16A34A" />
                 <Text style={styles.stockBadgeText}>
-                  +{activeAlarmEvent.unitsAdded} Units
+                  +{activeAlarmEvent?.unitsAdded || 30} Units
                 </Text>
               </View>
 
-              {activeAlarmEvent.pincode && (
+              {activeAlarmEvent?.pincode && (
                 <View style={styles.pincodeBadge}>
                   <MapPin size={11} color="#3B82F6" />
                   <Text style={styles.pincodeBadgeText}>
@@ -296,13 +298,11 @@ const styles = StyleSheet.create({
     color: '#FF8A00',
     fontSize: 11,
     fontWeight: '800',
-    fontFamily: 'PlusJakartaSans_800ExtraBold',
     letterSpacing: 0.8,
   },
   clockText: {
     fontSize: 32,
     fontWeight: '900',
-    fontFamily: 'PlusJakartaSans_800ExtraBold',
     color: '#F4F4F5',
     letterSpacing: 1,
     marginTop: 4,
@@ -340,7 +340,6 @@ const styles = StyleSheet.create({
   mainTitle: {
     fontSize: 22,
     fontWeight: '900',
-    fontFamily: 'PlusJakartaSans_800ExtraBold',
     color: '#FFFFFF',
     letterSpacing: 0.5,
     textAlign: 'center',
@@ -382,7 +381,6 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 15,
     fontWeight: '800',
-    fontFamily: 'PlusJakartaSans_700Bold',
     color: '#FFFFFF',
     lineHeight: 20,
   },
@@ -462,7 +460,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '800',
-    fontFamily: 'PlusJakartaSans_800ExtraBold',
     letterSpacing: 0.3,
   },
   stopAlarmBtn: {
@@ -480,7 +477,6 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 15,
     fontWeight: '900',
-    fontFamily: 'PlusJakartaSans_800ExtraBold',
     letterSpacing: 0.8,
   },
 });

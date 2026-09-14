@@ -122,15 +122,30 @@ async function getGoogleAccessToken(serviceAccount: any): Promise<string> {
   return tokenData.access_token;
 }
 
+const SOUND_MAP: Record<string, string> = {
+  digital_clock_beep: 'mixkit_alarm_digital_clock_beep_989',
+  alert_alarm: 'mixkit_alert_alarm_1005',
+  battleship_alarm: 'mixkit_battleship_alarm_1001',
+  digital_buzzer: 'mixkit_digital_clock_digital_alarm_buzzer_992',
+  spaceship_alarm: 'mixkit_spaceship_alarm_998',
+  classic_winner: 'mixkit_classic_winner_alarm_1997',
+  sound_alert_hall: 'mixkit_sound_alert_in_hall_1006',
+  interface_hint: 'mixkit_interface_hint_notification_911',
+};
+
 // 3. Dispatch FCM Push Notification via HTTP v1
 async function sendFcmNotification(
   serviceAccount: any,
   accessToken: string,
   target: { token?: string; topic?: string },
-  payload: { title: string; body: string; productId: string; pincode: string }
+  payload: { title: string; body: string; productId: string; pincode: string; soundId?: string }
 ) {
   const projectId = serviceAccount.project_id || 'amul-flash';
   const url = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
+
+  const soundId = payload.soundId || 'digital_clock_beep';
+  const soundResName = SOUND_MAP[soundId] || 'mixkit_alarm_digital_clock_beep_989';
+  const nowTs = String(Date.now());
 
   const message: any = {
     notification: {
@@ -138,24 +153,29 @@ async function sendFcmNotification(
       body: payload.body,
     },
     data: {
-      productId: payload.productId,
-      pincode: payload.pincode,
-      title: payload.title,
-      body: payload.body,
+      productId: String(payload.productId),
+      pincode: String(payload.pincode),
+      title: String(payload.title),
+      body: String(payload.body),
+      soundId: soundId,
+      unitsAdded: '30',
+      timestamp: nowTs,
     },
     android: {
       priority: 'high',
       notification: {
-        channel_id: 'amul_ch_digital_clock_beep',
-        sound: 'mixkit_alarm_digital_clock_beep_989',
+        channel_id: `amul_ch_${soundId}`,
+        sound: soundResName,
         default_sound: false,
         notification_priority: 'PRIORITY_MAX',
+        visibility: 'PUBLIC',
+        tag: `amul_drop_${nowTs}`,
       },
     },
     apns: {
       payload: {
         aps: {
-          sound: 'mixkit_alarm_digital_clock_beep_989.wav',
+          sound: `${soundResName}.wav`,
           badge: 1,
           'content-available': 1,
         },
@@ -295,11 +315,30 @@ Deno.serve(async (req: Request) => {
             if (serviceAccount && fcmAccessToken) {
               await sendFcmNotification(serviceAccount, fcmAccessToken, { topic }, alertPayload);
 
-              // Also send directly to device tokens
+              // Also send directly to device tokens with their individual selected alarm sound
               if (devices && devices.length > 0) {
+                const tokenList = devices.map((d: any) => d.fcm_token).filter(Boolean);
+                const { data: devRows } = await supabase
+                  .from('devices')
+                  .select('fcm_token, selected_sound_id')
+                  .in('fcm_token', tokenList);
+
+                const soundLookup: Record<string, string> = {};
+                if (devRows) {
+                  for (const dr of devRows) {
+                    if (dr.fcm_token) soundLookup[dr.fcm_token] = dr.selected_sound_id || 'digital_clock_beep';
+                  }
+                }
+
                 for (const d of devices) {
                   if (d.fcm_token) {
-                    await sendFcmNotification(serviceAccount, fcmAccessToken, { token: d.fcm_token }, alertPayload);
+                    const devSound = soundLookup[d.fcm_token] || 'digital_clock_beep';
+                    await sendFcmNotification(
+                      serviceAccount,
+                      fcmAccessToken,
+                      { token: d.fcm_token },
+                      { ...alertPayload, soundId: devSound }
+                    );
                   }
                 }
               }

@@ -118,7 +118,7 @@ export default function AccountScreen() {
         return;
       }
       const token = await fcmService.getToken();
-      const devOk = await supabaseService.registerDevice(token);
+      const devOk = await supabaseService.registerDevice(token, selectedAlarmSoundId);
       const trackedList = Object.values(trackedProductsMap);
       let subOk = true;
       if (trackedList.length > 0) {

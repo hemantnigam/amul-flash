@@ -75,19 +75,20 @@ export const supabaseService = {
   /**
    * Register or update device record in Supabase
    */
-  async registerDevice(fcmToken: string): Promise<boolean> {
+  async registerDevice(fcmToken: string, soundId?: string): Promise<boolean> {
     if (!supabase || !fcmToken) return false;
     try {
+      const payload: any = {
+        fcm_token: fcmToken,
+        platform: Platform.OS,
+        last_active_at: new Date().toISOString(),
+      };
+      if (soundId) {
+        payload.selected_sound_id = soundId;
+      }
       const { error } = await supabase
         .from('devices')
-        .upsert(
-          {
-            fcm_token: fcmToken,
-            platform: Platform.OS,
-            last_active_at: new Date().toISOString(),
-          },
-          { onConflict: 'fcm_token' }
-        );
+        .upsert(payload, { onConflict: 'fcm_token' });
 
       if (error) {
         console.log('⚠️ [SupabaseService] registerDevice error:', error.message);
@@ -96,6 +97,36 @@ export const supabaseService = {
       return true;
     } catch (e) {
       console.log('⚠️ [SupabaseService] registerDevice exception:', e);
+      return false;
+    }
+  },
+
+  /**
+   * Update device selected alarm ringtone sound
+   */
+  async updateDeviceSound(fcmToken: string, soundId: string): Promise<boolean> {
+    if (!supabase || !fcmToken || !soundId) return false;
+    try {
+      const { error } = await supabase
+        .from('devices')
+        .upsert(
+          {
+            fcm_token: fcmToken,
+            selected_sound_id: soundId,
+            platform: Platform.OS,
+            last_active_at: new Date().toISOString(),
+          },
+          { onConflict: 'fcm_token' }
+        );
+
+      if (error) {
+        console.log('⚠️ [SupabaseService] updateDeviceSound error:', error.message);
+        return false;
+      }
+      console.log(`🎵 [SupabaseService] Device alarm sound synced to cloud: ${soundId}`);
+      return true;
+    } catch (e) {
+      console.log('⚠️ [SupabaseService] updateDeviceSound exception:', e);
       return false;
     }
   },

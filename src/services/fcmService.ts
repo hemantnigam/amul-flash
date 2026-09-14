@@ -9,11 +9,11 @@ const FCM_TOKEN_STORAGE_KEY = '@amul_fcm_token';
 let messagingModule: any = null;
 function getFirebaseMessaging() {
   if (Platform.OS === 'web') return null;
+  if (messagingModule) return messagingModule;
   try {
     const mod = require('@react-native-firebase/messaging');
-    if (typeof mod === 'function') return mod;
-    if (typeof mod?.default === 'function') return mod.default;
-    return mod;
+    messagingModule = typeof mod === 'function' ? mod : (typeof mod?.default === 'function' ? mod.default : mod);
+    return messagingModule;
   } catch (_err) {
     return null;
   }
@@ -45,13 +45,24 @@ class FCMService {
     const fbMessaging = getFirebaseMessaging();
 
     if (fbMessaging) {
+      // 1. Request Permission
       try {
         await fbMessaging().requestPermission();
-        if (Platform.OS === 'ios' && !fbMessaging().isDeviceRegisteredForRemoteMessages) {
-          await fbMessaging().registerDeviceForRemoteMessages();
-        }
+      } catch (permErr) {
+        console.log('⚠️ [FCMService] requestPermission note:', permErr);
+      }
 
-        // Listen for token refreshes
+      // 2. iOS registration
+      if (Platform.OS === 'ios') {
+        try {
+          if (!fbMessaging().isDeviceRegisteredForRemoteMessages) {
+            await fbMessaging().registerDeviceForRemoteMessages();
+          }
+        } catch (_iosErr) {}
+      }
+
+      // 3. Token refresh listener
+      try {
         if (typeof fbMessaging().onTokenRefresh === 'function') {
           fbMessaging().onTokenRefresh(async (newToken: string) => {
             this.currentToken = newToken;
@@ -62,34 +73,40 @@ class FCMService {
             }
           });
         }
+      } catch (_trErr) {}
 
-        // Foreground messages
+      // 4. Foreground messages (Scenario B - In-App Restock Siren)
+      try {
         if (typeof fbMessaging().onMessage === 'function') {
           fbMessaging().onMessage(async (remoteMessage: any) => {
-            console.log('📩 [FCMService] Foreground message received:', remoteMessage);
+            console.log('📩 [FCMService] Foreground message received via Firebase:', remoteMessage);
             await this.handleIncomingRestockPayload(remoteMessage);
           });
         }
+      } catch (onMsgErr) {
+        console.log('⚠️ [FCMService] onMessage setup error:', onMsgErr);
+      }
 
-        // Background notification tap
+      // 5. Background notification tap
+      try {
         if (typeof fbMessaging().onNotificationOpenedApp === 'function') {
           fbMessaging().onNotificationOpenedApp(async (remoteMessage: any) => {
-            console.log('📲 [FCMService] App opened from background notification:', remoteMessage);
+            console.log('📲 [FCMService] App opened from background notification via Firebase:', remoteMessage);
             await this.handleIncomingRestockPayload(remoteMessage);
           });
         }
+      } catch (_opErr) {}
 
-        // Cold start notification
+      // 6. Cold start notification
+      try {
         if (typeof fbMessaging().getInitialNotification === 'function') {
           const initialMessage = await fbMessaging().getInitialNotification();
           if (initialMessage) {
-            console.log('🚀 [FCMService] Cold-start notification:', initialMessage);
+            console.log('🚀 [FCMService] Cold-start notification via Firebase:', initialMessage);
             await this.handleIncomingRestockPayload(initialMessage);
           }
         }
-      } catch (error) {
-        console.log('⚠️ [FCMService] Firebase setup note:', error);
-      }
+      } catch (_initErr) {}
     }
 
     const token = await this.getToken();
@@ -104,43 +121,59 @@ class FCMService {
   /**
    * Handle incoming FCM message payload and trigger in-app alarm and notifications
    */
-  private async handleIncomingRestockPayload(remoteMessage: any) {
+  public async handleIncomingRestockPayload(remoteMessage: any) {
     if (!remoteMessage) return;
 
     const data = remoteMessage.data || {};
     const notification = remoteMessage.notification || {};
 
-    const productId = data.productId || data.product_id;
-    const pincode = data.pincode || useStockStore.getState().selectedPincode.pincode;
+    let productId = data.productId || data.product_id;
+    if (!productId && typeof data.body === 'string' && data.body.includes('productId')) {
+      try {
+        const parsed = JSON.parse(data.body);
+        productId = parsed.productId || parsed.product_id;
+      } catch (_e) {}
+    }
+
+    const pincode = data.pincode || useStockStore.getState().selectedPincode.pincode || '';
     const title = notification.title || data.title || '⚡ Amul Restock Alert!';
     const body = notification.body || data.body || 'Tracked item is back in stock!';
     const soundId = data.soundId || useStockStore.getState().selectedAlarmSoundId || 'digital_clock_beep';
 
-    if (productId) {
-      const restockEvent: RestockEvent = {
-        id: `fcm_${Date.now()}_${productId}`,
-        productId: productId,
-        productName: title.replace(/^⚡ Restock Alert:\s*/, ''),
-        pincode: pincode,
-        timestamp: Date.now(),
-        unitsAdded: Number(data.unitsAdded || data.stockCount || 30),
-        survivalDurationSecs: 300,
-        variantName: data.variantName || 'Standard Pack',
-      };
+    console.log('🚨 [FCMService] Incoming restock alert for productId:', productId, 'title:', title);
 
-      // 1. Fire full-screen in-app alarm siren & overlay
-      useStockStore.getState().triggerAlarmEvent(restockEvent);
+    if (!productId) {
+      const trackedKeys = Object.keys(useStockStore.getState().trackedProductsMap);
+      productId = trackedKeys[0] || useStockStore.getState().products[0]?.id || '66505ff5145c16635e6cc74d';
+    }
 
-      // 2. Dispatch local high-priority heads-up notification with looping sound
-      await NotificationService.sendRestockNotification(
-        {
-          title,
-          body,
-          productId,
-          pincode,
-        },
-        soundId
-      );
+    const cleanTitle = title.replace(/^⚡\s*(Restock Alert:\s*)?/i, '');
+    const restockEvent: RestockEvent = {
+      id: `fcm_${Date.now()}_${productId}`,
+      productId: productId,
+      productName: cleanTitle || 'Amul Protein Product',
+      pincode: pincode,
+      timestamp: Date.now(),
+      unitsAdded: Number(data.unitsAdded || data.stockCount || 30),
+      survivalDurationSecs: 300,
+      variantName: data.variantName || 'Standard Pack',
+    };
+
+    // 1. Fire full-screen in-app alarm siren & overlay (Scenario B)
+    useStockStore.getState().triggerAlarmEvent(restockEvent);
+
+      // 2. Dispatch local high-priority notification if app is in background
+      if (Platform.OS !== 'web' && typeof NotificationService?.sendRestockNotification === 'function') {
+        await NotificationService.sendRestockNotification(
+          {
+            title,
+            body,
+            productId,
+            pincode,
+          },
+          soundId
+        );
+      }
 
       // 3. Log to activity logs
       useStockStore.getState().addActivityLog({
@@ -150,16 +183,16 @@ class FCMService {
         pincode: pincode,
         status: 'success',
       });
-    }
   }
 
   /**
    * Subscribe device to a product / pincode topic
    */
   async subscribeToTopic(topic: string): Promise<boolean> {
-    if (!messagingModule) return false;
+    const fb = getFirebaseMessaging();
+    if (!fb) return false;
     try {
-      await messagingModule().subscribeToTopic(topic);
+      await fb().subscribeToTopic(topic);
       console.log(`📡 [FCMService] Subscribed to topic: ${topic}`);
       return true;
     } catch (err) {
@@ -172,9 +205,10 @@ class FCMService {
    * Unsubscribe device from a topic
    */
   async unsubscribeFromTopic(topic: string): Promise<boolean> {
-    if (!messagingModule) return false;
+    const fb = getFirebaseMessaging();
+    if (!fb) return false;
     try {
-      await messagingModule().unsubscribeFromTopic(topic);
+      await fb().unsubscribeFromTopic(topic);
       console.log(`📡 [FCMService] Unsubscribed from topic: ${topic}`);
       return true;
     } catch (err) {
@@ -238,27 +272,12 @@ class FCMService {
 export const fcmService = new FCMService();
 
 // Register background message handler outside of component lifecycle
-if (messagingModule && typeof messagingModule().setBackgroundMessageHandler === 'function') {
-  messagingModule().setBackgroundMessageHandler(async (remoteMessage: any) => {
-    console.log('🌙 [FCMService] Background message received:', remoteMessage);
-    const data = remoteMessage.data || {};
-    const notification = remoteMessage.notification || {};
-    const productId = data.productId || data.product_id;
-    const pincode = data.pincode;
-    const title = notification.title || data.title || '⚡ Amul Restock Alert!';
-    const body = notification.body || data.body || 'Tracked item is back in stock!';
-    const soundId = data.soundId || 'digital_clock_beep';
-
-    if (productId) {
-      await NotificationService.sendRestockNotification(
-        {
-          title,
-          body,
-          productId,
-          pincode,
-        },
-        soundId
-      );
-    }
-  });
-}
+try {
+  const fb = getFirebaseMessaging();
+  if (fb && typeof fb().setBackgroundMessageHandler === 'function') {
+    fb().setBackgroundMessageHandler(async (remoteMessage: any) => {
+      console.log('🌙 [FCMService] Background message received via Firebase:', remoteMessage);
+      await fcmService.handleIncomingRestockPayload(remoteMessage);
+    });
+  }
+} catch (_bgErr) {}

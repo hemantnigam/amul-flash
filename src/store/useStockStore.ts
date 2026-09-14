@@ -144,11 +144,12 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
         isPreferencesLoaded: true,
       });
 
-      // Automatically sync all tracked items to Supabase cloud on launch
-      const trackedItems = Object.values(trackedMap);
-      if (trackedItems.length > 0) {
-        fcmService.getToken().then((token) => {
-          if (token) {
+      // Automatically sync device token, sound, and tracked items to Supabase cloud on launch
+      fcmService.getToken().then((token) => {
+        if (token) {
+          supabaseService.registerDevice(token, soundId);
+          const trackedItems = Object.values(trackedMap);
+          if (trackedItems.length > 0) {
             supabaseService.syncAllTrackedProducts(
               token,
               trackedItems,
@@ -156,8 +157,8 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
               selectedPincode.storeId || '66505ff5145c16635e6cc74d'
             );
           }
-        });
-      }
+        }
+      });
     } catch (e) {
       console.log('⚠️ [useStockStore] Error loading saved preferences:', e);
       set({ isPreferencesLoaded: true });
@@ -662,6 +663,11 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
   setSelectedAlarmSoundId: (soundId: string) => {
     set({ selectedAlarmSoundId: soundId });
     AsyncStorage.setItem(STORAGE_KEYS.ALARM_SOUND, soundId).catch(() => {});
+    fcmService.getToken().then((token) => {
+      if (token) {
+        supabaseService.updateDeviceSound(token, soundId);
+      }
+    });
   },
 
   addActivityLog: (log) => {

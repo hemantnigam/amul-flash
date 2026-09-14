@@ -26,11 +26,22 @@ if (!serviceAccount) {
 const SUPABASE_URL = 'https://armxxjwogyfelkysgzcx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFybXh4andvZ3lmZWxreXNnemN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4OTg4NTQsImV4cCI6MjEwMzQ3NDg1NH0.GZ3SdsV6mit1SHf-uxEbS6UzhFRtfCAMmSSbMUDk6zY';
 
-async function fetchLatestDeviceToken() {
-  const customToken = process.argv[2];
-  if (customToken) return customToken;
+const SOUND_MAP = {
+  digital_clock_beep: 'mixkit_alarm_digital_clock_beep_989',
+  alert_alarm: 'mixkit_alert_alarm_1005',
+  battleship_alarm: 'mixkit_battleship_alarm_1001',
+  digital_buzzer: 'mixkit_digital_clock_digital_alarm_buzzer_992',
+  spaceship_alarm: 'mixkit_spaceship_alarm_998',
+  classic_winner: 'mixkit_classic_winner_alarm_1997',
+  sound_alert_hall: 'mixkit_sound_alert_in_hall_1006',
+  interface_hint: 'mixkit_interface_hint_notification_911',
+};
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/devices?select=fcm_token&order=last_active_at.desc&limit=1`, {
+async function fetchLatestDevice() {
+  const customToken = process.argv[2];
+  if (customToken) return { token: customToken, soundId: 'alert_alarm' };
+
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/devices?select=fcm_token,selected_sound_id&order=last_active_at.desc&limit=1`, {
     headers: {
       apikey: SUPABASE_ANON_KEY,
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
@@ -38,7 +49,10 @@ async function fetchLatestDeviceToken() {
   });
   const data = await res.json();
   if (data && data.length > 0 && data[0].fcm_token) {
-    return data[0].fcm_token;
+    return {
+      token: data[0].fcm_token,
+      soundId: data[0].selected_sound_id || 'alert_alarm',
+    };
   }
   return null;
 }
@@ -73,19 +87,25 @@ async function getAccessToken() {
 
 // 4. Main Send Routine
 async function main() {
-  console.log('🔍 Fetching device token from Supabase...');
-  const targetToken = await fetchLatestDeviceToken();
+  console.log('🔍 Fetching device token and ringtone preference from Supabase...');
+  const device = await fetchLatestDevice();
 
-  if (!targetToken) {
+  if (!device || !device.token) {
     console.error('❌ No registered devices found in Supabase. Please open the app and tap "Cloud Radar Sync".');
     process.exit(1);
   }
 
-  console.log(`🎯 Targeting device token: ${targetToken.slice(0, 18)}...`);
+  const targetToken = device.token;
+  const soundId = process.argv[3] || device.soundId || 'alert_alarm';
+  const soundResName = SOUND_MAP[soundId] || 'mixkit_alarm_digital_clock_beep_989';
+
+  console.log(`🎯 Targeting device: ${targetToken.slice(0, 18)}...`);
+  console.log(`🎵 Selected Alarm Ringtone: ${soundId} (${soundResName})`);
   console.log('🔑 Authenticating with Google Firebase...');
   const accessToken = await getAccessToken();
 
   console.log('🚨 Dispatching restock alarm notification to your phone...');
+  const nowTs = String(Date.now());
   const payload = {
     message: {
       token: targetToken,
@@ -98,24 +118,25 @@ async function main() {
         pincode: '110044',
         title: '⚡ Restock Alert: Protein Blueberry Lassi',
         body: 'Stock is live for Hub 110044 (30 units)! Tap to buy now.',
-        soundId: 'digital_clock_beep',
+        soundId: soundId,
         unitsAdded: '30',
-        timestamp: String(Date.now()),
+        timestamp: nowTs,
       },
       android: {
         priority: 'high',
         notification: {
-          channel_id: 'amul_ch_digital_clock_beep',
-          sound: 'mixkit_alarm_digital_clock_beep_989',
+          channel_id: `amul_ch_${soundId}`,
+          sound: soundResName,
           default_sound: false,
           notification_priority: 'PRIORITY_MAX',
-          tag: `amul_drop_${Date.now()}`,
+          visibility: 'PUBLIC',
+          tag: `amul_drop_${nowTs}`,
         },
       },
       apns: {
         payload: {
           aps: {
-            sound: 'mixkit_alarm_digital_clock_beep_989.wav',
+            sound: `${soundResName}.wav`,
             badge: 1,
             'content-available': 1,
           },
@@ -137,6 +158,7 @@ async function main() {
   const result = await res.json();
   if (result.name) {
     console.log('✅ TEST ALERT DELIVERED TO YOUR PHONE SUCCESSFULLY!');
+    console.log(`📲 Channel: amul_ch_${soundId} | Sound: ${soundResName}`);
     console.log('📲 Check your phone screen now!');
   } else {
     console.error('❌ FCM Error response:', result);

@@ -124,8 +124,8 @@ export const NotificationService = {
       LOCAL_ALARM_SOUNDS.find((s) => s.id === soundId) || LOCAL_ALARM_SOUNDS[0];
     const soundResName = soundItem.filename.replace(/\.wav$/i, '');
 
-    // Trigger custom audio playback via expo-audio when app is active in foreground
-    if (AppState.currentState === 'active') {
+    // Trigger custom audio playback via expo-audio when app is active in foreground only if alarm is not already ringing
+    if (AppState.currentState === 'active' && !alarmSoundService.getIsRinging()) {
       try {
         alarmSoundService.previewSound(soundItem.id);
       } catch (_e) {}
@@ -142,15 +142,17 @@ export const NotificationService = {
           data: {
             productId: payload.productId || '',
             pincode: payload.pincode || '',
+            soundId: soundItem.id,
           },
           android: {
             channelId: channelId,
             importance: 4,
             visibility: 1,
+            category: 'alarm',
             sound: soundResName,
             loopSound: true, // Continuously loop custom audio like an alarm clock
             ongoing: true, // Prioritize at top of notification shade
-            autoCancel: true,
+            autoCancel: false,
             pressAction: {
               id: 'default',
               launchActivity: 'default',
