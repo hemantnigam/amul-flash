@@ -7,12 +7,25 @@ import { RestockEvent } from '../types/amul';
 const FCM_TOKEN_STORAGE_KEY = '@amul_fcm_token';
 
 let messagingModule: any = null;
+function getFirebaseMessaging() {
+  if (Platform.OS === 'web') return null;
+  try {
+    const mod = require('@react-native-firebase/messaging');
+    if (typeof mod === 'function') return mod;
+    if (typeof mod?.default === 'function') return mod.default;
+    return mod;
+  } catch (_err) {
+    return null;
+  }
+}
+
+let expoNotificationsModule: any = null;
 try {
   if (Platform.OS !== 'web') {
-    messagingModule = require('@react-native-firebase/messaging').default;
+    expoNotificationsModule = require('expo-notifications');
   }
-} catch (_err) {
-  messagingModule = null;
+} catch (_e) {
+  expoNotificationsModule = null;
 }
 
 class FCMService {
@@ -29,66 +42,57 @@ class FCMService {
   }
 
   async initialize(onTokenReceived?: (token: string) => void): Promise<string> {
-    if (this.isInitialized) {
-      const token = await this.getToken();
-      if (onTokenReceived) onTokenReceived(token);
-      return token;
-    }
+    const fbMessaging = getFirebaseMessaging();
 
-    let token = await this.getToken();
-
-    if (messagingModule) {
+    if (fbMessaging) {
       try {
-        // 1. Request user permission for notifications
-        await messagingModule().requestPermission();
-
-        // 2. Register device for remote messages (iOS only)
-        if (Platform.OS === 'ios' && !messagingModule().isDeviceRegisteredForRemoteMessages) {
-          await messagingModule().registerDeviceForRemoteMessages();
+        await fbMessaging().requestPermission();
+        if (Platform.OS === 'ios' && !fbMessaging().isDeviceRegisteredForRemoteMessages) {
+          await fbMessaging().registerDeviceForRemoteMessages();
         }
 
-        // 3. Fetch real FCM device token
-        const fcmToken = await messagingModule().getToken();
-        if (fcmToken) {
-          this.currentToken = fcmToken;
-          await AsyncStorage.setItem(FCM_TOKEN_STORAGE_KEY, fcmToken);
-          token = fcmToken;
-          console.log('🔥 [FCMService] Real FCM Token registered:', fcmToken.slice(0, 15) + '...');
+        // Listen for token refreshes
+        if (typeof fbMessaging().onTokenRefresh === 'function') {
+          fbMessaging().onTokenRefresh(async (newToken: string) => {
+            this.currentToken = newToken;
+            await AsyncStorage.setItem(FCM_TOKEN_STORAGE_KEY, newToken);
+            console.log('🔄 [FCMService] FCM Token refreshed:', newToken.slice(0, 15) + '...');
+            if (onTokenReceived) {
+              onTokenReceived(newToken);
+            }
+          });
         }
 
-        // 4. Listen for token refreshes
-        messagingModule().onTokenRefresh(async (newToken: string) => {
-          this.currentToken = newToken;
-          await AsyncStorage.setItem(FCM_TOKEN_STORAGE_KEY, newToken);
-          console.log('🔄 [FCMService] FCM Token refreshed:', newToken.slice(0, 15) + '...');
-          if (onTokenReceived) {
-            onTokenReceived(newToken);
+        // Foreground messages
+        if (typeof fbMessaging().onMessage === 'function') {
+          fbMessaging().onMessage(async (remoteMessage: any) => {
+            console.log('📩 [FCMService] Foreground message received:', remoteMessage);
+            await this.handleIncomingRestockPayload(remoteMessage);
+          });
+        }
+
+        // Background notification tap
+        if (typeof fbMessaging().onNotificationOpenedApp === 'function') {
+          fbMessaging().onNotificationOpenedApp(async (remoteMessage: any) => {
+            console.log('📲 [FCMService] App opened from background notification:', remoteMessage);
+            await this.handleIncomingRestockPayload(remoteMessage);
+          });
+        }
+
+        // Cold start notification
+        if (typeof fbMessaging().getInitialNotification === 'function') {
+          const initialMessage = await fbMessaging().getInitialNotification();
+          if (initialMessage) {
+            console.log('🚀 [FCMService] Cold-start notification:', initialMessage);
+            await this.handleIncomingRestockPayload(initialMessage);
           }
-        });
-
-        // 5. Handle Foreground Push Messages
-        messagingModule().onMessage(async (remoteMessage: any) => {
-          console.log('📩 [FCMService] Foreground message received:', remoteMessage);
-          await this.handleIncomingRestockPayload(remoteMessage);
-        });
-
-        // 6. Handle Background Notification Tap (App in background)
-        messagingModule().onNotificationOpenedApp(async (remoteMessage: any) => {
-          console.log('📲 [FCMService] App opened from background notification:', remoteMessage);
-          await this.handleIncomingRestockPayload(remoteMessage);
-        });
-
-        // 7. Handle Cold-Start Notification Click (App was completely closed)
-        const initialMessage = await messagingModule().getInitialNotification();
-        if (initialMessage) {
-          console.log('🚀 [FCMService] Cold-start notification:', initialMessage);
-          await this.handleIncomingRestockPayload(initialMessage);
         }
       } catch (error) {
-        console.log('⚠️ [FCMService] Notification permission / setup info:', error);
+        console.log('⚠️ [FCMService] Firebase setup note:', error);
       }
     }
 
+    const token = await this.getToken();
     if (onTokenReceived && token) {
       onTokenReceived(token);
     }
@@ -180,25 +184,47 @@ class FCMService {
   }
 
   async getToken(): Promise<string> {
-    if (this.currentToken) return this.currentToken;
+    if (this.currentToken && !this.currentToken.startsWith('dev_')) return this.currentToken;
+
     const saved = await AsyncStorage.getItem(FCM_TOKEN_STORAGE_KEY);
-    if (saved) {
+    if (saved && !saved.startsWith('dev_')) {
       this.currentToken = saved;
       return saved;
     }
 
-    if (messagingModule) {
+    // 1. Try Firebase Messaging SDK
+    const fbMessaging = getFirebaseMessaging();
+    if (fbMessaging) {
       try {
-        const token = await messagingModule().getToken();
-        if (token) {
+        const token = await fbMessaging().getToken();
+        if (token && typeof token === 'string' && token.length > 25) {
           this.currentToken = token;
           await AsyncStorage.setItem(FCM_TOKEN_STORAGE_KEY, token);
+          console.log('🔥 [FCMService] Fetched valid FCM Token via Firebase SDK:', token.slice(0, 15) + '...');
           return token;
         }
-      } catch (_e) {}
+      } catch (err) {
+        console.log('⚠️ [FCMService] Firebase getToken error:', err);
+      }
     }
 
-    // Fallback: persistent device installation identifier
+    // 2. Try Expo Notifications getDevicePushTokenAsync (returns native FCM token on Android)
+    if (expoNotificationsModule && expoNotificationsModule.getDevicePushTokenAsync) {
+      try {
+        const pushTokenObj = await expoNotificationsModule.getDevicePushTokenAsync();
+        const nativeToken = pushTokenObj?.data;
+        if (nativeToken && typeof nativeToken === 'string' && nativeToken.length > 25) {
+          this.currentToken = nativeToken;
+          await AsyncStorage.setItem(FCM_TOKEN_STORAGE_KEY, nativeToken);
+          console.log('🔥 [FCMService] Fetched valid FCM Token via Expo Notifications:', nativeToken.slice(0, 15) + '...');
+          return nativeToken;
+        }
+      } catch (err) {
+        console.log('⚠️ [FCMService] Expo getDevicePushTokenAsync error:', err);
+      }
+    }
+
+    // 3. Fallback: persistent device installation identifier
     let fallbackId = await AsyncStorage.getItem('@amul_device_uuid');
     if (!fallbackId) {
       fallbackId = `dev_${Platform.OS}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
