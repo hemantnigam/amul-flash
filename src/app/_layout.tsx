@@ -38,6 +38,14 @@ try {
   expoNotificationsModule = null;
 }
 
+let firebaseMessagingModule: any = null;
+try {
+  const mod = require('@react-native-firebase/messaging');
+  firebaseMessagingModule = typeof mod === 'function' ? mod : (typeof mod?.default === 'function' ? mod.default : mod);
+} catch (_e) {
+  firebaseMessagingModule = null;
+}
+
 export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
@@ -97,7 +105,26 @@ export default function RootLayout() {
       });
     };
 
-    // 1. Handle cold-start notification click (Notifee)
+    // 1. Firebase Messaging Foreground onMessage Listener (Scenario B - App Open)
+    let fbUnsubscribe: any = null;
+    if (firebaseMessagingModule && typeof firebaseMessagingModule === 'function') {
+      try {
+        const messagingInstance = firebaseMessagingModule();
+        if (messagingInstance && typeof messagingInstance.onMessage === 'function') {
+          fbUnsubscribe = messagingInstance.onMessage(async (remoteMessage: any) => {
+            console.log('🔥 [RootLayout] Firebase Foreground message received:', remoteMessage);
+            handleNotificationPayload(
+              remoteMessage?.notification?.title || remoteMessage?.data?.title || '⚡ Amul Restock Alert!',
+              remoteMessage?.data || {}
+            );
+          });
+        }
+      } catch (fbErr) {
+        console.log('⚠️ [RootLayout] Firebase onMessage attach error:', fbErr);
+      }
+    }
+
+    // 2. Handle cold-start notification click (Notifee)
     if (notifeeModule && notifeeModule.getInitialNotification) {
       notifeeModule.getInitialNotification().then((initialNotification: any) => {
         if (initialNotification?.notification) {
@@ -109,7 +136,7 @@ export default function RootLayout() {
       }).catch(() => {});
     }
 
-    // 2. Handle cold-start notification click (Expo Notifications)
+    // 3. Handle cold-start notification click (Expo Notifications)
     if (expoNotificationsModule && expoNotificationsModule.getLastNotificationResponseAsync) {
       expoNotificationsModule.getLastNotificationResponseAsync().then((response: any) => {
         if (response?.notification) {
@@ -121,7 +148,7 @@ export default function RootLayout() {
       }).catch(() => {});
     }
 
-    // 3. Handle foreground notification click (Notifee)
+    // 4. Handle foreground notification click (Notifee)
     let notifeeUnsubscribe: any = null;
     if (notifeeModule && notifeeModule.onForegroundEvent) {
       notifeeUnsubscribe = notifeeModule.onForegroundEvent(({ type, detail }: any) => {
@@ -147,7 +174,7 @@ export default function RootLayout() {
       });
     }
 
-    // 4. Handle Expo Notifications RECEIVED in foreground (Scenario B - App open)
+    // 5. Handle Expo Notifications RECEIVED in foreground (Scenario B - App open)
     let expoReceivedSub: any = null;
     if (expoNotificationsModule && expoNotificationsModule.addNotificationReceivedListener) {
       try {
@@ -161,7 +188,7 @@ export default function RootLayout() {
       } catch (_e) {}
     }
 
-    // 5. Handle Expo Notifications response (tap / click in background or cold start)
+    // 6. Handle Expo Notifications response (tap / click in background or cold start)
     let expoSub: any = null;
     if (expoNotificationsModule && expoNotificationsModule.addNotificationResponseReceivedListener) {
       try {
@@ -176,6 +203,9 @@ export default function RootLayout() {
     }
 
     return () => {
+      if (typeof fbUnsubscribe === 'function') {
+        fbUnsubscribe();
+      }
       if (typeof notifeeUnsubscribe === 'function') {
         notifeeUnsubscribe();
       }

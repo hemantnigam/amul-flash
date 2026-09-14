@@ -29,6 +29,7 @@ import {
   Sun,
   Moon,
   Smartphone,
+  Timer,
   Cloud,
 } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
@@ -66,6 +67,7 @@ export default function AccountScreen() {
     selectedAlarmSoundId,
     alarmOverlayEnabled,
     setAlarmOverlayEnabled,
+    triggerSimulatedDrop,
     triggerDelayedDropTest,
     isSimulatingDrop,
     trackedProductsMap,
@@ -452,7 +454,28 @@ export default function AccountScreen() {
             <ChevronRight size={18} color={colors.textMuted} />
           </TouchableOpacity>
 
-          {/* Test Delayed Restock button (Uncomment to test notification & sound countdown)
+          <TouchableOpacity
+            style={[styles.cardRow, { borderBottomColor: colors.border }]}
+            onPress={() => triggerSimulatedDrop()}
+            disabled={isSimulatingDrop}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: isDark ? '#450A0A' : '#FEF2F2' }]}>
+                <Zap size={18} color="#EF4444" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowTitle, { color: '#EF4444', fontWeight: '800' }]}>
+                  {isSimulatingDrop ? 'Triggering...' : '🚨 Test In-App Restock Alarm (Instant)'}
+                </Text>
+                <Text style={[styles.rowSub, { color: colors.textSecondary }]}>
+                  Test full-screen pulsing alarm overlay & siren audio
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color="#EF4444" />
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.cardRow, { borderBottomColor: colors.border }]}
             onPress={startCountdownTest}
@@ -461,24 +484,23 @@ export default function AccountScreen() {
           >
             <View style={styles.rowLeft}>
               <View style={[styles.iconBox, { backgroundColor: isDark ? '#431407' : '#FFF7ED' }]}>
-                <Radio size={18} color={isDark ? '#FB923C' : '#EA580C'} />
+                <Timer size={18} color={isDark ? '#FB923C' : '#EA580C'} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.rowTitle, { color: isDark ? '#FB923C' : '#C2410C', fontWeight: '800' }]}>
                   {countdownSeconds !== null
                     ? `Triggering in ${countdownSeconds}s...`
-                    : 'Test Delayed Restock (5s delay)'}
+                    : '⏱️ Test Background Alarm (5s Delay)'}
                 </Text>
                 <Text style={[styles.rowSub, { color: colors.textSecondary }]}>
                   {countdownSeconds !== null
-                    ? 'Lock phone or stay in-app to test restock alarm overlay'
-                    : 'Lock phone or minimize app now to test notification & sound'}
+                    ? 'Lock phone or minimize app now to test notification & sound'
+                    : 'Lock phone or minimize app to test background alarm'}
                 </Text>
               </View>
             </View>
             <ChevronRight size={18} color={isDark ? '#FB923C' : '#EA580C'} />
           </TouchableOpacity>
-          */}
 
           <TouchableOpacity
             style={[styles.cardRow, { borderBottomColor: colors.border }]}

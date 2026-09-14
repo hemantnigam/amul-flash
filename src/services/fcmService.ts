@@ -45,14 +45,47 @@ class FCMService {
     const fbMessaging = getFirebaseMessaging();
 
     if (fbMessaging) {
-      // 1. Request Permission
+      // 1. Foreground messages (Scenario B - In-App Restock Siren) - Register IMMEDIATELY
+      try {
+        if (typeof fbMessaging().onMessage === 'function') {
+          fbMessaging().onMessage(async (remoteMessage: any) => {
+            console.log('📩 [FCMService] Foreground message received via Firebase:', remoteMessage);
+            await this.handleIncomingRestockPayload(remoteMessage);
+          });
+        }
+      } catch (onMsgErr) {
+        console.log('⚠️ [FCMService] onMessage setup error:', onMsgErr);
+      }
+
+      // 2. Background notification tap
+      try {
+        if (typeof fbMessaging().onNotificationOpenedApp === 'function') {
+          fbMessaging().onNotificationOpenedApp(async (remoteMessage: any) => {
+            console.log('📲 [FCMService] App opened from background notification via Firebase:', remoteMessage);
+            await this.handleIncomingRestockPayload(remoteMessage);
+          });
+        }
+      } catch (_opErr) {}
+
+      // 3. Cold start notification
+      try {
+        if (typeof fbMessaging().getInitialNotification === 'function') {
+          const initialMessage = await fbMessaging().getInitialNotification();
+          if (initialMessage) {
+            console.log('🚀 [FCMService] Cold-start notification via Firebase:', initialMessage);
+            await this.handleIncomingRestockPayload(initialMessage);
+          }
+        }
+      } catch (_initErr) {}
+
+      // 4. Request Permission
       try {
         await fbMessaging().requestPermission();
       } catch (permErr) {
         console.log('⚠️ [FCMService] requestPermission note:', permErr);
       }
 
-      // 2. iOS registration
+      // 5. iOS registration
       if (Platform.OS === 'ios') {
         try {
           if (!fbMessaging().isDeviceRegisteredForRemoteMessages) {
@@ -61,7 +94,7 @@ class FCMService {
         } catch (_iosErr) {}
       }
 
-      // 3. Token refresh listener
+      // 6. Token refresh listener
       try {
         if (typeof fbMessaging().onTokenRefresh === 'function') {
           fbMessaging().onTokenRefresh(async (newToken: string) => {
@@ -74,39 +107,6 @@ class FCMService {
           });
         }
       } catch (_trErr) {}
-
-      // 4. Foreground messages (Scenario B - In-App Restock Siren)
-      try {
-        if (typeof fbMessaging().onMessage === 'function') {
-          fbMessaging().onMessage(async (remoteMessage: any) => {
-            console.log('📩 [FCMService] Foreground message received via Firebase:', remoteMessage);
-            await this.handleIncomingRestockPayload(remoteMessage);
-          });
-        }
-      } catch (onMsgErr) {
-        console.log('⚠️ [FCMService] onMessage setup error:', onMsgErr);
-      }
-
-      // 5. Background notification tap
-      try {
-        if (typeof fbMessaging().onNotificationOpenedApp === 'function') {
-          fbMessaging().onNotificationOpenedApp(async (remoteMessage: any) => {
-            console.log('📲 [FCMService] App opened from background notification via Firebase:', remoteMessage);
-            await this.handleIncomingRestockPayload(remoteMessage);
-          });
-        }
-      } catch (_opErr) {}
-
-      // 6. Cold start notification
-      try {
-        if (typeof fbMessaging().getInitialNotification === 'function') {
-          const initialMessage = await fbMessaging().getInitialNotification();
-          if (initialMessage) {
-            console.log('🚀 [FCMService] Cold-start notification via Firebase:', initialMessage);
-            await this.handleIncomingRestockPayload(initialMessage);
-          }
-        }
-      } catch (_initErr) {}
     }
 
     const token = await this.getToken();
