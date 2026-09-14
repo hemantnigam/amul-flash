@@ -11,6 +11,8 @@ import {
   AmulApiClient,
 } from '../services/amulApi';
 import { useStockStore } from './useStockStore';
+import { fcmService } from '../services/fcmService';
+import { supabaseService } from '../services/supabaseClient';
 
 interface SessionState {
   session: AmulSession;
@@ -104,6 +106,16 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             isInitialized: true,
           });
           get().loadUserData();
+
+          // Sync device and cloud-tracked products for verified user mobile number
+          if (parsed.mobile) {
+            fcmService.getToken().then((token) => {
+              if (token) {
+                supabaseService.registerDevice(token, parsed.mobile);
+                useStockStore.getState().syncCloudTrackedProductsForUser(parsed.mobile);
+              }
+            });
+          }
           return;
         }
       }
@@ -135,11 +147,28 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       await storageHelper.setItem(SECURE_STORE_KEY, JSON.stringify(newSession));
     } catch (e) {}
 
+    // Link device token to user mobile number and auto-sync tracked items
+    if (mobile) {
+      fcmService.getToken().then((token) => {
+        if (token) {
+          supabaseService.registerDevice(token, mobile);
+          useStockStore.getState().syncCloudTrackedProductsForUser(mobile);
+        }
+      });
+    }
+
     // Automatically load profile, addresses, orders, and cart from Amul Cloud
     get().loadUserData();
   },
 
   logout: async () => {
+    // Unregister device in Supabase so this device stops receiving alerts after sign-out
+    fcmService.getToken().then((token) => {
+      if (token) {
+        supabaseService.unregisterDevice(token);
+      }
+    });
+
     AmulApiClient.activeSessionCookie = '';
     set({
       session: INITIAL_EMPTY_SESSION,

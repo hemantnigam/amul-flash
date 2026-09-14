@@ -38,10 +38,20 @@ const SOUND_MAP = {
 };
 
 async function fetchLatestDevice() {
-  const customToken = process.argv[2];
-  if (customToken) return { token: customToken, soundId: 'alert_alarm' };
+  const arg = process.argv[2];
+  if (arg && arg.length > 50) {
+    // Direct FCM Token passed
+    return { token: arg, soundId: 'alert_alarm' };
+  }
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/devices?select=fcm_token,selected_sound_id&order=last_active_at.desc&limit=1`, {
+  let url = `${SUPABASE_URL}/rest/v1/devices?select=fcm_token,selected_sound_id,phone_number,is_active&order=last_active_at.desc&limit=1`;
+  if (arg && /^\d{10}$/.test(arg)) {
+    // 10-digit Phone Number passed
+    url = `${SUPABASE_URL}/rest/v1/devices?select=fcm_token,selected_sound_id,phone_number,is_active&phone_number=eq.${arg}&order=last_active_at.desc&limit=1`;
+    console.log(`📱 Searching active device for phone number: ${arg}`);
+  }
+
+  const res = await fetch(url, {
     headers: {
       apikey: SUPABASE_ANON_KEY,
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
@@ -49,6 +59,9 @@ async function fetchLatestDevice() {
   });
   const data = await res.json();
   if (data && data.length > 0 && data[0].fcm_token) {
+    if (data[0].phone_number) {
+      console.log(`👤 Linked to user account: ${data[0].phone_number}`);
+    }
     return {
       token: data[0].fcm_token,
       soundId: data[0].selected_sound_id || 'alert_alarm',

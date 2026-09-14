@@ -291,13 +291,50 @@ Deno.serve(async (req: Request) => {
             // 1. Set 3-minute alert cooldown in Redis
             await redis.setex(cooldownKey, 180, '1');
 
-            // 2. Fetch all subscribed devices for this product & pincode
-            const { data: devices } = await supabase
+            // 2. Fetch all subscribed users and devices for this product & pincode
+            const { data: subsList } = await supabase
               .from('tracked_subscriptions')
-              .select('fcm_token')
+              .select('fcm_token, phone_number')
               .eq('product_id', tracked.product_id)
               .eq('pincode', tracked.pincode)
               .eq('is_active', true);
+
+            // Collect direct tokens and phone numbers
+            const directTokens: string[] = [];
+            const phoneNumbers: string[] = [];
+            if (subsList) {
+              for (const s of subsList) {
+                if (s.fcm_token) directTokens.push(s.fcm_token);
+                if (s.phone_number) phoneNumbers.push(s.phone_number);
+              }
+            }
+
+            // Query all active devices linked to these phone numbers
+            let userDevices: any[] = [];
+            if (phoneNumbers.length > 0) {
+              const { data: devByPhone } = await supabase
+                .from('devices')
+                .select('fcm_token, selected_sound_id')
+                .in('phone_number', phoneNumbers)
+                .eq('is_active', true);
+              if (devByPhone) userDevices = devByPhone;
+            }
+
+            // Also include direct tokens if any
+            if (directTokens.length > 0) {
+              const { data: devByToken } = await supabase
+                .from('devices')
+                .select('fcm_token, selected_sound_id')
+                .in('fcm_token', directTokens)
+                .eq('is_active', true);
+              if (devByToken) {
+                for (const d of devByToken) {
+                  if (!userDevices.some((ud) => ud.fcm_token === d.fcm_token)) {
+                    userDevices.push(d);
+                  }
+                }
+              }
+            }
 
             // 3. Dispatch FCM Push Notifications
             const alertPayload = {
@@ -315,31 +352,16 @@ Deno.serve(async (req: Request) => {
             if (serviceAccount && fcmAccessToken) {
               await sendFcmNotification(serviceAccount, fcmAccessToken, { topic }, alertPayload);
 
-              // Also send directly to device tokens with their individual selected alarm sound
-              if (devices && devices.length > 0) {
-                const tokenList = devices.map((d: any) => d.fcm_token).filter(Boolean);
-                const { data: devRows } = await supabase
-                  .from('devices')
-                  .select('fcm_token, selected_sound_id')
-                  .in('fcm_token', tokenList);
-
-                const soundLookup: Record<string, string> = {};
-                if (devRows) {
-                  for (const dr of devRows) {
-                    if (dr.fcm_token) soundLookup[dr.fcm_token] = dr.selected_sound_id || 'digital_clock_beep';
-                  }
-                }
-
-                for (const d of devices) {
-                  if (d.fcm_token) {
-                    const devSound = soundLookup[d.fcm_token] || 'digital_clock_beep';
-                    await sendFcmNotification(
-                      serviceAccount,
-                      fcmAccessToken,
-                      { token: d.fcm_token },
-                      { ...alertPayload, soundId: devSound }
-                    );
-                  }
+              // Send to all active user device tokens with their individual selected alarm sound
+              for (const dev of userDevices) {
+                if (dev.fcm_token) {
+                  const devSound = dev.selected_sound_id || 'digital_clock_beep';
+                  await sendFcmNotification(
+                    serviceAccount,
+                    fcmAccessToken,
+                    { token: dev.fcm_token },
+                    { ...alertPayload, soundId: devSound }
+                  );
                 }
               }
             }

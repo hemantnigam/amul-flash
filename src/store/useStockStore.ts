@@ -51,6 +51,7 @@ interface StockStoreState {
   setAlarmOverlayEnabled: (enabled: boolean) => void;
   setSelectedAlarmSoundId: (soundId: string) => void;
   addActivityLog: (log: Omit<ActivityLog, 'id' | 'timestamp'>) => void;
+  syncCloudTrackedProductsForUser: (phoneNumber: string) => Promise<void>;
   refreshStock: (sessionCookie?: string) => Promise<void>;
   fetchAllCategoriesProducts: (sessionCookie?: string) => Promise<void>;
 }
@@ -147,11 +148,18 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       // Automatically sync device token, sound, and tracked items to Supabase cloud on launch
       fcmService.getToken().then((token) => {
         if (token) {
-          supabaseService.registerDevice(token, soundId);
+          let userPhone: string | undefined;
+          try {
+            const { useSessionStore } = require('./useSessionStore');
+            userPhone = useSessionStore.getState().session?.mobile || undefined;
+          } catch (_e) {}
+
+          supabaseService.registerDevice(token, userPhone, soundId);
           const trackedItems = Object.values(trackedMap);
           if (trackedItems.length > 0) {
             supabaseService.syncAllTrackedProducts(
               token,
+              userPhone,
               trackedItems,
               selectedPincode.pincode,
               selectedPincode.storeId || '66505ff5145c16635e6cc74d'
@@ -506,16 +514,23 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
         };
       }
 
-      // Sync tracked subscription to Supabase and FCM topic
+      // Sync tracked subscription to Supabase and FCM topic tied to mobile number
       const willBeTracked = !isCurrentlyTracked;
       const activePin = state.selectedPincode.pincode || 'all';
       const activeStoreId = state.selectedPincode.storeId || '66505ff5145c16635e6cc74d';
       const targetProd = productObj || state.products.find((p) => p.id === productId) || state.allProductsMap[productId];
 
+      let userPhone: string | undefined;
+      try {
+        const { useSessionStore } = require('./useSessionStore');
+        userPhone = useSessionStore.getState().session?.mobile || undefined;
+      } catch (_e) {}
+
       fcmService.getToken().then((token) => {
         if (token && targetProd) {
           supabaseService.syncSubscription({
             fcmToken: token,
+            phoneNumber: userPhone,
             productId: targetProd.id,
             productTitle: targetProd.title,
             pincode: activePin,
@@ -663,9 +678,15 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
   setSelectedAlarmSoundId: (soundId: string) => {
     set({ selectedAlarmSoundId: soundId });
     AsyncStorage.setItem(STORAGE_KEYS.ALARM_SOUND, soundId).catch(() => {});
+    let userPhone: string | undefined;
+    try {
+      const { useSessionStore } = require('./useSessionStore');
+      userPhone = useSessionStore.getState().session?.mobile || undefined;
+    } catch (_e) {}
+
     fcmService.getToken().then((token) => {
       if (token) {
-        supabaseService.updateDeviceSound(token, soundId);
+        supabaseService.updateDeviceSound(token, soundId, userPhone);
       }
     });
   },
@@ -679,6 +700,42 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     set((state) => ({
       activityLogs: [newLog, ...state.activityLogs.slice(0, 49)],
     }));
+  },
+
+  syncCloudTrackedProductsForUser: async (phoneNumber: string) => {
+    if (!phoneNumber) return;
+    try {
+      const cloudSubs = await supabaseService.fetchUserTrackedProducts(phoneNumber);
+      if (cloudSubs && cloudSubs.length > 0) {
+        const trackedMap = { ...get().trackedProductsMap };
+        let hasUpdates = false;
+
+        for (const sub of cloudSubs) {
+          if (!trackedMap[sub.product_id]) {
+            const existingProd = get().allProductsMap[sub.product_id] || get().products.find((p) => p.id === sub.product_id);
+            const prod: AmulProduct = existingProd || {
+              id: sub.product_id,
+              title: sub.product_title,
+              brand: 'Amul',
+              category: 'protein',
+              image: 'https://shop.amul.com/placeholder.png',
+              variants: [{ id: `${sub.product_id}_var`, name: 'Standard Pack', price: 0, isInStock: false }],
+              autoCartEnabled: true,
+            };
+            trackedMap[sub.product_id] = { ...prod, autoCartEnabled: true };
+            hasUpdates = true;
+          }
+        }
+
+        if (hasUpdates) {
+          await AsyncStorage.setItem(STORAGE_KEYS.TRACKED_PRODUCTS, JSON.stringify(trackedMap)).catch(() => {});
+          set({ trackedProductsMap: trackedMap });
+          console.log(`☁️ [useStockStore] Restored ${cloudSubs.length} tracked items from cloud for user ${phoneNumber}`);
+        }
+      }
+    } catch (err) {
+      console.log('⚠️ [useStockStore] Error syncing cloud tracked products:', err);
+    }
   },
 
   refreshStock: async (sessionCookie?: string) => {
