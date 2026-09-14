@@ -515,69 +515,6 @@ export default function AccountScreen() {
 }
 
 const styles = StyleSheet.create({
-  countdownBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  countdownCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 28,
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: 340,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  countdownCircle: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: '#EFF6FF',
-    borderWidth: 4,
-    borderColor: '#2563EB',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  countdownNumber: {
-    fontSize: 36,
-    fontWeight: '900',
-    color: '#1D4ED8',
-    fontFamily: 'PlusJakartaSans_800ExtraBold',
-  },
-  countdownTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#0F172A',
-    fontFamily: 'PlusJakartaSans_800ExtraBold',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  countdownDesc: {
-    fontSize: 13,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 20,
-  },
-  countdownCancelBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-  },
-  countdownCancelText: {
-    color: '#64748B',
-    fontSize: 14,
-    fontWeight: '700',
-  },
   safeArea: {
     flex: 1,
     backgroundColor: '#FAF8FF',
@@ -602,7 +539,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 120,
+    paddingBottom: 24,
   },
   userCard: {
     backgroundColor: '#FFFFFF',
