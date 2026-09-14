@@ -25,6 +25,13 @@ import { useSessionStore } from '../store/useSessionStore';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { analyticsService } from '../services/analyticsService';
 
+let RNOtpVerify: any = null;
+try {
+  if (Platform.OS === 'android') {
+    RNOtpVerify = require('react-native-otp-verify').default || require('react-native-otp-verify');
+  }
+} catch (_e) {}
+
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useSessionStore();
@@ -47,6 +54,32 @@ export default function LoginScreen() {
     }
     return () => clearInterval(interval);
   }, [step, resendTimer]);
+
+  // Android SMS OTP Auto-Listener
+  useEffect(() => {
+    if (step === 'otp' && Platform.OS === 'android' && RNOtpVerify?.addListener) {
+      try {
+        RNOtpVerify.getOtpHeader?.();
+        RNOtpVerify.addListener((message: string) => {
+          if (message) {
+            const otpMatch = /(\d{6})/.exec(message);
+            if (otpMatch && otpMatch[1]) {
+              const code = otpMatch[1];
+              const digits = code.split('');
+              setOtp(digits);
+              handleVerifyOTP(code);
+            }
+          }
+        });
+      } catch (_e) {}
+
+      return () => {
+        try {
+          RNOtpVerify?.removeListener?.();
+        } catch (_e) {}
+      };
+    }
+  }, [step]);
 
   const handleSendOTP = async () => {
     const cleanNumber = mobile.replace(/\D/g, '');
@@ -72,15 +105,16 @@ export default function LoginScreen() {
   };
 
   const handleOtpChange = (value: string, index: number) => {
-    // If user pastes or autofills a multi-digit OTP (e.g. 6 digits)
     const cleanDigits = value.replace(/\D/g, '');
-    if (cleanDigits.length > 1) {
+
+    // Case 1: Pasted full OTP or tapped keyboard suggestion pill (e.g. 6 digits or 4+ digits)
+    if (cleanDigits.length >= 4 || (cleanDigits.length > 1 && cleanDigits.length === 6)) {
       const newOtp = ['', '', '', '', '', ''];
       for (let i = 0; i < 6 && i < cleanDigits.length; i++) {
         newOtp[i] = cleanDigits[i];
       }
       setOtp(newOtp);
-      if (cleanDigits.length === 6) {
+      if (cleanDigits.length >= 6) {
         handleVerifyOTP(cleanDigits.substring(0, 6));
       } else {
         const nextIndex = Math.min(cleanDigits.length, 5);
@@ -89,16 +123,29 @@ export default function LoginScreen() {
       return;
     }
 
+    // Case 2: Typed over an existing character (e.g. length 2)
+    if (cleanDigits.length > 1) {
+      const charToUse = cleanDigits.slice(-1);
+      const newOtp = [...otp];
+      newOtp[index] = charToUse;
+      setOtp(newOtp);
+      if (index < 5) {
+        otpInputs.current[index + 1]?.focus();
+      }
+      return;
+    }
+
+    // Case 3: Single digit typed or deleted
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = cleanDigits;
     setOtp(newOtp);
 
-    if (value && index < 5) {
+    if (cleanDigits && index < 5) {
       otpInputs.current[index + 1]?.focus();
     }
 
     // Auto-submit when all 6 digits are typed
-    if (index === 5 && value) {
+    if (index === 5 && cleanDigits) {
       const fullOtp = newOtp.join('');
       if (fullOtp.length === 6) {
         handleVerifyOTP(fullOtp);
@@ -227,7 +274,8 @@ export default function LoginScreen() {
                       keyboardType="number-pad"
                       textContentType="oneTimeCode"
                       autoComplete="sms-otp"
-                      maxLength={index === 0 ? 6 : 1}
+                      maxLength={6}
+                      selectTextOnFocus
                       value={digit}
                       onChangeText={(val) => handleOtpChange(val, index)}
                       onKeyPress={({ nativeEvent }) => {
