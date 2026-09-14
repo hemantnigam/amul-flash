@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText as Text } from './AppText';
 import {
   BellRing,
@@ -22,6 +23,7 @@ import { useStockStore } from '../store/useStockStore';
 
 export const FullScreenAlarmOverlay: React.FC = () => {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { activeAlarmEvent, dismissAlarmEvent, allProductsMap, products } =
     useStockStore();
 
@@ -145,7 +147,15 @@ export const FullScreenAlarmOverlay: React.FC = () => {
       statusBarTranslucent
       onRequestClose={handleStopAlarm}
     >
-      <View style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          {
+            paddingTop: Math.max(insets.top, 16) + 16,
+            paddingBottom: Math.max(insets.bottom, 16) + 24,
+          },
+        ]}
+      >
         {/* Top Emergency Tag & Clock */}
         <View style={styles.topBar}>
           <View style={styles.emergencyTag}>
@@ -276,8 +286,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? 48 : 56,
-    paddingBottom: Platform.OS === 'android' ? 36 : 48,
   },
   topBar: {
     alignItems: 'center',
