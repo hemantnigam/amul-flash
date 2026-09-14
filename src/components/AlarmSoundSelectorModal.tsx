@@ -19,8 +19,6 @@ import { LOCAL_ALARM_SOUNDS, LocalSoundItem } from '../constants/alarmSounds';
 import { useStockStore } from '../store/useStockStore';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { alarmSoundService } from '../services/alarmSoundService';
-import { fcmService } from '../services/fcmService';
-import { supabaseService } from '../services/supabaseClient';
 
 interface AlarmSoundSelectorModalProps {
   visible: boolean;
@@ -58,13 +56,6 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
     setSelectedAlarmSoundId(soundItem.id);
     await alarmSoundService.stopPreview();
     setPlayingId(null);
-
-    // Direct cloud sync guarantee
-    fcmService.getToken().then((token) => {
-      if (token) {
-        supabaseService.updateDeviceSound(token, soundItem.id);
-      }
-    });
   };
 
   return (

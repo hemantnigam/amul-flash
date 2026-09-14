@@ -85,7 +85,8 @@ export default function RootLayout() {
     NotificationService.initialize();
     backgroundFetchService.registerBackgroundFetch();
     fcmService.initialize((token) => {
-      supabaseService.registerDevice(token);
+      const mobile = useSessionStore.getState().session?.mobile || undefined;
+      supabaseService.registerDevice(token, mobile);
     });
     useThemeStore.getState().loadSavedTheme();
     useStockStore.getState().loadSavedPreferences();
