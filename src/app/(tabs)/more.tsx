@@ -29,7 +29,6 @@ import {
   Sun,
   Moon,
   Smartphone,
-  Timer,
   Cloud,
 } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
@@ -67,9 +66,6 @@ export default function AccountScreen() {
     selectedAlarmSoundId,
     alarmOverlayEnabled,
     setAlarmOverlayEnabled,
-    triggerSimulatedDrop,
-    triggerDelayedDropTest,
-    isSimulatingDrop,
     trackedProductsMap,
   } = useStockStore();
 
@@ -78,24 +74,6 @@ export default function AccountScreen() {
   const [isPincodeModalVisible, setIsPincodeModalVisible] = useState(false);
   const [isSoundModalVisible, setIsSoundModalVisible] = useState(false);
   const [isThemeModalVisible, setIsThemeModalVisible] = useState(false);
-  const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
-
-  const startCountdownTest = async () => {
-    setCountdownSeconds(5);
-    await triggerDelayedDropTest(5);
-  };
-
-  useEffect(() => {
-    if (countdownSeconds === null) return;
-    if (countdownSeconds === 0) {
-      setCountdownSeconds(null);
-      return;
-    }
-    const timer = setTimeout(() => {
-      setCountdownSeconds((prev) => (prev !== null && prev > 0 ? prev - 1 : null));
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [countdownSeconds]);
 
   const currentSound =
     LOCAL_ALARM_SOUNDS.find((s) => s.id === selectedAlarmSoundId) || LOCAL_ALARM_SOUNDS[0];
@@ -456,54 +434,6 @@ export default function AccountScreen() {
 
           <TouchableOpacity
             style={[styles.cardRow, { borderBottomColor: colors.border }]}
-            onPress={() => triggerSimulatedDrop()}
-            disabled={isSimulatingDrop}
-            activeOpacity={0.7}
-          >
-            <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: isDark ? '#450A0A' : '#FEF2F2' }]}>
-                <Zap size={18} color="#EF4444" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.rowTitle, { color: '#EF4444', fontWeight: '800' }]}>
-                  {isSimulatingDrop ? 'Triggering...' : '🚨 Test In-App Restock Alarm (Instant)'}
-                </Text>
-                <Text style={[styles.rowSub, { color: colors.textSecondary }]}>
-                  Test full-screen pulsing alarm overlay & siren audio
-                </Text>
-              </View>
-            </View>
-            <ChevronRight size={18} color="#EF4444" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.cardRow, { borderBottomColor: colors.border }]}
-            onPress={startCountdownTest}
-            disabled={isSimulatingDrop || countdownSeconds !== null}
-            activeOpacity={0.7}
-          >
-            <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: isDark ? '#431407' : '#FFF7ED' }]}>
-                <Timer size={18} color={isDark ? '#FB923C' : '#EA580C'} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.rowTitle, { color: isDark ? '#FB923C' : '#C2410C', fontWeight: '800' }]}>
-                  {countdownSeconds !== null
-                    ? `Triggering in ${countdownSeconds}s...`
-                    : '⏱️ Test Background Alarm (5s Delay)'}
-                </Text>
-                <Text style={[styles.rowSub, { color: colors.textSecondary }]}>
-                  {countdownSeconds !== null
-                    ? 'Lock phone or minimize app now to test notification & sound'
-                    : 'Lock phone or minimize app to test background alarm'}
-                </Text>
-              </View>
-            </View>
-            <ChevronRight size={18} color={isDark ? '#FB923C' : '#EA580C'} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.cardRow, { borderBottomColor: colors.border }]}
             onPress={handleManualCloudSync}
             disabled={isSyncingCloud}
             activeOpacity={0.7}
@@ -642,27 +572,6 @@ export default function AccountScreen() {
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
-      </Modal>
-
-      <Modal visible={countdownSeconds !== null} transparent animationType="fade">
-        <View style={styles.countdownBackdrop}>
-          <View style={[styles.countdownCard, { backgroundColor: colors.surface }]}>
-            <View style={[styles.countdownCircle, { backgroundColor: colors.surfaceContainer, borderColor: colors.primary }]}>
-              <Text style={[styles.countdownNumber, { color: colors.primary }]}>{countdownSeconds}</Text>
-            </View>
-            <Text style={[styles.countdownTitle, { color: colors.text }]}>Lock Phone or Minimize NOW!</Text>
-            <Text style={[styles.countdownDesc, { color: colors.textSecondary }]}>
-              Restock notification will fire in {countdownSeconds}s with your chosen sound & vibration.
-            </Text>
-            <TouchableOpacity
-              style={[styles.countdownCancelBtn, { backgroundColor: colors.surfaceContainer }]}
-              onPress={() => setCountdownSeconds(null)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.countdownCancelText, { color: colors.textSecondary }]}>Cancel Test</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
       </Modal>
     </SafeAreaView>
   );
