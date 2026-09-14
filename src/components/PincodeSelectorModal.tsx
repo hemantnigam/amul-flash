@@ -11,6 +11,7 @@ import {
 import { AppText as Text } from './AppText';
 import { AppTextInput as TextInput } from './AppTextInput';
 import { Check, Plus, X, Navigation, Trash2, ShieldCheck } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStockStore } from '../store/useStockStore';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { PincodeLocation } from '../types/amul';
@@ -24,6 +25,7 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
   visible,
   onClose,
 }) => {
+  const insets = useSafeAreaInsets();
   const { pincodes, selectedPincode, setSelectedPincode, addPincode, removePincode } = useStockStore();
   const { colors, isDark } = useAppTheme();
   const [newPincode, setNewPincode] = useState('');
@@ -60,7 +62,16 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
         style={{ flex: 1 }}
       >
         <View style={[styles.overlay, { backgroundColor: colors.modalOverlay }]}>
-          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                paddingBottom: Math.max(insets.bottom + 16, 28),
+              },
+            ]}
+          >
             {/* Header */}
             <View style={styles.modalHeader}>
               <View style={styles.titleRow}>

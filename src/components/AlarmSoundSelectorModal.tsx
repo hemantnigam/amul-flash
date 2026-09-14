@@ -14,6 +14,7 @@ import {
   Square,
   Check,
 } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LOCAL_ALARM_SOUNDS, LocalSoundItem } from '../constants/alarmSounds';
 import { useStockStore } from '../store/useStockStore';
 import { useAppTheme } from '../hooks/useAppTheme';
@@ -30,6 +31,7 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
   visible,
   onClose,
 }) => {
+  const insets = useSafeAreaInsets();
   const { selectedAlarmSoundId, setSelectedAlarmSoundId } = useStockStore();
   const { colors, isDark } = useAppTheme();
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -76,7 +78,16 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
       }}
     >
       <View style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}>
-        <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View
+          style={[
+            styles.modalContent,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              paddingBottom: Math.max(insets.bottom + 16, 28),
+            },
+          ]}
+        >
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
             <View>
