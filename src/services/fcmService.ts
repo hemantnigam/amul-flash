@@ -28,72 +28,73 @@ class FCMService {
     return `restock_${cleanPin}_${cleanProd}`.slice(0, 80);
   }
 
-  async initialize(onTokenReceived?: (token: string) => void): Promise<string | null> {
-    if (this.isInitialized || !messagingModule) return this.currentToken;
-
-    try {
-      // 1. Request user permission for notifications
-      const authStatus = await messagingModule().requestPermission();
-      const isEnabled =
-        authStatus === messagingModule.AuthorizationStatus.AUTHORIZED ||
-        authStatus === messagingModule.AuthorizationStatus.PROVISIONAL;
-
-      if (!isEnabled) {
-        console.log('⚠️ [FCMService] Notification permissions not granted');
-        return null;
-      }
-
-      // 2. Register device for remote messages (iOS only, no-op on Android)
-      if (Platform.OS === 'ios' && !messagingModule().isDeviceRegisteredForRemoteMessages) {
-        await messagingModule().registerDeviceForRemoteMessages();
-      }
-
-      // 3. Fetch FCM device token
-      const token = await messagingModule().getToken();
-      if (token) {
-        this.currentToken = token;
-        await AsyncStorage.setItem(FCM_TOKEN_STORAGE_KEY, token);
-        console.log('🔥 [FCMService] FCM Token registered:', token.slice(0, 15) + '...');
-        if (onTokenReceived) {
-          onTokenReceived(token);
-        }
-      }
-
-      // 4. Listen for token refreshes
-      messagingModule().onTokenRefresh(async (newToken: string) => {
-        this.currentToken = newToken;
-        await AsyncStorage.setItem(FCM_TOKEN_STORAGE_KEY, newToken);
-        console.log('🔄 [FCMService] FCM Token refreshed:', newToken.slice(0, 15) + '...');
-        if (onTokenReceived) {
-          onTokenReceived(newToken);
-        }
-      });
-
-      // 5. Handle Foreground Push Messages
-      messagingModule().onMessage(async (remoteMessage: any) => {
-        console.log('📩 [FCMService] Foreground message received:', remoteMessage);
-        await this.handleIncomingRestockPayload(remoteMessage);
-      });
-
-      // 6. Handle Background Notification Tap (App in background)
-      messagingModule().onNotificationOpenedApp(async (remoteMessage: any) => {
-        console.log('📲 [FCMService] App opened from background notification:', remoteMessage);
-        await this.handleIncomingRestockPayload(remoteMessage);
-      });
-
-      // 7. Handle Cold-Start Notification Click (App was completely closed)
-      const initialMessage = await messagingModule().getInitialNotification();
-      if (initialMessage) {
-        console.log('🚀 [FCMService] Cold-start notification:', initialMessage);
-        await this.handleIncomingRestockPayload(initialMessage);
-      }
-
-      this.isInitialized = true;
-      return this.currentToken;
-    } catch (error) {
-      console.log('⚠️ [FCMService] Initialization error:', error);
-      return null;
+  async initialize(onTokenReceived?: (token: string) => void): Promise<string> {
+    if (this.isInitialized) {
+      const token = await this.getToken();
+      if (onTokenReceived) onTokenReceived(token);
+      return token;
     }
+
+    let token = await this.getToken();
+
+    if (messagingModule) {
+      try {
+        // 1. Request user permission for notifications
+        await messagingModule().requestPermission();
+
+        // 2. Register device for remote messages (iOS only)
+        if (Platform.OS === 'ios' && !messagingModule().isDeviceRegisteredForRemoteMessages) {
+          await messagingModule().registerDeviceForRemoteMessages();
+        }
+
+        // 3. Fetch real FCM device token
+        const fcmToken = await messagingModule().getToken();
+        if (fcmToken) {
+          this.currentToken = fcmToken;
+          await AsyncStorage.setItem(FCM_TOKEN_STORAGE_KEY, fcmToken);
+          token = fcmToken;
+          console.log('🔥 [FCMService] Real FCM Token registered:', fcmToken.slice(0, 15) + '...');
+        }
+
+        // 4. Listen for token refreshes
+        messagingModule().onTokenRefresh(async (newToken: string) => {
+          this.currentToken = newToken;
+          await AsyncStorage.setItem(FCM_TOKEN_STORAGE_KEY, newToken);
+          console.log('🔄 [FCMService] FCM Token refreshed:', newToken.slice(0, 15) + '...');
+          if (onTokenReceived) {
+            onTokenReceived(newToken);
+          }
+        });
+
+        // 5. Handle Foreground Push Messages
+        messagingModule().onMessage(async (remoteMessage: any) => {
+          console.log('📩 [FCMService] Foreground message received:', remoteMessage);
+          await this.handleIncomingRestockPayload(remoteMessage);
+        });
+
+        // 6. Handle Background Notification Tap (App in background)
+        messagingModule().onNotificationOpenedApp(async (remoteMessage: any) => {
+          console.log('📲 [FCMService] App opened from background notification:', remoteMessage);
+          await this.handleIncomingRestockPayload(remoteMessage);
+        });
+
+        // 7. Handle Cold-Start Notification Click (App was completely closed)
+        const initialMessage = await messagingModule().getInitialNotification();
+        if (initialMessage) {
+          console.log('🚀 [FCMService] Cold-start notification:', initialMessage);
+          await this.handleIncomingRestockPayload(initialMessage);
+        }
+      } catch (error) {
+        console.log('⚠️ [FCMService] Notification permission / setup info:', error);
+      }
+    }
+
+    if (onTokenReceived && token) {
+      onTokenReceived(token);
+    }
+
+    this.isInitialized = true;
+    return token;
   }
 
   /**
@@ -178,14 +179,33 @@ class FCMService {
     }
   }
 
-  async getToken(): Promise<string | null> {
+  async getToken(): Promise<string> {
     if (this.currentToken) return this.currentToken;
     const saved = await AsyncStorage.getItem(FCM_TOKEN_STORAGE_KEY);
     if (saved) {
       this.currentToken = saved;
       return saved;
     }
-    return null;
+
+    if (messagingModule) {
+      try {
+        const token = await messagingModule().getToken();
+        if (token) {
+          this.currentToken = token;
+          await AsyncStorage.setItem(FCM_TOKEN_STORAGE_KEY, token);
+          return token;
+        }
+      } catch (_e) {}
+    }
+
+    // Fallback: persistent device installation identifier
+    let fallbackId = await AsyncStorage.getItem('@amul_device_uuid');
+    if (!fallbackId) {
+      fallbackId = `dev_${Platform.OS}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      await AsyncStorage.setItem('@amul_device_uuid', fallbackId);
+    }
+    this.currentToken = fallbackId;
+    return fallbackId;
   }
 }
 
