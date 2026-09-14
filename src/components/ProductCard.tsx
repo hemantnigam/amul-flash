@@ -89,8 +89,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </Text>
         </View>
 
-        {/* Minimal Track Switch - ONLY FOR OUT OF STOCK ITEMS */}
-        {!isInStock && (
+        {/* Minimal Track Switch - For out of stock items or currently tracked items */}
+        {(!isInStock || isTracked) && (
           <TouchableOpacity
             style={[
               styles.trackButton,
@@ -105,7 +105,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 borderColor: isTracked ? colors.primary : colors.border,
               },
             ]}
-            onPress={() => toggleAutoCartForProduct(product.id)}
+            onPress={() => toggleAutoCartForProduct(product.id, product)}
             activeOpacity={0.7}
           >
             <Bell size={12} color={isTracked ? colors.primary : colors.textMuted} />

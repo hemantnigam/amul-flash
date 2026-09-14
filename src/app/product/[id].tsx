@@ -145,8 +145,8 @@ export default function ProductDetailsScreen() {
           <ExternalLink size={16} color={colors.primary} />
         </TouchableOpacity>
 
-        {/* Track Switch Card - Restock tracking active for Out of Stock items */}
-        {!isInStock ? (
+        {/* Track Switch Card - Restock tracking active for Out of Stock items or tracked items */}
+        {(!isInStock || isTracked) ? (
           <View style={[styles.trackCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.trackLeft}>
               <View style={[styles.trackIconBox, { backgroundColor: isTracked ? (isDark ? '#1E1E1E' : '#EFF6FF') : colors.surfaceContainer }]}>
@@ -156,7 +156,7 @@ export default function ProductDetailsScreen() {
                 <Text style={[styles.trackTitle, { color: colors.text }]}>Track Restock Radar</Text>
                 <Text style={[styles.trackSub, { color: colors.textSecondary }]}>
                   {isTracked
-                    ? 'Active: Real-time notification alerts enabled for stock drops'
+                    ? (isInStock ? 'Item is In Stock. Radar tracking active.' : 'Active: Real-time notification alerts enabled for stock drops')
                     : 'Toggle on to get notified instantly when this item restocks'}
                 </Text>
               </View>

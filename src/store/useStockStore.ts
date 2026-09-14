@@ -6,6 +6,8 @@ import { AmulApiClient } from '../services/amulApi';
 import { stockRadarService } from '../services/radarService';
 import { NotificationService } from '../services/notificationService';
 import { alarmSoundService } from '../services/alarmSoundService';
+import { fcmService } from '../services/fcmService';
+import { supabaseService } from '../services/supabaseClient';
 
 const STORAGE_KEYS = {
   TRACKED_PRODUCTS: '@amul_tracked_products',
@@ -130,6 +132,9 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
         } catch (_e) {}
       }
 
+      // Seed radar stock tracker with loaded preferences
+      stockRadarService.seedPreviousStock(trackedMap);
+
       set({
         trackedProductsMap: trackedMap,
         selectedAlarmSoundId: soundId,
@@ -162,10 +167,17 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
       const trackedMap = { ...get().trackedProductsMap };
       let hasTrackedUpdates = false;
+      const currentPincode = get().selectedPincode.pincode || '';
 
       const hydratedProducts = liveProducts.map((p) => {
         const isTracked = trackedMap[p.id] !== undefined;
         if (isTracked) {
+          const wasInStock = Boolean(trackedMap[p.id]?.variants?.[0]?.isInStock);
+          const isNowInStock = Boolean(p.variants?.[0]?.isInStock);
+          if (wasInStock === false && isNowInStock === true) {
+            stockRadarService.handleRestockDetected(p, currentPincode);
+          }
+          stockRadarService.setProductStockState(p.id, isNowInStock);
           trackedMap[p.id] = { ...p, autoCartEnabled: true };
           hasTrackedUpdates = true;
         }
@@ -192,7 +204,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
         lastUpdated: Date.now(),
       });
 
-      // 3. Background pre-fetch remaining categories
+      // 3. Background pre-fetch remaining categories and check tracked items
       get().fetchAllCategoriesProducts(sessionCookie);
 
       // 4. Start Live Stock Radar Polling
@@ -208,11 +220,31 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       const substoreId = get().selectedPincode.storeId || '66505ff5145c16635e6cc74d';
       const liveProducts = await AmulApiClient.fetchStoreProducts(categorySlug, substoreId, sessionCookie);
 
-      const trackedMap = get().trackedProductsMap;
-      const hydratedProducts = liveProducts.map((p) => ({
-        ...p,
-        autoCartEnabled: trackedMap[p.id] !== undefined ? Boolean(trackedMap[p.id]) : false,
-      }));
+      const trackedMap = { ...get().trackedProductsMap };
+      let hasTrackedUpdates = false;
+      const currentPincode = get().selectedPincode.pincode || '';
+
+      const hydratedProducts = liveProducts.map((p) => {
+        const isTracked = trackedMap[p.id] !== undefined;
+        if (isTracked) {
+          const wasInStock = Boolean(trackedMap[p.id]?.variants?.[0]?.isInStock);
+          const isNowInStock = Boolean(p.variants?.[0]?.isInStock);
+          if (wasInStock === false && isNowInStock === true) {
+            stockRadarService.handleRestockDetected(p, currentPincode);
+          }
+          stockRadarService.setProductStockState(p.id, isNowInStock);
+          trackedMap[p.id] = { ...p, autoCartEnabled: true };
+          hasTrackedUpdates = true;
+        }
+        return {
+          ...p,
+          autoCartEnabled: isTracked,
+        };
+      });
+
+      if (hasTrackedUpdates) {
+        AsyncStorage.setItem(STORAGE_KEYS.TRACKED_PRODUCTS, JSON.stringify(trackedMap)).catch(() => {});
+      }
 
       const newAllMap = { ...get().allProductsMap };
       hydratedProducts.forEach((p) => {
@@ -222,6 +254,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       set({
         products: hydratedProducts,
         allProductsMap: newAllMap,
+        trackedProductsMap: trackedMap,
         isLoadingProducts: false,
         lastUpdated: Date.now(),
       });
@@ -235,6 +268,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       const categories = get().categories;
       const substoreId = get().selectedPincode.storeId || '66505ff5145c16635e6cc74d';
       const currentSlug = get().selectedCategory;
+      const currentPincode = get().selectedPincode.pincode || '';
 
       for (const cat of categories) {
         if (cat.slug === currentSlug) continue;
@@ -243,13 +277,35 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
           if (prods && prods.length > 0) {
             set((state) => {
               const updated = { ...state.allProductsMap };
+              const updatedTracked = { ...state.trackedProductsMap };
+              let trackedChanged = false;
+
               prods.forEach((p) => {
+                const isTracked = state.trackedProductsMap[p.id] !== undefined;
+                if (isTracked) {
+                  const wasInStock = Boolean(state.trackedProductsMap[p.id]?.variants?.[0]?.isInStock);
+                  const isNowInStock = Boolean(p.variants?.[0]?.isInStock);
+                  if (wasInStock === false && isNowInStock === true) {
+                    stockRadarService.handleRestockDetected(p, currentPincode);
+                  }
+                  stockRadarService.setProductStockState(p.id, isNowInStock);
+                  updatedTracked[p.id] = { ...p, autoCartEnabled: true };
+                  trackedChanged = true;
+                }
                 updated[p.id] = {
                   ...p,
-                  autoCartEnabled: state.trackedProductsMap[p.id] !== undefined ? Boolean(state.trackedProductsMap[p.id]) : false,
+                  autoCartEnabled: isTracked,
                 };
               });
-              return { allProductsMap: updated };
+
+              if (trackedChanged) {
+                AsyncStorage.setItem(STORAGE_KEYS.TRACKED_PRODUCTS, JSON.stringify(updatedTracked)).catch(() => {});
+              }
+
+              return {
+                allProductsMap: updated,
+                ...(trackedChanged ? { trackedProductsMap: updatedTracked } : {}),
+              };
             });
           }
         } catch (_err) {}
@@ -264,11 +320,30 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       const substoreId = pincode.storeId || '66505ff5145c16635e6cc74d';
       const liveProducts = await AmulApiClient.fetchStoreProducts(get().selectedCategory, substoreId, sessionCookie);
 
-      const trackedMap = get().trackedProductsMap;
-      const hydratedProducts = liveProducts.map((p) => ({
-        ...p,
-        autoCartEnabled: trackedMap[p.id] !== undefined ? Boolean(trackedMap[p.id]) : false,
-      }));
+      const trackedMap = { ...get().trackedProductsMap };
+      let hasTrackedUpdates = false;
+
+      const hydratedProducts = liveProducts.map((p) => {
+        const isTracked = trackedMap[p.id] !== undefined;
+        if (isTracked) {
+          const wasInStock = Boolean(trackedMap[p.id]?.variants?.[0]?.isInStock);
+          const isNowInStock = Boolean(p.variants?.[0]?.isInStock);
+          if (wasInStock === false && isNowInStock === true) {
+            stockRadarService.handleRestockDetected(p, pincode.pincode);
+          }
+          stockRadarService.setProductStockState(p.id, isNowInStock);
+          trackedMap[p.id] = { ...p, autoCartEnabled: true };
+          hasTrackedUpdates = true;
+        }
+        return {
+          ...p,
+          autoCartEnabled: isTracked,
+        };
+      });
+
+      if (hasTrackedUpdates) {
+        AsyncStorage.setItem(STORAGE_KEYS.TRACKED_PRODUCTS, JSON.stringify(trackedMap)).catch(() => {});
+      }
 
       const newAllMap = { ...get().allProductsMap };
       hydratedProducts.forEach((p) => {
@@ -278,12 +353,16 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       set({
         products: hydratedProducts,
         allProductsMap: newAllMap,
+        trackedProductsMap: trackedMap,
         isLoadingProducts: false,
         lastUpdated: Date.now(),
       });
 
       // Background re-fetch all categories with new store
       get().fetchAllCategoriesProducts(sessionCookie);
+
+      // Trigger instant radar check across all tracked categories for new pincode
+      stockRadarService.performLiveStockCheck();
     } catch (_e) {
       set({ isLoadingProducts: false });
     }
@@ -389,7 +468,9 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
         const targetProduct =
           productObj || state.products.find((p) => p.id === productId) || state.allProductsMap[productId];
         if (targetProduct) {
+          const inStock = Boolean(targetProduct.variants?.[0]?.isInStock);
           newTrackedMap[productId] = { ...targetProduct, autoCartEnabled: true };
+          stockRadarService.setProductStockState(productId, inStock);
         }
       }
 
@@ -409,6 +490,32 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
         };
       }
 
+      // Sync tracked subscription to Supabase and FCM topic
+      const willBeTracked = !isCurrentlyTracked;
+      const activePin = state.selectedPincode.pincode || 'all';
+      const activeStoreId = state.selectedPincode.storeId || '66505ff5145c16635e6cc74d';
+      const targetProd = productObj || state.products.find((p) => p.id === productId) || state.allProductsMap[productId];
+
+      fcmService.getToken().then((token) => {
+        if (token && targetProd) {
+          supabaseService.syncSubscription({
+            fcmToken: token,
+            productId: targetProd.id,
+            productTitle: targetProd.title,
+            pincode: activePin,
+            storeId: activeStoreId,
+            isTracked: willBeTracked,
+          });
+
+          const topic = fcmService.getTopicName(activePin, targetProd.id);
+          if (willBeTracked) {
+            fcmService.subscribeToTopic(topic);
+          } else {
+            fcmService.unsubscribeFromTopic(topic);
+          }
+        }
+      });
+
       return {
         trackedProductsMap: newTrackedMap,
         products: updatedProducts,
@@ -421,7 +528,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     const state = get();
     const targetProduct = productId
       ? state.products.find((p) => p.id === productId) || state.products[0]
-      : state.products.find((p) => !p.variants[0]?.isInStock) || state.products[0];
+      : state.products.find((p) => !p.variants?.[0]?.isInStock) || state.products[0];
 
     if (!targetProduct) return;
 
@@ -438,7 +545,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
         timestamp: Date.now(),
         unitsAdded: 30,
         survivalDurationSecs: 180,
-        variantName: targetProduct.variants[0]?.name || 'Standard Pack',
+        variantName: targetProduct.variants?.[0]?.name || 'Standard Pack',
       };
 
       // Trigger in-app full screen alarm overlay + continuous audio
@@ -471,7 +578,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
   triggerDelayedDropTest: async (delaySeconds = 5) => {
     const state = get();
     const targetProduct =
-      state.products.find((p) => !p.variants[0]?.isInStock) || state.products[0];
+      state.products.find((p) => !p.variants?.[0]?.isInStock) || state.products[0];
 
     if (!targetProduct) return;
 
@@ -485,7 +592,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       timestamp: Date.now(),
       unitsAdded: 30,
       survivalDurationSecs: 180,
-      variantName: targetProduct.variants[0]?.name || 'Standard Pack',
+      variantName: targetProduct.variants?.[0]?.name || 'Standard Pack',
     };
 
     // 1. Schedule background system notification
@@ -557,5 +664,6 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
   refreshStock: async (sessionCookie?: string) => {
     await get().loadInitialData(sessionCookie);
+    await stockRadarService.performLiveStockCheck();
   },
 }));

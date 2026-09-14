@@ -4,6 +4,9 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NotificationService } from '../services/notificationService';
+import { backgroundFetchService } from '../services/backgroundFetchService';
+import { fcmService } from '../services/fcmService';
+import { supabaseService } from '../services/supabaseClient';
 import { useSessionStore } from '../store/useSessionStore';
 import { AmulApiClient } from '../services/amulApi';
 import { BrandLogoHeader } from '../components/BrandLogoHeader';
@@ -51,6 +54,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     NotificationService.initialize();
+    backgroundFetchService.registerBackgroundFetch();
+    fcmService.initialize((token) => {
+      supabaseService.registerDevice(token);
+    });
     useThemeStore.getState().loadSavedTheme();
     useStockStore.getState().loadSavedPreferences();
     AmulApiClient.onSessionExpired(() => {

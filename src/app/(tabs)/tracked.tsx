@@ -24,7 +24,7 @@ import { ProductCard } from '../../components/ProductCard';
 export default function TrackedScreen() {
   const router = useRouter();
   const { session, isInitialized } = useSessionStore();
-  const { colors, isDark } = useAppTheme();
+  const { colors } = useAppTheme();
   const {
     trackedProductsMap,
     refreshStock,

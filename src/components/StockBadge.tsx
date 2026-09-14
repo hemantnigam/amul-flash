@@ -18,7 +18,7 @@ export const StockBadge: React.FC<StockBadgeProps> = ({
   stockCount = 0,
   size = 'md',
 }) => {
-  const { colors, isDark } = useAppTheme();
+  const { isDark } = useAppTheme();
 
   // Determine effective status
   const effectiveStatus: StockStatus =

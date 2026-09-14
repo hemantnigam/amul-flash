@@ -11,7 +11,6 @@ import {
 import { AppText as Text } from './AppText';
 import { AppTextInput as TextInput } from './AppTextInput';
 import { Check, Plus, X, Navigation, Trash2, ShieldCheck } from 'lucide-react-native';
-import { CommonTheme } from '../constants/theme';
 import { useStockStore } from '../store/useStockStore';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { PincodeLocation } from '../types/amul';

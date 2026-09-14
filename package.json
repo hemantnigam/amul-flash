@@ -13,6 +13,7 @@
     "@react-native-firebase/analytics": "^26.3.2",
     "@react-native-firebase/app": "^26.3.2",
     "@react-native-firebase/messaging": "^26.3.2",
+    "@supabase/supabase-js": "^2.114.0",
     "expo": "~57.0.17",
     "expo-audio": "~57.0.4",
     "expo-background-fetch": "~57.0.14",

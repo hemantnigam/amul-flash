@@ -14,7 +14,7 @@ let notifeeModule: any = null;
 try {
   notifeeModule = require('@notifee/react-native').default;
   if (notifeeModule && typeof notifeeModule.onBackgroundEvent === 'function') {
-    notifeeModule.onBackgroundEvent(async ({ type, detail }: any) => {
+    notifeeModule.onBackgroundEvent(async ({ detail }: any) => {
       if (detail?.pressAction?.id === 'stop_alarm') {
         if (detail?.notification?.id) {
           await notifeeModule.cancelNotification(detail.notification.id);
@@ -99,7 +99,13 @@ export const NotificationService = {
 
     if (expoNotifications && expoNotifications.requestPermissionsAsync) {
       try {
-        await expoNotifications.requestPermissionsAsync();
+        await expoNotifications.requestPermissionsAsync({
+          ios: {
+            allowAlert: true,
+            allowBadge: true,
+            allowSound: true,
+          },
+        });
       } catch (_e) {}
     }
 
@@ -170,7 +176,7 @@ export const NotificationService = {
             sound: soundItem.filename,
           },
         });
-        console.log('🔔 [NotificationService] Restock notification dispatched with looping sound:', soundResName);
+        console.log('🔔 [NotificationService] Restock notification dispatched via Notifee with sound:', soundResName);
         return;
       } catch (err) {
         console.log('❌ [NotificationService displayNotification error]:', err);
@@ -185,14 +191,18 @@ export const NotificationService = {
             title: payload.title,
             body: payload.body,
             sound: soundResName,
+            channelId: channelId,
             data: {
               productId: payload.productId || '',
               pincode: payload.pincode || '',
             },
           },
-          trigger: { channelId } as any,
+          trigger: null, // Immediate trigger
         });
-      } catch (_e) {}
+        console.log('🔔 [NotificationService] Restock notification dispatched via Expo Notifications');
+      } catch (expoErr) {
+        console.log('❌ [NotificationService expoNotifications error]:', expoErr);
+      }
     }
   },
 
@@ -261,7 +271,7 @@ export const NotificationService = {
             timestamp: triggerTime,
           }
         );
-        console.log('✅ [NotificationService] Notifee timestamp trigger scheduled successfully with looping sound:', soundResName);
+        console.log('✅ [NotificationService] Notifee timestamp trigger scheduled successfully with sound:', soundResName);
         return;
       } catch (err) {
         console.log('⚠️ [Notifee createTriggerNotification error]:', err);
@@ -276,6 +286,7 @@ export const NotificationService = {
             title: payload.title,
             body: payload.body,
             sound: soundResName,
+            channelId: channelId,
             data: {
               productId: payload.productId || '',
               pincode: payload.pincode || '',
@@ -284,7 +295,6 @@ export const NotificationService = {
           trigger: {
             type: 'timeInterval',
             seconds: delaySeconds,
-            channelId,
             repeats: false,
           } as any,
         });
