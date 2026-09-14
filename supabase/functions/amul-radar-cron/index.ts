@@ -1,5 +1,6 @@
+// @ts-nocheck
 // =========================================================================
-// Supabase Edge Function: amul-radar-cron
+// Supabase Edge Function: amul-radar-cron (Runs in Deno Cloud Runtime)
 // 24/7 Cloud Stock Poller with Upstash Redis Diffing & FCM Alert Dispatcher
 // =========================================================================
 

@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { AmulProduct } from '../types/amul';
 
@@ -11,8 +12,10 @@ if (SUPABASE_URL && SUPABASE_ANON_KEY) {
   try {
     supabaseInstance = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
-        persistSession: true,
+        storage: AsyncStorage,
         autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false,
       },
     });
     console.log('⚡ [SupabaseClient] Initialized successfully with project URL:', SUPABASE_URL);

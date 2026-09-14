@@ -29,10 +29,13 @@ import {
   Sun,
   Moon,
   Smartphone,
+  Cloud,
 } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
 import { useStockStore } from '../../store/useStockStore';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { supabaseService } from '../../services/supabaseClient';
+import { fcmService } from '../../services/fcmService';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
 import { AlarmSoundSelectorModal } from '../../components/AlarmSoundSelectorModal';
 import { ThemeSelectorModal } from '../../components/ThemeSelectorModal';
@@ -65,6 +68,7 @@ export default function AccountScreen() {
     setAlarmOverlayEnabled,
     triggerDelayedDropTest,
     isSimulatingDrop,
+    trackedProductsMap,
   } = useStockStore();
 
   const { colors, isDark, themeMode, systemColorScheme } = useAppTheme();
@@ -100,6 +104,41 @@ export default function AccountScreen() {
   const [email, setEmail] = useState(userProfile?.email || '');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [isSyncingCloud, setIsSyncingCloud] = useState(false);
+
+  const handleManualCloudSync = async () => {
+    setIsSyncingCloud(true);
+    try {
+      const isConf = supabaseService.isConfigured();
+      if (!isConf) {
+        Alert.alert(
+          'Cloud Radar',
+          'Supabase credentials not configured in this app bundle.'
+        );
+        return;
+      }
+      const token = await fcmService.getToken();
+      const devOk = await supabaseService.registerDevice(token);
+      const trackedList = Object.values(trackedProductsMap);
+      let subOk = true;
+      if (trackedList.length > 0) {
+        subOk = await supabaseService.syncAllTrackedProducts(
+          token,
+          trackedList,
+          selectedPincode.pincode,
+          selectedPincode.storeId || '66505ff5145c16635e6cc74d'
+        );
+      }
+      Alert.alert(
+        'Cloud Sync Successful! ☁️',
+        `Device Registered: ${devOk ? '✅ Success' : '❌ Failed'}\nTracked Items Synced: ${trackedList.length} items ${subOk ? '✅' : '❌'}\nToken: ${token.slice(0, 16)}...`
+      );
+    } catch (e: any) {
+      Alert.alert('Cloud Sync Error', e?.message || String(e));
+    } finally {
+      setIsSyncingCloud(false);
+    }
+  };
 
   const handleCheckUpdate = async () => {
     if (!UpdatesModule || !UpdatesModule.checkForUpdateAsync) {
@@ -440,6 +479,34 @@ export default function AccountScreen() {
             <ChevronRight size={18} color={isDark ? '#FB923C' : '#EA580C'} />
           </TouchableOpacity>
           */}
+
+          <TouchableOpacity
+            style={[styles.cardRow, { borderBottomColor: colors.border }]}
+            onPress={handleManualCloudSync}
+            disabled={isSyncingCloud}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: isDark ? '#1E293B' : '#E0F2FE' }]}>
+                {isSyncingCloud ? (
+                  <ActivityIndicator size="small" color="#0284C7" />
+                ) : (
+                  <Cloud size={18} color="#0284C7" />
+                )}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowTitle, { color: colors.text, fontWeight: '700' }]}>
+                  {isSyncingCloud ? 'Syncing to Supabase Cloud...' : 'Cloud Radar Sync'}
+                </Text>
+                <Text style={[styles.rowSub, { color: colors.textSecondary }]}>
+                  {supabaseService.isConfigured()
+                    ? `Connected • Tap to force-sync (${Object.keys(trackedProductsMap).length} items)`
+                    : 'Not Connected • Operating in local radar mode'}
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color={colors.textMuted} />
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.cardRow, { borderBottomWidth: 0 }]}
