@@ -55,10 +55,6 @@ class StockRadarService {
     this.hasInitialBaseline = false;
     console.log(`📡 [StockRadarService] Starting Live Amul Stock Radar (Interval: ${this.checkIntervalMs / 1000}s)`);
 
-    // Seed previous stock from existing tracked products
-    const state = useStockStore.getState();
-    this.seedPreviousStock(state.trackedProductsMap);
-
     // Run initial baseline check immediately
     this.performLiveStockCheck();
 
@@ -110,18 +106,7 @@ class StockRadarService {
     // 1. In-app full screen alarm overlay + looping audio
     state.triggerAlarmEvent(restockEvent);
 
-    // 2. Dispatch High-Priority System Push Notification (Notifee / Expo with sound)
-    await NotificationService.sendRestockNotification(
-      {
-        title: `⚡ Restock Alert: ${product.title}`,
-        body: pincode ? `Stock is now live for Hub ${pincode}! Tap to buy now.` : 'Stock is now live! Tap to buy now.',
-        productId: product.id,
-        pincode: pincode,
-      },
-      state.selectedAlarmSoundId || 'digital_clock_beep'
-    );
-
-    // 3. Log to Activity Feed
+    // 2. Log to Activity Feed
     state.addActivityLog({
       type: 'restock',
       title: `Live Restock: ${product.title}`,
@@ -130,7 +115,7 @@ class StockRadarService {
       status: 'success',
     });
 
-    // 4. Analytics
+    // 3. Analytics
     analyticsService.logRestockAlert(product.id, product.title, pincode);
   }
 

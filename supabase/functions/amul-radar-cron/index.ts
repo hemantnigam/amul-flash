@@ -266,7 +266,10 @@ async function sendFcmNotification(
 }
 
 // 6. Fetch Amul Live Inventory with StoreHippo Authentication Flow
-async function fetchAmulStoreProducts(storeId: string, categories: string[] = ['protein', 'beverages', 'ghee']): Promise<{ products: any[]; error?: string }> {
+async function fetchAmulStoreProducts(
+  storeId: string,
+  categories: string[] = ['protein', 'beverages', 'ghee', 'bakery', 'chocolates', 'milk', 'sweets', 'ice-cream', 'paneer-and-curd', 'butter-and-spreads']
+): Promise<{ products: any[]; error?: string }> {
   try {
     const now = Date.now();
     let sessionCookie = '';
@@ -498,11 +501,28 @@ Deno.serve(async (req: Request) => {
         const wasInStock = prevStockVal === '1';
         const isCooldown = Boolean(await redis.get(cooldownKey));
 
+        // If not matched in the current catalog response, do NOT treat as out of stock (preserve previous state)
+        if (!match.matched) {
+          stockDiagnostics.push({
+            sku: tracked.product_id,
+            title: tracked.product_title,
+            pincode: tracked.pincode,
+            matched: false,
+            liveInStock: false,
+            stockCount: 0,
+            wasInStock,
+            wasExplicitlyOutOfStock,
+            isCooldown,
+            note: 'unmatched_in_catalog_skipped',
+          });
+          continue;
+        }
+
         stockDiagnostics.push({
           sku: tracked.product_id,
           title: tracked.product_title,
           pincode: tracked.pincode,
-          matched: match.matched,
+          matched: true,
           liveInStock: isInStock,
           stockCount,
           wasInStock,

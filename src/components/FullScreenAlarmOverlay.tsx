@@ -201,9 +201,9 @@ export const FullScreenAlarmOverlay: React.FC = () => {
 
         {/* Alarm Title & Description */}
         <View style={styles.headerInfo}>
-          <Text style={styles.mainTitle}>STOCK DROP DETECTED!</Text>
+          <Text style={styles.mainTitle}>ITEM BACK IN STOCK!</Text>
           <Text style={styles.subTitle}>
-            Ringing instant restock alarm for tracked product
+            Tracked product is now available to order on Amul store
           </Text>
         </View>
 

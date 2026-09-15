@@ -47,7 +47,7 @@ export const DropAlertBanner: React.FC<DropAlertBannerProps> = ({
         <View style={styles.badgeRow}>
           <View style={styles.flashBadge}>
             <Zap size={14} color="#FFFFFF" />
-            <Text style={styles.flashText}>LIVE RESTOCK DROP</Text>
+            <Text style={styles.flashText}>LIVE RESTOCK ALERT</Text>
           </View>
           <View style={styles.timerChip}>
             <Clock size={12} color="#EF4444" />
@@ -62,7 +62,7 @@ export const DropAlertBanner: React.FC<DropAlertBannerProps> = ({
 
       <Text style={styles.productTitle}>{alert.productName}</Text>
       <Text style={styles.detailText}>
-        {alert.unitsAdded} units dropped for Pincode {alert.pincode} • Live Stock Restocked
+        {alert.unitsAdded} units restocked for Pincode {alert.pincode} • Live Stock Available
       </Text>
 
       <View style={styles.actionRow}>
