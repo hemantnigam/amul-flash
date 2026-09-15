@@ -196,11 +196,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       const hydratedProducts = liveProducts.map((p) => {
         const isTracked = trackedMap[p.id] !== undefined;
         if (isTracked) {
-          const wasInStock = Boolean(trackedMap[p.id]?.variants?.[0]?.isInStock);
           const isNowInStock = Boolean(p.variants?.[0]?.isInStock);
-          if (wasInStock === false && isNowInStock === true) {
-            stockRadarService.handleRestockDetected(p, currentPincode);
-          }
           stockRadarService.setProductStockState(p.id, isNowInStock);
           trackedMap[p.id] = { ...p, autoCartEnabled: true };
           hasTrackedUpdates = true;
@@ -251,11 +247,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       const hydratedProducts = liveProducts.map((p) => {
         const isTracked = trackedMap[p.id] !== undefined;
         if (isTracked) {
-          const wasInStock = Boolean(trackedMap[p.id]?.variants?.[0]?.isInStock);
           const isNowInStock = Boolean(p.variants?.[0]?.isInStock);
-          if (wasInStock === false && isNowInStock === true) {
-            stockRadarService.handleRestockDetected(p, currentPincode);
-          }
           stockRadarService.setProductStockState(p.id, isNowInStock);
           trackedMap[p.id] = { ...p, autoCartEnabled: true };
           hasTrackedUpdates = true;
@@ -307,11 +299,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
               prods.forEach((p) => {
                 const isTracked = state.trackedProductsMap[p.id] !== undefined;
                 if (isTracked) {
-                  const wasInStock = Boolean(state.trackedProductsMap[p.id]?.variants?.[0]?.isInStock);
                   const isNowInStock = Boolean(p.variants?.[0]?.isInStock);
-                  if (wasInStock === false && isNowInStock === true) {
-                    stockRadarService.handleRestockDetected(p, currentPincode);
-                  }
                   stockRadarService.setProductStockState(p.id, isNowInStock);
                   updatedTracked[p.id] = { ...p, autoCartEnabled: true };
                   trackedChanged = true;
@@ -350,11 +338,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       const hydratedProducts = liveProducts.map((p) => {
         const isTracked = trackedMap[p.id] !== undefined;
         if (isTracked) {
-          const wasInStock = Boolean(trackedMap[p.id]?.variants?.[0]?.isInStock);
           const isNowInStock = Boolean(p.variants?.[0]?.isInStock);
-          if (wasInStock === false && isNowInStock === true) {
-            stockRadarService.handleRestockDetected(p, pincode.pincode);
-          }
           stockRadarService.setProductStockState(p.id, isNowInStock);
           trackedMap[p.id] = { ...p, autoCartEnabled: true };
           hasTrackedUpdates = true;
