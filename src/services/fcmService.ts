@@ -182,20 +182,7 @@ class FCMService {
     // 1. Fire full-screen in-app alarm siren & overlay (Scenario B)
     useStockStore.getState().triggerAlarmEvent(restockEvent);
 
-    // 2. Dispatch local high-priority notification if app is in background
-    if (Platform.OS !== 'web' && typeof NotificationService?.sendRestockNotification === 'function') {
-      await NotificationService.sendRestockNotification(
-        {
-          title,
-          body,
-          productId,
-          pincode,
-        },
-        soundId
-      );
-    }
-
-    // 3. Log to activity logs
+    // 2. Log to activity logs
     useStockStore.getState().addActivityLog({
       type: 'restock',
       title: `Cloud Restock Alert: ${restockEvent.productName}`,
