@@ -14,6 +14,7 @@ class StockRadarService {
   private checkIntervalMs: number = 15000; // Poll every 15 seconds for rapid drop detection
   private appStateSubscription: NativeEventSubscription | null = null;
   private lastAlertTimeMap: Record<string, number> = {}; // productId -> timestamp (cooldown)
+  private hasInitialBaseline: boolean = false;
 
   constructor() {
     this.setupAppStateListener();
@@ -181,7 +182,8 @@ class StockRadarService {
             }
 
             // Detect Restock Transition: (Previously Out of Stock OR false) -> Now In Stock!
-            if (isTracked && wasInStock === false && isNowInStock === true) {
+            // Strictly ONLY when initial baseline has already been established while app is monitoring
+            if (this.hasInitialBaseline && isTracked && wasInStock === false && isNowInStock === true) {
               await this.handleRestockDetected(liveProd, pincode);
             }
 
@@ -213,6 +215,8 @@ class StockRadarService {
           console.log(`⚠️ [StockRadarService] Error polling category ${categorySlug}:`, catErr);
         }
       }
+
+      this.hasInitialBaseline = true;
 
       if (hasTrackedUpdates) {
         AsyncStorage.setItem('@amul_tracked_products', JSON.stringify(trackedMap)).catch(() => {});

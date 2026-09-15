@@ -149,10 +149,15 @@ export default function RootLayout() {
     if (notifeeModule && notifeeModule.getInitialNotification) {
       notifeeModule.getInitialNotification().then((initialNotification: any) => {
         if (initialNotification?.notification) {
-          handleNotificationPayload(
-            initialNotification.notification.title || '',
-            initialNotification.notification.data
-          );
+          const rawTs = initialNotification.notification.data?.timestamp;
+          const notifTime = rawTs ? Number(rawTs) : 0;
+          // Only trigger if notification was delivered within the last 2 minutes
+          if (notifTime && Date.now() - notifTime < 120000) {
+            handleNotificationPayload(
+              initialNotification.notification.title || '',
+              initialNotification.notification.data
+            );
+          }
         }
       }).catch(() => {});
     }
@@ -161,10 +166,16 @@ export default function RootLayout() {
     if (expoNotificationsModule && expoNotificationsModule.getLastNotificationResponseAsync) {
       expoNotificationsModule.getLastNotificationResponseAsync().then((response: any) => {
         if (response?.notification) {
-          handleNotificationPayload(
-            response.notification.request?.content?.title || '',
-            response.notification.request?.content?.data
-          );
+          const rawTs = response.notification.request?.content?.data?.timestamp;
+          const notifDate = response.notification.date ? response.notification.date * 1000 : 0;
+          const notifTime = rawTs ? Number(rawTs) : notifDate;
+          // Only trigger if notification was delivered within the last 2 minutes
+          if (notifTime && Date.now() - notifTime < 120000) {
+            handleNotificationPayload(
+              response.notification.request?.content?.title || '',
+              response.notification.request?.content?.data
+            );
+          }
         }
       }).catch(() => {});
     }
