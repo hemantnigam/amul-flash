@@ -48,6 +48,7 @@ try {
 class FCMService {
   private currentToken: string | null = null;
   private isInitialized = false;
+  private processedMessageIds = new Set<string>();
 
   /**
    * Helper to format a valid FCM topic string
@@ -80,7 +81,6 @@ class FCMService {
         if (typeof fb.onNotificationOpenedApp === 'function') {
           fb.onNotificationOpenedApp(async (remoteMessage: any) => {
             console.log('📲 [FCMService] App opened from background notification via Firebase:', remoteMessage);
-            await this.handleIncomingRestockPayload(remoteMessage);
           });
         }
       } catch (_opErr) {}
@@ -90,8 +90,7 @@ class FCMService {
         if (typeof fb.getInitialNotification === 'function') {
           const initialMessage = await fb.getInitialNotification();
           if (initialMessage) {
-            console.log('🚀 [FCMService] Cold-start notification via Firebase:', initialMessage);
-            await this.handleIncomingRestockPayload(initialMessage);
+            console.log('🚀 [FCMService] App launched from notification intent');
           }
         }
       } catch (_initErr) {}
@@ -144,8 +143,25 @@ class FCMService {
   public async handleIncomingRestockPayload(remoteMessage: any) {
     if (!remoteMessage) return;
 
+    const msgId = remoteMessage.messageId || `${remoteMessage.data?.productId}_${remoteMessage.data?.timestamp}`;
+    if (msgId && this.processedMessageIds.has(msgId)) {
+      console.log('🔁 [FCMService] Skipping duplicate message:', msgId);
+      return;
+    }
+    if (msgId) {
+      this.processedMessageIds.add(msgId);
+    }
+
     const data = remoteMessage.data || {};
     const notification = remoteMessage.notification || {};
+
+    const rawTs = data.timestamp || remoteMessage.sentTime;
+    const sentTime = rawTs ? Number(rawTs) : 0;
+    // If message is older than 2 minutes, ignore it to prevent false alarms
+    if (sentTime && Date.now() - sentTime > 120000) {
+      console.log('⏳ [FCMService] Ignoring stale message older than 2 minutes');
+      return;
+    }
 
     let productId = data.productId || data.product_id;
     if (!productId && typeof data.body === 'string' && data.body.includes('productId')) {

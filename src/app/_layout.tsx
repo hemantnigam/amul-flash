@@ -95,10 +95,9 @@ export default function RootLayout() {
     });
     loadSavedSession();
 
-    // Helper to safely trigger alarm event from any notification payload
-    const handleNotificationPayload = (title: string, data: any) => {
-      console.log('🚨 [RootLayout] Handling notification payload:', { title, data });
-      if (!data) data = {};
+    // Helper to safely navigate to product from notification payload
+    const handleNotificationNavigation = (data: any) => {
+      if (!data) return;
       let prodId = data.productId || data.product_id || data.id;
       if (!prodId && typeof data.body === 'string' && data.body.includes('productId')) {
         try {
@@ -107,80 +106,31 @@ export default function RootLayout() {
         } catch (_e) {}
       }
 
-      if (!prodId) {
-        const trackedKeys = Object.keys(useStockStore.getState().trackedProductsMap);
-        prodId = trackedKeys[0] || useStockStore.getState().products[0]?.id || '66505ff5145c16635e6cc74d';
+      if (prodId) {
+        console.log('📱 [RootLayout] Navigating to product from notification:', prodId);
+        router.push(`/product/${prodId}`);
       }
-
-      const pincode = data.pincode || useStockStore.getState().selectedPincode.pincode || 'all';
-      const cleanTitle = (title || data.title || 'Amul Restock Alert').replace(/^⚡\s*(Restock Alert:\s*)?/i, '');
-
-      useStockStore.getState().triggerAlarmEvent({
-        id: `drop_${Date.now()}_${prodId}`,
-        productId: prodId,
-        productName: cleanTitle || 'Amul Protein Product',
-        pincode: pincode,
-        timestamp: Date.now(),
-        unitsAdded: Number(data.unitsAdded || data.stockCount || 30),
-        survivalDurationSecs: 300,
-        variantName: data.variantName || 'Standard Pack',
-      });
     };
 
-    // 1. Firebase Messaging Foreground onMessage Listener (Scenario B - App Open)
-    let fbUnsubscribe: any = null;
-    try {
-      const messagingInstance = getFirebaseMessagingInstance();
-      if (messagingInstance && typeof messagingInstance.onMessage === 'function') {
-        fbUnsubscribe = messagingInstance.onMessage(async (remoteMessage: any) => {
-          console.log('🔥 [RootLayout] Firebase Foreground message received:', remoteMessage);
-          handleNotificationPayload(
-            remoteMessage?.notification?.title || remoteMessage?.data?.title || '⚡ Amul Restock Alert!',
-            remoteMessage?.data || {}
-          );
-        });
-        console.log('✅ [RootLayout] Firebase onMessage listener attached');
-      }
-    } catch (fbErr) {
-      console.log('⚠️ [RootLayout] Firebase onMessage attach error:', fbErr);
-    }
-
-    // 2. Handle cold-start notification click (Notifee)
+    // 1. Handle cold-start notification tap navigation (Notifee)
     if (notifeeModule && notifeeModule.getInitialNotification) {
       notifeeModule.getInitialNotification().then((initialNotification: any) => {
         if (initialNotification?.notification) {
-          const rawTs = initialNotification.notification.data?.timestamp;
-          const notifTime = rawTs ? Number(rawTs) : 0;
-          // Only trigger if notification was delivered within the last 2 minutes
-          if (notifTime && Date.now() - notifTime < 120000) {
-            handleNotificationPayload(
-              initialNotification.notification.title || '',
-              initialNotification.notification.data
-            );
-          }
+          handleNotificationNavigation(initialNotification.notification.data);
         }
       }).catch(() => {});
     }
 
-    // 3. Handle cold-start notification click (Expo Notifications)
+    // 2. Handle cold-start notification tap navigation (Expo Notifications)
     if (expoNotificationsModule && expoNotificationsModule.getLastNotificationResponseAsync) {
       expoNotificationsModule.getLastNotificationResponseAsync().then((response: any) => {
         if (response?.notification) {
-          const rawTs = response.notification.request?.content?.data?.timestamp;
-          const notifDate = response.notification.date ? response.notification.date * 1000 : 0;
-          const notifTime = rawTs ? Number(rawTs) : notifDate;
-          // Only trigger if notification was delivered within the last 2 minutes
-          if (notifTime && Date.now() - notifTime < 120000) {
-            handleNotificationPayload(
-              response.notification.request?.content?.title || '',
-              response.notification.request?.content?.data
-            );
-          }
+          handleNotificationNavigation(response.notification.request?.content?.data);
         }
       }).catch(() => {});
     }
 
-    // 4. Handle foreground notification click (Notifee)
+    // 3. Handle foreground notification click / action (Notifee)
     let notifeeUnsubscribe: any = null;
     if (notifeeModule && notifeeModule.onForegroundEvent) {
       notifeeUnsubscribe = notifeeModule.onForegroundEvent(({ type, detail }: any) => {
@@ -198,54 +148,27 @@ export default function RootLayout() {
           if (detail?.notification?.id) {
             notifeeModule.cancelNotification(detail.notification.id);
           }
-          handleNotificationPayload(
-            detail?.notification?.title || '',
-            detail?.notification?.data
-          );
+          handleNotificationNavigation(detail?.notification?.data);
         }
       });
     }
 
-    // 5. Handle Expo Notifications RECEIVED in foreground (Scenario B - App open)
-    let expoReceivedSub: any = null;
-    if (expoNotificationsModule && expoNotificationsModule.addNotificationReceivedListener) {
-      try {
-        expoReceivedSub = expoNotificationsModule.addNotificationReceivedListener((notification: any) => {
-          console.log('⚡ [Expo Notification Received in Foreground]:', notification);
-          handleNotificationPayload(
-            notification?.request?.content?.title || '',
-            notification?.request?.content?.data
-          );
-        });
-      } catch (_e) {}
-    }
-
-    // 6. Handle Expo Notifications response (tap / click in background or cold start)
+    // 4. Handle Expo Notifications response (tap in background or drawer)
     let expoSub: any = null;
     if (expoNotificationsModule && expoNotificationsModule.addNotificationResponseReceivedListener) {
       try {
         expoSub = expoNotificationsModule.addNotificationResponseReceivedListener((response: any) => {
-          console.log('👆 [Expo Notification Tapped]:', response);
-          handleNotificationPayload(
-            response?.notification?.request?.content?.title || '',
-            response?.notification?.request?.content?.data
-          );
+          handleNotificationNavigation(response?.notification?.request?.content?.data);
         });
       } catch (_e) {}
     }
 
     return () => {
-      if (typeof fbUnsubscribe === 'function') {
-        fbUnsubscribe();
-      }
       if (typeof notifeeUnsubscribe === 'function') {
         notifeeUnsubscribe();
       }
       if (expoSub && typeof expoSub.remove === 'function') {
         expoSub.remove();
-      }
-      if (expoReceivedSub && typeof expoReceivedSub.remove === 'function') {
-        expoReceivedSub.remove();
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

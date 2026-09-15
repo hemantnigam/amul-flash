@@ -52,6 +52,7 @@ class StockRadarService {
   startMonitoring() {
     if (this.isRunning) return;
     this.isRunning = true;
+    this.hasInitialBaseline = false;
     console.log(`📡 [StockRadarService] Starting Live Amul Stock Radar (Interval: ${this.checkIntervalMs / 1000}s)`);
 
     // Seed previous stock from existing tracked products
@@ -73,6 +74,7 @@ class StockRadarService {
       this.intervalId = null;
     }
     this.isRunning = false;
+    this.hasInitialBaseline = false;
     console.log('📡 [StockRadarService] Stopped Stock Radar');
   }
 
@@ -157,8 +159,6 @@ class StockRadarService {
         }
       });
 
-      console.log(`🔍 [StockRadarService] Radar polling categories: [${Array.from(categoriesToPoll).join(', ')}] for Store: ${storeId}`);
-
       let hasTrackedUpdates = false;
       const updatedAllMap = { ...state.allProductsMap };
       let updatedActiveCategoryProducts: AmulProduct[] | null = null;
@@ -172,16 +172,10 @@ class StockRadarService {
             const isNowInStock = Boolean(liveProd.variants?.[0]?.isInStock);
             const isTracked = trackedMap[liveProd.id] !== undefined;
 
-            // Determine wasInStock:
-            // 1. From previousStockMap if recorded
-            // 2. Or from trackedMap previous variant state if available
-            let wasInStock: boolean | undefined = this.previousStockMap[liveProd.id];
-            if (wasInStock === undefined && isTracked) {
-              const prevTracked = trackedMap[liveProd.id];
-              wasInStock = Boolean(prevTracked?.variants?.[0]?.isInStock);
-            }
+            // Strictly check if previously recorded as explicitly false in this session
+            const wasInStock = this.previousStockMap[liveProd.id];
 
-            // Detect Restock Transition: (Previously Out of Stock OR false) -> Now In Stock!
+            // Detect Restock Transition: (Previously explicitly Out of Stock false) -> Now In Stock true!
             // Strictly ONLY when initial baseline has already been established while app is monitoring
             if (this.hasInitialBaseline && isTracked && wasInStock === false && isNowInStock === true) {
               await this.handleRestockDetected(liveProd, pincode);
