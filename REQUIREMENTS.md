@@ -34,8 +34,6 @@ The app adopts a **Utility-First & Volume-Gated Model**:
 ### 2.3 Sachet / Micro-Pass Pricing Ladder (INR)
 - **1-Week Pass:** **₹5** *(Trial & single restock cycle)*
 - **1-Month Pass:** **₹19** *(₹4.75/week • Most Popular)*
-- **3-Month Pass:** **₹49** *(Gym training block)*
-- **1-Year VIP Pass:** **₹149** *(Best Value)*
 - **Payment Method:** Direct UPI Intent (PhonePe, Google Pay, Paytm, BHIM).
 
 ---
