@@ -81,6 +81,29 @@ export default function RootLayout() {
     Sora_800ExtraBold,
   });
 
+  const pendingNavigationRef = React.useRef<string | null>(null);
+
+  // Helper to safely navigate to product from notification payload
+  const handleNotificationNavigation = (data: any) => {
+    if (!data) return;
+    let prodId = data.productId || data.product_id || data.id;
+    if (!prodId && typeof data.body === 'string' && data.body.includes('productId')) {
+      try {
+        const parsed = JSON.parse(data.body);
+        prodId = parsed.productId || parsed.product_id;
+      } catch (_e) {}
+    }
+
+    if (prodId) {
+      console.log('📱 [RootLayout] Navigating to product from notification:', prodId);
+      if (useSessionStore.getState().isInitialized && useSessionStore.getState().session.isLoggedIn) {
+        router.push(`/product/${prodId}`);
+      } else {
+        pendingNavigationRef.current = prodId;
+      }
+    }
+  };
+
   useEffect(() => {
     NotificationService.initialize();
     backgroundFetchService.registerBackgroundFetch();
@@ -94,23 +117,6 @@ export default function RootLayout() {
       logout();
     });
     loadSavedSession();
-
-    // Helper to safely navigate to product from notification payload
-    const handleNotificationNavigation = (data: any) => {
-      if (!data) return;
-      let prodId = data.productId || data.product_id || data.id;
-      if (!prodId && typeof data.body === 'string' && data.body.includes('productId')) {
-        try {
-          const parsed = JSON.parse(data.body);
-          prodId = parsed.productId || parsed.product_id;
-        } catch (_e) {}
-      }
-
-      if (prodId) {
-        console.log('📱 [RootLayout] Navigating to product from notification:', prodId);
-        router.push(`/product/${prodId}`);
-      }
-    };
 
     // 1. Handle cold-start notification tap navigation (Notifee)
     if (notifeeModule && notifeeModule.getInitialNotification) {
@@ -183,7 +189,13 @@ export default function RootLayout() {
       router.replace('/login');
     } else if (session.isLoggedIn) {
       loadUserData();
-      if (inAuthGroup) {
+      if (pendingNavigationRef.current) {
+        const targetId = pendingNavigationRef.current;
+        pendingNavigationRef.current = null;
+        setTimeout(() => {
+          router.push(`/product/${targetId}`);
+        }, 150);
+      } else if (inAuthGroup) {
         router.replace('/(tabs)');
       }
     }

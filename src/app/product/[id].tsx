@@ -5,10 +5,11 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
+  ActivityIndicator,
 } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import { Image } from 'expo-image';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import {
   Bell,
@@ -24,20 +25,40 @@ import {
   BookOpen,
 } from 'lucide-react-native';
 import { useStockStore } from '../../store/useStockStore';
+import { useSessionStore } from '../../store/useSessionStore';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { StockBadge } from '../../components/StockBadge';
 import { analyticsService } from '../../services/analyticsService';
 
 export default function ProductDetailsScreen() {
-  const { id } = useLocalSearchParams();
-  const { products, toggleAutoCartForProduct, selectedPincode } = useStockStore();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const router = useRouter();
+  const { products, allProductsMap, trackedProductsMap, toggleAutoCartForProduct, selectedPincode, loadInitialData, isLoadingProducts } = useStockStore();
+  const { session, isInitialized: isSessionInitialized } = useSessionStore();
   const { colors, isDark } = useAppTheme();
 
-  const product = products.find((p) => p.id === id) || products[0];
+  const targetId = String(id || '').trim();
+
+  // Wide product lookup across all known stores and aliases
+  const product =
+    allProductsMap[targetId] ||
+    trackedProductsMap[targetId] ||
+    products.find((p) => p.id === targetId || p.sku === targetId || p.alias === targetId || p.rawId === targetId) ||
+    Object.values(allProductsMap).find((p) => p.id === targetId || p.sku === targetId || p.alias === targetId || p.rawId === targetId) ||
+    Object.values(trackedProductsMap).find((p) => p.id === targetId || p.sku === targetId || p.alias === targetId || p.rawId === targetId) ||
+    (products.length > 0 && !targetId ? products[0] : null);
+
   const primaryVariant = product?.variants?.[0];
 
   const [imageUri, setImageUri] = useState(product?.imageUrl || '');
   const [imageError, setImageError] = useState(false);
+
+  // Auto-fetch products on cold start if store is empty
+  useEffect(() => {
+    if (Object.keys(allProductsMap).length === 0 && !isLoadingProducts) {
+      loadInitialData(session?.sessionCookie);
+    }
+  }, [allProductsMap, isLoadingProducts, loadInitialData, session?.sessionCookie]);
 
   useEffect(() => {
     if (product) {
@@ -47,7 +68,37 @@ export default function ProductDetailsScreen() {
     }
   }, [product?.imageUrl, product?.title, product]);
 
-  if (!product) return null;
+  // Loading State during Cold Start
+  if (!product && (isLoadingProducts || !isSessionInitialized || Object.keys(allProductsMap).length === 0)) {
+    return (
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.centerLoadingText, { color: colors.textSecondary }]}>
+          Loading product details...
+        </Text>
+      </View>
+    );
+  }
+
+  // Not Found State (Graceful Fallback instead of blank screen)
+  if (!product) {
+    return (
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <Package size={56} color={colors.textSecondary} />
+        <Text style={[styles.centerTitleText, { color: colors.text }]}>Product Not Found</Text>
+        <Text style={[styles.centerSubText, { color: colors.textSecondary }]}>
+          {targetId ? `Could not find product details for SKU/ID: ${targetId}` : 'The requested product could not be loaded.'}
+        </Text>
+        <TouchableOpacity
+          style={[styles.backHomeBtn, { backgroundColor: colors.primary }]}
+          onPress={() => router.replace('/(tabs)')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.backHomeBtnText}>Browse All Products</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const isInStock = primaryVariant?.isInStock;
   const isTracked = product.autoCartEnabled ?? false;
@@ -615,5 +666,40 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '800',
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    gap: 12,
+  },
+  centerLoadingText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  centerTitleText: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  centerSubText: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  backHomeBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  backHomeBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
