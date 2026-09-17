@@ -191,7 +191,6 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
       const trackedMap = { ...get().trackedProductsMap };
       let hasTrackedUpdates = false;
-      const currentPincode = get().selectedPincode.pincode || '';
 
       const hydratedProducts = liveProducts.map((p) => {
         const isTracked = trackedMap[p.id] !== undefined;
@@ -242,7 +241,6 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
 
       const trackedMap = { ...get().trackedProductsMap };
       let hasTrackedUpdates = false;
-      const currentPincode = get().selectedPincode.pincode || '';
 
       const hydratedProducts = liveProducts.map((p) => {
         const isTracked = trackedMap[p.id] !== undefined;
@@ -284,7 +282,6 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       const categories = get().categories;
       const substoreId = get().selectedPincode.storeId || '66505ff5145c16635e6cc74d';
       const currentSlug = get().selectedCategory;
-      const currentPincode = get().selectedPincode.pincode || '';
 
       for (const cat of categories) {
         if (cat.slug === currentSlug) continue;
@@ -380,6 +377,15 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     set((state) => {
       const exists = state.pincodes.some((p) => p.pincode === pincode.pincode);
       if (exists) return state;
+
+      try {
+        const { useSubscriptionStore } = require('./useSubscriptionStore');
+        const canAdd = useSubscriptionStore.getState().checkGating('add_pincode', state.pincodes.length);
+        if (!canAdd) {
+          return state;
+        }
+      } catch (_e) {}
+
       const updated = [...state.pincodes, pincode];
       AsyncStorage.setItem(STORAGE_KEYS.PINCODES, JSON.stringify(updated)).catch(() => {});
       return {
@@ -473,6 +479,18 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       if (isCurrentlyTracked) {
         delete newTrackedMap[productId];
       } else {
+        // Enforce VIP gating if attempting to track more than 1 product on Free plan
+        try {
+          const { useSubscriptionStore } = require('./useSubscriptionStore');
+          const canTrack = useSubscriptionStore.getState().checkGating(
+            'track_product',
+            Object.keys(state.trackedProductsMap).length
+          );
+          if (!canTrack) {
+            return state;
+          }
+        } catch (_e) {}
+
         const targetProduct =
           productObj || state.products.find((p) => p.id === productId) || state.allProductsMap[productId];
         if (targetProduct) {

@@ -43,9 +43,27 @@ export default function ProductDetailsScreen() {
   const product =
     allProductsMap[targetId] ||
     trackedProductsMap[targetId] ||
-    products.find((p) => p.id === targetId || p.sku === targetId || p.alias === targetId || p.rawId === targetId) ||
-    Object.values(allProductsMap).find((p) => p.id === targetId || p.sku === targetId || p.alias === targetId || p.rawId === targetId) ||
-    Object.values(trackedProductsMap).find((p) => p.id === targetId || p.sku === targetId || p.alias === targetId || p.rawId === targetId) ||
+    products.find(
+      (p) =>
+        p.id === targetId ||
+        p.alias === targetId ||
+        p.rawId === targetId ||
+        p.variants?.some((v) => v.sku === targetId || v.id === targetId)
+    ) ||
+    Object.values(allProductsMap).find(
+      (p) =>
+        p.id === targetId ||
+        p.alias === targetId ||
+        p.rawId === targetId ||
+        p.variants?.some((v) => v.sku === targetId || v.id === targetId)
+    ) ||
+    Object.values(trackedProductsMap).find(
+      (p) =>
+        p.id === targetId ||
+        p.alias === targetId ||
+        p.rawId === targetId ||
+        p.variants?.some((v) => v.sku === targetId || v.id === targetId)
+    ) ||
     (products.length > 0 && !targetId ? products[0] : null);
 
   const primaryVariant = product?.variants?.[0];

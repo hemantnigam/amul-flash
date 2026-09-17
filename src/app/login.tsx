@@ -45,6 +45,54 @@ export default function LoginScreen() {
 
   const otpInputs = useRef<(any | null)[]>([]);
 
+  const handleVerifyOTP = async (customOtp?: string) => {
+    const code = customOtp || otp.join('');
+    if (code.length !== 6) {
+      Alert.alert('Incomplete Code', 'Please enter the full 6-digit OTP.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await AmulApiClient.verifyOTP(mobile, code);
+      setIsLoading(false);
+
+      if (res.success && res.sessionCookie) {
+        await login(mobile, res.sessionCookie, res.jwtToken, res.user?.name, res.user?._id);
+        analyticsService.logUserLogin(res.user?._id || mobile, mobile);
+        router.replace('/(tabs)');
+      } else {
+        Alert.alert('Verification Failed', 'Invalid OTP code. Please enter the OTP sent by Amul.');
+      }
+    } catch (e) {
+      setIsLoading(false);
+      Alert.alert('Verification Failed', 'Could not verify OTP. Please try again.');
+    }
+  };
+
+  const handleSendOTP = async () => {
+    const cleanNumber = mobile.replace(/\D/g, '');
+    if (cleanNumber.length !== 10) {
+      Alert.alert('Invalid Number', 'Please enter a valid 10-digit mobile number.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await AmulApiClient.sendOTP(cleanNumber);
+      setIsLoading(false);
+      if (res.success) {
+        setStep('otp');
+        setResendTimer(30);
+      } else {
+        Alert.alert('Notice', res.message || 'Failed to send OTP. Please try again.');
+      }
+    } catch (e) {
+      setIsLoading(false);
+      Alert.alert('Error', 'Unable to send OTP. Please check your network connection.');
+    }
+  };
+
   useEffect(() => {
     let interval: any;
     if (step === 'otp' && resendTimer > 0) {
@@ -80,29 +128,6 @@ export default function LoginScreen() {
       };
     }
   }, [step]);
-
-  const handleSendOTP = async () => {
-    const cleanNumber = mobile.replace(/\D/g, '');
-    if (cleanNumber.length !== 10) {
-      Alert.alert('Invalid Number', 'Please enter a valid 10-digit mobile number.');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const res = await AmulApiClient.sendOTP(cleanNumber);
-      setIsLoading(false);
-      if (res.success) {
-        setStep('otp');
-        setResendTimer(30);
-      } else {
-        Alert.alert('Notice', res.message || 'Failed to send OTP. Please try again.');
-      }
-    } catch (e) {
-      setIsLoading(false);
-      Alert.alert('Error', 'Unable to send OTP. Please check your network connection.');
-    }
-  };
 
   const handleOtpChange = (value: string, index: number) => {
     const cleanDigits = value.replace(/\D/g, '');
@@ -150,31 +175,6 @@ export default function LoginScreen() {
       if (fullOtp.length === 6) {
         handleVerifyOTP(fullOtp);
       }
-    }
-  };
-
-  const handleVerifyOTP = async (customOtp?: string) => {
-    const code = customOtp || otp.join('');
-    if (code.length !== 6) {
-      Alert.alert('Incomplete Code', 'Please enter the full 6-digit OTP.');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const res = await AmulApiClient.verifyOTP(mobile, code);
-      setIsLoading(false);
-
-      if (res.success && res.sessionCookie) {
-        await login(mobile, res.sessionCookie, res.jwtToken, res.user?.name, res.user?._id);
-        analyticsService.logUserLogin(res.user?._id || mobile, mobile);
-        router.replace('/(tabs)');
-      } else {
-        Alert.alert('Verification Failed', 'Invalid OTP code. Please enter the OTP sent by Amul.');
-      }
-    } catch (e) {
-      setIsLoading(false);
-      Alert.alert('Verification Failed', 'Could not verify OTP. Please try again.');
     }
   };
 

@@ -1,7 +1,6 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useStockStore } from '../store/useStockStore';
-import { NotificationService } from './notificationService';
 import { RestockEvent } from '../types/amul';
 
 const FCM_TOKEN_STORAGE_KEY = '@amul_fcm_token';
@@ -173,8 +172,6 @@ class FCMService {
 
     const pincode = data.pincode || useStockStore.getState().selectedPincode.pincode || '';
     const title = notification.title || data.title || '⚡ Amul Restock Alert!';
-    const body = notification.body || data.body || 'Tracked item is back in stock!';
-    const soundId = data.soundId || useStockStore.getState().selectedAlarmSoundId || 'digital_clock_beep';
 
     console.log('🚨 [FCMService] Incoming restock alert for productId:', productId, 'title:', title);
 

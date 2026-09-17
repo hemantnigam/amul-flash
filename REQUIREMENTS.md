@@ -21,7 +21,7 @@ The app adopts a **Utility-First & Volume-Gated Model**:
 
 ### 2.2 Feature Gating Matrix
 
-| Feature | 🆓 Free Tier (Default) | ⚡ Paid Pass (₹5 / Week) |
+| Feature | 🆓 Free Tier (Default) | ⚡ Paid Pass (₹7 / Week) |
 | :--- | :---: | :---: |
 | **Tracked Products** | Max 1 Product | **Unlimited Products** (Whey, Lassi, Paneer, etc.) |
 | **Monitored Pincodes** | Max 1 Pincode | **Multiple / Unlimited Pincodes** (Home, Office, Gym) |
@@ -32,9 +32,9 @@ The app adopts a **Utility-First & Volume-Gated Model**:
 | **1-Tap Quick Buy Overlay** | ✅ Included for all | ✅ Included for all |
 
 ### 2.3 Sachet / Micro-Pass Pricing Ladder (INR)
-- **1-Week Pass:** **₹5** *(Trial & single restock cycle)*
-- **1-Month Pass:** **₹19** *(₹4.75/week • Most Popular)*
-- **Payment Method:** Direct UPI Intent (PhonePe, Google Pay, Paytm, BHIM).
+- **1-Week Pass:** **₹7** *(Trial & single restock cycle)* — [Razorpay Checkout Link](https://rzp.io/rzp/ilpyAh9C)
+- **1-Month Pass:** **₹25** *(₹6.25/week • Most Popular)* — [Razorpay Checkout Link](https://rzp.io/rzp/MmT6Uxtd)
+- **Payment Method:** Direct Razorpay Checkout (UPI, Google Pay, PhonePe, Paytm, Cards & NetBanking).
 
 ---
 
@@ -67,13 +67,13 @@ The app adopts a **Utility-First & Volume-Gated Model**:
 ### 3.3 2-Day Pre-Expiry Push Reminder (Day 28 Notification)
 - When a user reaches **Day 28** (2 days before trial expiration), a high-priority system push notification is automatically sent:
   - **Title:** `⏳ Your Amul Flash VIP Trial ends in 2 days`
-  - **Body:** `Keep all your tracked items, multi-hub alerts, and restock stats active for just ₹5/week. Tap to extend!`
+  - **Body:** `Keep all your tracked items, multi-hub alerts, and restock stats active for just ₹7/week. Tap to extend!`
   - **Action:** Opens the Subscription Modal with 1-tap UPI payment.
 
 ### 3.4 Trial Expiration & Graceful Fallback (Day 30+)
 - If the trial expires without purchasing a pass:
   - User seamlessly transitions to the **Free Tier (1 Product, 1 Pincode)**.
-  - If multiple products were tracked, the app presents a clean picker asking which 1 favorite product they want to keep active, or allows renewing for ₹5.
+  - If multiple products were tracked, the app presents a clean picker asking which 1 favorite product they want to keep active, or allows renewing for ₹7.
 
 ---
 
@@ -165,5 +165,5 @@ CREATE TABLE public.restock_events (
 
 1. **Install & Login:** User verifies phone number via zero-click OTP. Device token registers to `phone_number`, and a 30-Day VIP Pass is automatically activated.
 2. **30-Day VIP Experience:** User tracks multiple products across multiple pincodes, views full graphical radar stats, and receives loud siren alarms.
-3. **Day 28 Push Reminder:** 2 days before trial ends, user receives a push notification to extend for ₹5/week.
-4. **Post-Trial Choice:** User unlocks ₹5 weekly pass (via UPI) or continues with 1 free product forever.
+3. **Day 28 Push Reminder:** 2 days before trial ends, user receives a push notification to extend for ₹7/week.
+4. **Post-Trial Choice:** User unlocks ₹7 weekly pass or ₹25 monthly pass (via UPI) or continues with 1 free product forever.

@@ -29,13 +29,16 @@ import {
   Sun,
   Moon,
   Smartphone,
+  BarChart2,
 } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
 import { useStockStore } from '../../store/useStockStore';
+import { useSubscriptionStore } from '../../store/useSubscriptionStore';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
 import { AlarmSoundSelectorModal } from '../../components/AlarmSoundSelectorModal';
 import { ThemeSelectorModal } from '../../components/ThemeSelectorModal';
+import { VipBadge } from '../../components/VipBadge';
 import { LOCAL_ALARM_SOUNDS } from '../../constants/alarmSounds';
 
 let UpdatesModule: any = null;
@@ -63,8 +66,9 @@ export default function AccountScreen() {
     selectedAlarmSoundId,
     alarmOverlayEnabled,
     setAlarmOverlayEnabled,
-    trackedProductsMap,
   } = useStockStore();
+
+  const { isVipActive, openPaywall } = useSubscriptionStore();
 
   const { colors, isDark, themeMode, systemColorScheme } = useAppTheme();
 
@@ -229,8 +233,90 @@ export default function AccountScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Subscription & VIP Pass Status */}
+        <Text style={[styles.groupHeading, { color: colors.textSecondary }]}>MEMBERSHIP & VIP ACCESS</Text>
+        <View style={{ marginBottom: 16 }}>
+          <VipBadge showUpgradeBtn />
+        </View>
+
         <Text style={[styles.groupHeading, { color: colors.textSecondary }]}>MY AMUL ACTIVITY</Text>
         <View style={[styles.cardGroup, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+
+          {/* Dedicated VIP Subscription Pass row - Only visible to users on Free plan */}
+          {!isVipActive && (
+            <TouchableOpacity
+              style={[styles.cardRow, { borderBottomColor: colors.border }]}
+              onPress={() => openPaywall('Upgrade to Amul Flash VIP Pass for unlimited tracking & Drop Intelligence.')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.rowLeft}>
+                <View style={[styles.iconBox, { backgroundColor: isDark ? '#451A03' : '#FEF3C7' }]}>
+                  <Zap size={18} color="#D97706" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.titleBadgeRow}>
+                    <Text style={[styles.rowTitle, { color: colors.text }]}>VIP Subscription Plans</Text>
+                  </View>
+                  <Text style={[styles.rowSub, { color: colors.textSecondary }]}>
+                    View 1-Week & 1-Month Passes • Unlock all features
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={[styles.cardRow, { borderBottomColor: colors.border }]}
+            onPress={() => {
+              if (isVipActive) {
+                router.push('/(tabs)/stats' as any);
+              } else {
+                openPaywall('Unlock Drop Intelligence, 24h peak restock histograms, and demand heatmaps with VIP Pass.');
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: isDark ? '#1E1B4B' : '#EEF2FF' }]}>
+                <BarChart2 size={18} color="#6366F1" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={styles.titleBadgeRow}>
+                  <Text style={[styles.rowTitle, { color: colors.text }]}>Drop Intelligence & Stats</Text>
+                  <View
+                    style={[
+                      styles.countBadge,
+                      {
+                        backgroundColor: isVipActive
+                          ? isDark
+                            ? '#1E1B4B'
+                            : '#EEF2FF'
+                          : isDark
+                          ? '#451A03'
+                          : '#FEF3C7',
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.countBadgeText,
+                        { color: isVipActive ? '#6366F1' : '#D97706' },
+                      ]}
+                    >
+                      {isVipActive ? 'RADAR' : 'VIP ONLY'}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={[styles.rowSub, { color: colors.textSecondary }]}>
+                  {isVipActive
+                    ? '24h restock histograms • Demand leaderboard • Weekly heatmaps'
+                    : 'Upgrade to VIP for 24h histograms & demand heatmaps'}
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color={colors.textMuted} />
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.cardRow, { borderBottomColor: colors.border }]}

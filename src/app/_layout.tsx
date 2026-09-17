@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -14,6 +14,8 @@ import { FullScreenAlarmOverlay } from '../components/FullScreenAlarmOverlay';
 import { useStockStore } from '../store/useStockStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { useAppTheme } from '../hooks/useAppTheme';
+import { SubscriptionModal } from '../components/SubscriptionModal';
+import { TrialExpiredPickerModal } from '../components/TrialExpiredPickerModal';
 
 import {
   useFonts,
@@ -36,35 +38,6 @@ try {
   expoNotificationsModule = require('expo-notifications');
 } catch (_e) {
   expoNotificationsModule = null;
-}
-
-function getFirebaseMessagingInstance(): any {
-  if (Platform.OS === 'web') return null;
-  try {
-    const mod = require('@react-native-firebase/messaging');
-    if (!mod) return null;
-    if (typeof mod.getMessaging === 'function') {
-      return mod.getMessaging();
-    }
-    if (mod.default && typeof mod.default.getMessaging === 'function') {
-      return mod.default.getMessaging();
-    }
-    if (typeof mod === 'function') {
-      return mod();
-    }
-    if (typeof mod.default === 'function') {
-      return mod.default();
-    }
-    if (typeof mod.onMessage === 'function') {
-      return mod;
-    }
-    if (mod.default && typeof mod.default.onMessage === 'function') {
-      return mod.default;
-    }
-    return null;
-  } catch (_e) {
-    return null;
-  }
 }
 
 export default function RootLayout() {
@@ -264,6 +237,8 @@ export default function RootLayout() {
         />
       </Stack>
       <FullScreenAlarmOverlay />
+      <SubscriptionModal />
+      <TrialExpiredPickerModal />
     </SafeAreaProvider>
   );
 }

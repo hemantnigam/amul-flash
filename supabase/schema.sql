@@ -48,7 +48,23 @@ ON public.tracked_subscriptions (product_id);
 CREATE INDEX idx_subs_phone_number 
 ON public.tracked_subscriptions (phone_number);
 
--- 4. Restock Events Table (Drop History & Analytics - Permanent Log)
+-- 4. User Subscriptions Table (30-Day VIP Trial & Paid Sachet Pass Management)
+CREATE TABLE public.user_subscriptions (
+    phone_number TEXT PRIMARY KEY,
+    plan_name TEXT NOT NULL DEFAULT '30_day_welcome_trial',
+    starts_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active', -- 'active', 'expired'
+    payment_id TEXT,
+    amount_paid INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_user_subs_status_expires 
+ON public.user_subscriptions (status, expires_at);
+
+-- 5. Restock Events Table (Drop History & Analytics - Permanent Log)
 CREATE TABLE public.restock_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     product_id TEXT NOT NULL,
@@ -69,6 +85,7 @@ ON public.restock_events (detected_at DESC);
 
 ALTER TABLE public.devices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tracked_subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.restock_events ENABLE ROW LEVEL SECURITY;
 
 -- Allow public insert and update for devices
@@ -87,6 +104,14 @@ TO anon, authenticated
 USING (true)
 WITH CHECK (true);
 
+-- Allow public access for user subscriptions (trial and paid passes)
+CREATE POLICY "Allow public access for user subscriptions"
+ON public.user_subscriptions
+FOR ALL
+TO anon, authenticated
+USING (true)
+WITH CHECK (true);
+
 -- Allow public read of restock events, and service role write
 CREATE POLICY "Allow public read of restock events"
 ON public.restock_events
@@ -99,3 +124,4 @@ ON public.restock_events
 FOR INSERT
 TO service_role
 WITH CHECK (true);
+

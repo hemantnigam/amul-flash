@@ -2,12 +2,14 @@ import React from 'react';
 import { Platform, Pressable } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Home, Radio, User } from 'lucide-react-native';
+import { Home, Radio, BarChart2, User } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
+import { useSubscriptionStore } from '../../store/useSubscriptionStore';
 import { useAppTheme } from '../../hooks/useAppTheme';
 
 export default function TabLayout() {
   const { session, isInitialized } = useSessionStore();
+  const { isVipActive } = useSubscriptionStore();
   const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
 
@@ -50,7 +52,7 @@ export default function TabLayout() {
           paddingVertical: 2,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '700',
           marginTop: 2,
         },
@@ -60,23 +62,32 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => <Home size={size || 22} color={color} />,
+          tabBarIcon: ({ color, size }) => <Home size={size || 20} color={color} />,
         }}
       />
       <Tabs.Screen
         name="tracked"
         options={{
           title: 'Tracked',
-          tabBarIcon: ({ color, size }) => <Radio size={size || 22} color={color} />,
+          tabBarIcon: ({ color, size }) => <Radio size={size || 20} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="stats"
+        options={{
+          title: 'Stats',
+          href: isVipActive ? ('/(tabs)/stats' as any) : null,
+          tabBarIcon: ({ color, size }) => <BarChart2 size={size || 20} color={color} />,
         }}
       />
       <Tabs.Screen
         name="more"
         options={{
           title: 'Account',
-          tabBarIcon: ({ color, size }) => <User size={size || 22} color={color} />,
+          tabBarIcon: ({ color, size }) => <User size={size || 20} color={color} />,
         }}
       />
     </Tabs>
   );
 }
+

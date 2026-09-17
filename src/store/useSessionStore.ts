@@ -107,8 +107,13 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           });
           get().loadUserData();
 
-          // Sync device and cloud-tracked products for verified user mobile number
+          // Sync device, cloud-tracked products, and VIP trial subscription for verified user mobile number
           if (parsed.mobile) {
+            try {
+              const { useSubscriptionStore } = require('./useSubscriptionStore');
+              useSubscriptionStore.getState().initSubscription(parsed.mobile);
+            } catch (_subErr) {}
+
             fcmService.getToken().then((token) => {
               if (token) {
                 supabaseService.registerDevice(token, parsed.mobile);
@@ -147,8 +152,13 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       await storageHelper.setItem(SECURE_STORE_KEY, JSON.stringify(newSession));
     } catch (e) {}
 
-    // Link device token to user mobile number and auto-sync tracked items
+    // Link device token, initialize 30-Day VIP pass, and auto-sync tracked items
     if (mobile) {
+      try {
+        const { useSubscriptionStore } = require('./useSubscriptionStore');
+        useSubscriptionStore.getState().initSubscription(mobile);
+      } catch (_subErr) {}
+
       fcmService.getToken().then((token) => {
         if (token) {
           supabaseService.registerDevice(token, mobile);

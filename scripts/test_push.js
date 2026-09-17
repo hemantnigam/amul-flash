@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const https = require('https');
 
 // 1. Load Firebase Service Account
 let serviceAccount = null;
