@@ -19,12 +19,15 @@ import {
   MapPin,
   Bell,
   ArrowRight,
+  Check,
 } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 import { useSubscriptionStore, RAZORPAY_PAYMENT_LINKS } from '../store/useSubscriptionStore';
 import { useSessionStore } from '../store/useSessionStore';
 import { useAppTheme } from '../hooks/useAppTheme';
 
 export const SubscriptionModal: React.FC = () => {
+  const router = useRouter();
   const { isPaywallVisible, paywallReason, closePaywall, verifySubscriptionStatus } = useSubscriptionStore();
   const { session } = useSessionStore();
   const { colors, isDark } = useAppTheme();
@@ -57,15 +60,17 @@ export const SubscriptionModal: React.FC = () => {
       setIsProcessing(false);
       if (isVerified) {
         setIsSuccess(true);
-        setTimeout(() => {
-          setIsSuccess(false);
-          closePaywall();
-        }, 1600);
       }
     } catch (err) {
       console.log('Payment error:', err);
       setIsProcessing(false);
     }
+  };
+
+  const handleDone = () => {
+    setIsSuccess(false);
+    closePaywall();
+    router.push('/(tabs)/more' as any);
   };
 
   return (
@@ -89,8 +94,12 @@ export const SubscriptionModal: React.FC = () => {
               <Text style={styles.headerTagText}>AMUL FLASH VIP PASS</Text>
             </View>
             <TouchableOpacity
-              onPress={closePaywall}
+              onPress={() => {
+                if (isSuccess) handleDone();
+                else closePaywall();
+              }}
               style={[styles.closeBtn, { backgroundColor: isDark ? '#27272A' : '#F1F5F9' }]}
+              activeOpacity={0.7}
             >
               <X size={18} color={colors.textSecondary} />
             </TouchableOpacity>
@@ -100,12 +109,77 @@ export const SubscriptionModal: React.FC = () => {
             {isSuccess ? (
               <View style={styles.successContainer}>
                 <View style={styles.successIconCircle}>
-                  <CheckCircle2 size={48} color="#10B981" />
+                  <CheckCircle2 size={44} color="#10B981" />
                 </View>
-                <Text style={[styles.successTitle, { color: colors.text }]}>VIP Pass Activated!</Text>
+                <Text style={[styles.successCongrats, { color: colors.primary }]}>Congratulations! 🎉</Text>
+                <Text style={[styles.successTitle, { color: colors.text }]}>VIP Membership Activated</Text>
                 <Text style={[styles.successSubtitle, { color: colors.textSecondary }]}>
-                  Unlimited product tracking, multi-pincode alerts, and drop intelligence unlocked.
+                  Thank you for subscribing! Your account now has full priority access to all flash restock tools.
                 </Text>
+
+                {/* Plan Receipt Card */}
+                <View
+                  style={[
+                    styles.receiptCard,
+                    {
+                      backgroundColor: isDark ? '#18181B' : '#F8FAFC',
+                      borderColor: '#10B981',
+                    },
+                  ]}
+                >
+                  <View style={styles.receiptTopRow}>
+                    <View>
+                      <Text style={[styles.receiptLabel, { color: colors.textSecondary }]}>PURCHASED PASS</Text>
+                      <Text style={[styles.receiptPlanName, { color: colors.text }]}>
+                        {selectedPlan === '1_month_pass' ? '1-Month VIP Pass' : '1-Week VIP Pass'}
+                      </Text>
+                    </View>
+                    <View style={styles.receiptActiveBadge}>
+                      <View style={styles.receiptActiveDot} />
+                      <Text style={styles.receiptActiveText}>ACTIVE</Text>
+                    </View>
+                  </View>
+
+                  <View style={[styles.receiptDivider, { borderTopColor: colors.border }]} />
+
+                  {/* Highlights */}
+                  <View style={styles.receiptBenefitsList}>
+                    <View style={styles.receiptBenefitRow}>
+                      <Check size={14} color="#10B981" />
+                      <Text style={[styles.receiptBenefitText, { color: colors.text }]}>
+                        Unlimited Product Tracking
+                      </Text>
+                    </View>
+                    <View style={styles.receiptBenefitRow}>
+                      <Check size={14} color="#10B981" />
+                      <Text style={[styles.receiptBenefitText, { color: colors.text }]}>
+                        Multi-Pincode Delivery Hub Alerts
+                      </Text>
+                    </View>
+                    <View style={styles.receiptBenefitRow}>
+                      <Check size={14} color="#10B981" />
+                      <Text style={[styles.receiptBenefitText, { color: colors.text }]}>
+                        Instant Restock Siren Notifications
+                      </Text>
+                    </View>
+                    <View style={styles.receiptBenefitRow}>
+                      <Check size={14} color="#10B981" />
+                      <Text style={[styles.receiptBenefitText, { color: colors.text }]}>
+                        Full Drop Intelligence & 24h Histograms
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Done Button */}
+                <TouchableOpacity
+                  style={[styles.doneButton, { backgroundColor: colors.primary }]}
+                  onPress={handleDone}
+                  activeOpacity={0.88}
+                >
+                  <Text style={styles.doneButtonText}>Done</Text>
+                  <ArrowRight size={18} color="#FFFFFF" />
+                </TouchableOpacity>
               </View>
             ) : (
               <>
@@ -514,26 +588,115 @@ const styles = StyleSheet.create({
   },
   successContainer: {
     alignItems: 'center',
-    paddingVertical: 40,
-    paddingHorizontal: 20,
+    paddingVertical: 24,
+    paddingHorizontal: 12,
   },
   successIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: '#ECFDF5',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  successCongrats: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+    textTransform: 'uppercase',
   },
   successTitle: {
     fontSize: 22,
     fontWeight: '900',
-    marginBottom: 8,
+    marginBottom: 6,
+    textAlign: 'center',
   },
   successSubtitle: {
     fontSize: 13,
     textAlign: 'center',
     lineHeight: 18,
+    marginBottom: 20,
+    paddingHorizontal: 8,
+  },
+  receiptCard: {
+    width: '100%',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    padding: 16,
+    marginBottom: 24,
+  },
+  receiptTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  receiptLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  receiptPlanName: {
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  receiptActiveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    gap: 4,
+  },
+  receiptActiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#16A34A',
+  },
+  receiptActiveText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#15803D',
+  },
+  receiptDivider: {
+    borderTopWidth: 1,
+    marginVertical: 12,
+  },
+  receiptBenefitsList: {
+    gap: 8,
+  },
+  receiptBenefitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  receiptBenefitText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  doneButton: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  doneButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
   },
 });

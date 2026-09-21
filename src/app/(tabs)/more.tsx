@@ -30,6 +30,8 @@ import {
   Moon,
   Smartphone,
   BarChart2,
+  Check,
+  CreditCard,
 } from 'lucide-react-native';
 import { useSessionStore } from '../../store/useSessionStore';
 import { useStockStore } from '../../store/useStockStore';
@@ -38,6 +40,7 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
 import { AlarmSoundSelectorModal } from '../../components/AlarmSoundSelectorModal';
 import { ThemeSelectorModal } from '../../components/ThemeSelectorModal';
+import { PaymentDetailsModal } from '../../components/PaymentDetailsModal';
 import { VipBadge } from '../../components/VipBadge';
 import { LOCAL_ALARM_SOUNDS } from '../../constants/alarmSounds';
 
@@ -75,6 +78,7 @@ export default function AccountScreen() {
   const [isPincodeModalVisible, setIsPincodeModalVisible] = useState(false);
   const [isSoundModalVisible, setIsSoundModalVisible] = useState(false);
   const [isThemeModalVisible, setIsThemeModalVisible] = useState(false);
+  const [isPaymentDetailsModalVisible, setIsPaymentDetailsModalVisible] = useState(false);
 
   const currentSound =
     LOCAL_ALARM_SOUNDS.find((s) => s.id === selectedAlarmSoundId) || LOCAL_ALARM_SOUNDS[0];
@@ -213,10 +217,17 @@ export default function AccountScreen() {
         }
       >
         <View style={[styles.userCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <View style={[styles.avatarCircle, { backgroundColor: colors.primary }]}>
-            <Text style={styles.avatarLetter}>
-              {displayName ? displayName.charAt(0).toUpperCase() : 'A'}
-            </Text>
+          <View style={styles.avatarWrapper}>
+            <View style={[styles.avatarCircle, { backgroundColor: colors.primary }]}>
+              <Text style={styles.avatarLetter}>
+                {displayName ? displayName.charAt(0).toUpperCase() : 'A'}
+              </Text>
+            </View>
+            {isVipActive && (
+              <View style={[styles.verifiedBadge, { borderColor: colors.surface }]}>
+                <Check size={11} color="#FFFFFF" strokeWidth={3} />
+              </View>
+            )}
           </View>
           <View style={styles.userTextCol}>
             <Text style={[styles.userName, { color: colors.text }]}>{displayName}</Text>
@@ -265,6 +276,28 @@ export default function AccountScreen() {
               <ChevronRight size={18} color={colors.textMuted} />
             </TouchableOpacity>
           )}
+
+          {/* Payment & Subscription Details Row */}
+          <TouchableOpacity
+            style={[styles.cardRow, { borderBottomColor: colors.border }]}
+            onPress={() => setIsPaymentDetailsModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: isDark ? '#1E293B' : '#EFF6FF' }]}>
+                <CreditCard size={18} color="#3B82F6" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={styles.titleBadgeRow}>
+                  <Text style={[styles.rowTitle, { color: colors.text }]}>Payment & Subscription Details</Text>
+                </View>
+                <Text style={[styles.rowSub, { color: colors.textSecondary }]}>
+                  View active plan dates, unlocked benefits & receipt
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color={colors.textMuted} />
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.cardRow, { borderBottomColor: colors.border }]}
@@ -537,6 +570,15 @@ export default function AccountScreen() {
         onClose={() => setIsThemeModalVisible(false)}
       />
 
+      <PaymentDetailsModal
+        visible={isPaymentDetailsModalVisible}
+        onClose={() => setIsPaymentDetailsModalVisible(false)}
+        onUpgrade={() => {
+          setIsPaymentDetailsModalVisible(false);
+          openPaywall('Upgrade to Amul Flash VIP Pass for unlimited tracking & Drop Intelligence.');
+        }}
+      />
+
       <Modal visible={isEditProfileVisible} transparent animationType="fade">
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -636,11 +678,26 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 12,
   },
+  avatarWrapper: {
+    position: 'relative',
+  },
   avatarCircle: {
     width: 48,
     height: 48,
     borderRadius: 24,
     backgroundColor: '#1D4ED8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  verifiedBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#2563EB',
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
