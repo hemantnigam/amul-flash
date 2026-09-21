@@ -187,7 +187,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       // Idempotency: Prevent duplicate execution if Razorpay retries same webhook
-      if (existingSub && existingSub.payment_id === paymentId && existingSub.status === 'active') {
+      if (existingSub && existingSub.payment_id === paymentId && new Date(existingSub.expires_at).getTime() > Date.now()) {
         console.log(`ℹ️ [RazorpayWebhook] Duplicate webhook received for payment ${paymentId}. Already active.`);
         return new Response(JSON.stringify({ success: true, message: 'Already processed (idempotent)' }), {
           status: 200,
@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
 
       const now = Date.now();
       let baseTime = now;
-      if (existingSub && existingSub.status === 'active' && new Date(existingSub.expires_at).getTime() > now) {
+      if (existingSub && new Date(existingSub.expires_at).getTime() > now) {
         baseTime = new Date(existingSub.expires_at).getTime();
       }
 
@@ -208,7 +208,6 @@ Deno.serve(async (req) => {
         plan_name: planName,
         starts_at: new Date().toISOString(),
         expires_at: expiresAt.toISOString(),
-        status: 'active',
         payment_id: paymentId,
         amount_paid: amountInRupees,
         updated_at: new Date().toISOString(),
@@ -248,7 +247,7 @@ Deno.serve(async (req) => {
     if (event === 'refund.created' || event === 'refund.processed') {
       console.log(`🔄 [RazorpayWebhook] Refund event received: ${event} for payment ${paymentId}`);
       if (phoneNumber) {
-        // If full refund on active plan, expire subscription
+        // If full refund on active plan, expire subscription by setting expires_at to now
         const { data: currentSub } = await supabaseAdmin
           .from('user_subscriptions')
           .select('*')
@@ -258,7 +257,7 @@ Deno.serve(async (req) => {
         if (currentSub && currentSub.payment_id === paymentId) {
           await supabaseAdmin
             .from('user_subscriptions')
-            .update({ status: 'expired', updated_at: new Date().toISOString() })
+            .update({ expires_at: new Date().toISOString(), updated_at: new Date().toISOString() })
             .eq('phone_number', phoneNumber);
           console.log(`⚠️ [RazorpayWebhook] Expired subscription for ${phoneNumber} due to refund.`);
         }

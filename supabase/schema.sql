@@ -54,15 +54,14 @@ CREATE TABLE public.user_subscriptions (
     plan_name TEXT NOT NULL DEFAULT '30_day_welcome_trial',
     starts_at TIMESTAMPTZ DEFAULT NOW(),
     expires_at TIMESTAMPTZ NOT NULL,
-    status TEXT NOT NULL DEFAULT 'active', -- 'active', 'expired'
     payment_id TEXT,
     amount_paid INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_user_subs_status_expires 
-ON public.user_subscriptions (status, expires_at);
+CREATE INDEX idx_user_subs_expires_at 
+ON public.user_subscriptions (expires_at);
 
 -- 5. Restock Events Table (Drop History & Analytics - Permanent Log)
 CREATE TABLE public.restock_events (

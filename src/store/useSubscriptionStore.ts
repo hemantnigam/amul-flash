@@ -295,7 +295,6 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     if (!current) return;
     const expiredSub: UserSubscriptionRecord = {
       ...current,
-      status: 'expired',
       expires_at: new Date(Date.now() - 1000 * 60).toISOString(),
     };
     const metrics = computeSubscriptionMetrics(expiredSub);

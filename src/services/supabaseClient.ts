@@ -339,7 +339,6 @@ export const supabaseService = {
         plan_name: '30_day_welcome_trial',
         starts_at: startsAt.toISOString(),
         expires_at: expiresAt.toISOString(),
-        status: 'active',
         payment_id: 'welcome_gift_trial',
         amount_paid: 0,
       };
@@ -416,7 +415,6 @@ export const supabaseService = {
         plan_name: planName,
         starts_at: startsAt.toISOString(),
         expires_at: expiresAt.toISOString(),
-        status: 'active',
         payment_id: paymentId,
         amount_paid: amountPaid,
         updated_at: new Date().toISOString(),
@@ -753,7 +751,6 @@ export interface UserSubscriptionRecord {
   plan_name: '30_day_welcome_trial' | '1_week_pass' | '1_month_pass' | 'free';
   starts_at: string;
   expires_at: string;
-  status?: string;
   payment_id?: string;
   amount_paid?: number;
   created_at?: string;
