@@ -13,6 +13,7 @@ import { AppTextInput as TextInput } from './AppTextInput';
 import { Check, Plus, X, Navigation, Trash2, ShieldCheck } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStockStore } from '../store/useStockStore';
+import { useSubscriptionStore } from '../store/useSubscriptionStore';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { PincodeLocation } from '../types/amul';
 
@@ -37,8 +38,24 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
     onClose();
   };
 
+  const handleAddToggle = () => {
+    const { isVipActive, checkGating } = useSubscriptionStore.getState();
+    if (!isVipActive && pincodes.length >= 1) {
+      checkGating('add_pincode', pincodes.length);
+      return;
+    }
+    setShowAddForm(true);
+  };
+
   const handleAddLocation = () => {
     if (newPincode.trim().length === 6) {
+      const { checkGating } = useSubscriptionStore.getState();
+      const canAdd = checkGating('add_pincode', pincodes.length);
+      if (!canAdd) {
+        setShowAddForm(false);
+        return;
+      }
+
       const added: PincodeLocation = {
         pincode: newPincode.trim(),
         label: newLabel.trim() || `Location ${newPincode}`,
@@ -156,7 +173,7 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
               {!showAddForm ? (
                 <TouchableOpacity
                   style={[styles.addToggleBtn, { borderColor: colors.primary }]}
-                  onPress={() => setShowAddForm(true)}
+                  onPress={handleAddToggle}
                   activeOpacity={0.7}
                 >
                   <Plus size={18} color={colors.primary} />

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react-native';
 import { useStockStore } from '../store/useStockStore';
 import { useSessionStore } from '../store/useSessionStore';
+import { useSubscriptionStore } from '../store/useSubscriptionStore';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { PincodeLocation } from '../types/amul';
 import { analyticsService } from '../services/analyticsService';
@@ -49,6 +50,12 @@ export default function LocationsScreen() {
 
   const handleAdd = () => {
     if (newPincode.trim().length === 6) {
+      const { checkGating } = useSubscriptionStore.getState();
+      const canAdd = checkGating('add_pincode', pincodes.length);
+      if (!canAdd) {
+        return;
+      }
+
       const added: PincodeLocation = {
         pincode: newPincode.trim(),
         label: newLabel.trim() || `Location ${newPincode}`,

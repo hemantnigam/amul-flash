@@ -151,6 +151,9 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
             subscription: parsed,
             ...metrics,
           });
+          if (!metrics.isVipActive) {
+            useStockStore.getState().prunePincodesForFreeUser();
+          }
         } catch (_e) {}
       }
 
@@ -174,6 +177,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
             stockStore.pruneTrackedProducts([keepKey]);
             supabaseService.pruneUserTrackedProducts(phoneNumber, [keepKey]);
           }
+          stockStore.prunePincodesForFreeUser();
         }
       } else {
         set({ isLoading: false });
@@ -195,6 +199,9 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
           subscription: cloudSub,
           ...metrics,
         });
+        if (!metrics.isVipActive) {
+          useStockStore.getState().prunePincodesForFreeUser();
+        }
         await AsyncStorage.setItem(`${STORAGE_KEY_SUBSCRIPTION}_${cleanKey}`, JSON.stringify(cloudSub)).catch(() => {});
         return metrics.isVipActive;
       }

@@ -53,6 +53,7 @@ interface StockStoreState {
   addActivityLog: (log: Omit<ActivityLog, 'id' | 'timestamp'>) => void;
   syncCloudTrackedProductsForUser: (phoneNumber: string) => Promise<void>;
   pruneTrackedProducts: (allowedIds: string[]) => void;
+  prunePincodesForFreeUser: () => void;
   refreshStock: (sessionCookie?: string) => Promise<void>;
   fetchAllCategoriesProducts: (sessionCookie?: string) => Promise<void>;
 }
@@ -132,6 +133,18 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
             selectedPincode = parsedSelected;
           }
         } catch (_e) {}
+      }
+
+      let isVip = false;
+      try {
+        const { useSubscriptionStore } = require('./useSubscriptionStore');
+        isVip = useSubscriptionStore.getState().isVipActive;
+      } catch (_e) {}
+
+      if (!isVip && pincodes.length > 1) {
+        const primaryPin = pincodes.find((p) => p.isSavedAddress) || pincodes.find((p) => p.isDefault) || pincodes[0];
+        pincodes = [primaryPin];
+        selectedPincode = primaryPin;
       }
 
       // Seed radar stock tracker with loaded preferences
@@ -416,6 +429,12 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
   syncPincodesFromAddresses: (addresses: any[]) => {
     if (!addresses || addresses.length === 0) return;
 
+    let isVip = false;
+    try {
+      const { useSubscriptionStore } = require('./useSubscriptionStore');
+      isVip = useSubscriptionStore.getState().isVipActive;
+    } catch (_e) {}
+
     const currentPincodes = get().pincodes;
     const userPincodes: PincodeLocation[] = [];
 
@@ -442,6 +461,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
             address: fullAddress || `Delivery Hub for ${pinStr}`,
             storeId: addr.storeId || '66505ff5145c16635e6cc74d',
             isDefault: Boolean(addr.isDefault) || idx === 0,
+            isSavedAddress: true,
             serviceable: true,
             distanceKm: 0,
           });
@@ -450,23 +470,31 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     });
 
     if (userPincodes.length > 0) {
-      const customPincodes = currentPincodes.filter(
-        (p) => !p.isSavedAddress && !userPincodes.some((u) => u.pincode === p.pincode)
-      );
-      const combined = [...userPincodes, ...customPincodes];
+      let finalPincodes: PincodeLocation[] = [];
+
+      if (!isVip) {
+        // Free user can only track 1 pincode: strictly keep primary saved address
+        const primarySaved = userPincodes.find((p) => p.isDefault) || userPincodes[0];
+        finalPincodes = [primarySaved];
+      } else {
+        const customPincodes = currentPincodes.filter(
+          (p) => !p.isSavedAddress && !userPincodes.some((u) => u.pincode === p.pincode)
+        );
+        finalPincodes = [...userPincodes, ...customPincodes];
+      }
 
       let currentSelected = get().selectedPincode;
-      const isSelectedValid = currentSelected?.pincode && combined.some((p) => p.pincode === currentSelected.pincode);
+      const isSelectedValid = currentSelected?.pincode && finalPincodes.some((p) => p.pincode === currentSelected.pincode);
 
       const targetSelected = isSelectedValid
-        ? combined.find((p) => p.pincode === currentSelected.pincode)!
-        : (combined.find((p) => p.isDefault) || combined[0]);
+        ? finalPincodes.find((p) => p.pincode === currentSelected.pincode)!
+        : (finalPincodes.find((p) => p.isDefault) || finalPincodes[0]);
 
-      AsyncStorage.setItem(STORAGE_KEYS.PINCODES, JSON.stringify(combined)).catch(() => {});
+      AsyncStorage.setItem(STORAGE_KEYS.PINCODES, JSON.stringify(finalPincodes)).catch(() => {});
       AsyncStorage.setItem(STORAGE_KEYS.SELECTED_PINCODE, JSON.stringify(targetSelected)).catch(() => {});
 
       set({
-        pincodes: combined,
+        pincodes: finalPincodes,
         selectedPincode: targetSelected,
       });
     }
@@ -795,6 +823,24 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
       products: updatedProducts,
       allProductsMap: updatedAllMap,
     });
+  },
+
+  prunePincodesForFreeUser: () => {
+    const state = get();
+    if (state.pincodes.length <= 1) return;
+
+    // Prefer saved address (or default), fallback to first
+    const primaryPin = state.pincodes.find((p) => p.isSavedAddress) || state.pincodes.find((p) => p.isDefault) || state.pincodes[0];
+    const newPincodes = [primaryPin];
+
+    AsyncStorage.setItem(STORAGE_KEYS.PINCODES, JSON.stringify(newPincodes)).catch(() => {});
+    AsyncStorage.setItem(STORAGE_KEYS.SELECTED_PINCODE, JSON.stringify(primaryPin)).catch(() => {});
+
+    set({
+      pincodes: newPincodes,
+      selectedPincode: primaryPin,
+    });
+    console.log(`📍 [useStockStore] Pruned pincodes for Free User to single location: ${primaryPin.pincode}`);
   },
 
   refreshStock: async (sessionCookie?: string) => {
