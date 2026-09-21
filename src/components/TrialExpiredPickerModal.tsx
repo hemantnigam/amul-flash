@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,14 +7,14 @@ import {
   ScrollView,
 } from 'react-native';
 import { AppText as Text } from './AppText';
-import { ShieldAlert, Check, Zap, ArrowRight } from 'lucide-react-native';
+import { ShieldAlert, Check, Zap, ArrowRight, X } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { useStockStore } from '../store/useStockStore';
 import { useSubscriptionStore } from '../store/useSubscriptionStore';
 import { useAppTheme } from '../hooks/useAppTheme';
 
 export const TrialExpiredPickerModal: React.FC = () => {
-  const { isTrialExpiredPickerVisible, resolveExpiredTrackedItems, openPaywall } = useSubscriptionStore();
+  const { isTrialExpiredPickerVisible, resolveExpiredTrackedItems, openPaywall, setTrialExpiredPickerVisible } = useSubscriptionStore();
   const { trackedProductsMap } = useStockStore();
   const { colors, isDark } = useAppTheme();
 
@@ -23,17 +23,36 @@ export const TrialExpiredPickerModal: React.FC = () => {
     trackedList[0]?.id || ''
   );
 
+  useEffect(() => {
+    if (trackedList.length > 0 && (!selectedProductId || !trackedProductsMap[selectedProductId])) {
+      setSelectedProductId(trackedList[0].id);
+    }
+  }, [trackedList, selectedProductId, trackedProductsMap]);
+
   if (!isTrialExpiredPickerVisible || trackedList.length <= 1) {
     return null;
   }
 
   const handleConfirmChoice = () => {
-    if (selectedProductId) {
-      resolveExpiredTrackedItems(selectedProductId);
+    const targetId = selectedProductId || trackedList[0]?.id;
+    if (targetId) {
+      resolveExpiredTrackedItems(targetId);
+    } else {
+      setTrialExpiredPickerVisible(false);
+    }
+  };
+
+  const handleClose = () => {
+    const targetId = selectedProductId || trackedList[0]?.id;
+    if (targetId) {
+      resolveExpiredTrackedItems(targetId);
+    } else {
+      setTrialExpiredPickerVisible(false);
     }
   };
 
   const handleUpgradeInstead = () => {
+    setTrialExpiredPickerVisible(false);
     openPaywall('Renew VIP Pass for ₹7/week to keep all your tracked items & drop intelligence active.');
   };
 
@@ -42,6 +61,7 @@ export const TrialExpiredPickerModal: React.FC = () => {
       visible={isTrialExpiredPickerVisible}
       transparent
       animationType="fade"
+      onRequestClose={handleClose}
     >
       <View style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}>
         <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -56,6 +76,13 @@ export const TrialExpiredPickerModal: React.FC = () => {
                 Free Tier tracks 1 product. Choose your active item:
               </Text>
             </View>
+            <TouchableOpacity
+              onPress={handleClose}
+              style={[styles.closeBtn, { backgroundColor: isDark ? '#27272A' : '#F1F5F9' }]}
+              activeOpacity={0.7}
+            >
+              <X size={16} color={colors.textSecondary} />
+            </TouchableOpacity>
           </View>
 
           {/* List of tracked products with radio picker */}
@@ -262,5 +289,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
+  },
+  closeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

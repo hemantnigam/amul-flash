@@ -165,12 +165,14 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
         });
         await AsyncStorage.setItem(`${STORAGE_KEY_SUBSCRIPTION}_${cleanKey}`, JSON.stringify(cloudSub)).catch(() => {});
 
-        // 3. If trial is expired and user has >1 products tracked, trigger resolution modal
+        // 3. If trial/VIP is expired and user has >1 products tracked, enforce 1-product limit and prune in cloud
         if (!metrics.isVipActive) {
           const stockStore = useStockStore.getState();
-          const trackedCount = Object.keys(stockStore.trackedProductsMap).length;
-          if (trackedCount > 1) {
-            set({ isTrialExpiredPickerVisible: true });
+          const trackedKeys = Object.keys(stockStore.trackedProductsMap);
+          if (trackedKeys.length > 1) {
+            const keepKey = trackedKeys[0];
+            stockStore.pruneTrackedProducts([keepKey]);
+            supabaseService.pruneUserTrackedProducts(phoneNumber, [keepKey]);
           }
         }
       } else {
@@ -312,16 +314,14 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     set({ isTrialExpiredPickerVisible: visible });
   },
 
-  resolveExpiredTrackedItems: async (keepProductId, _phoneNumber) => {
+  resolveExpiredTrackedItems: async (keepProductId, phoneNumber) => {
     const stockStore = useStockStore.getState();
-    const trackedMap = { ...stockStore.trackedProductsMap };
+    const activePhone = phoneNumber || get().subscription?.phone_number;
 
-    // Keep only the selected product, remove others
-    Object.keys(trackedMap).forEach((id) => {
-      if (id !== keepProductId) {
-        stockStore.toggleAutoCartForProduct(id);
-      }
-    });
+    stockStore.pruneTrackedProducts([keepProductId]);
+    if (activePhone) {
+      await supabaseService.pruneUserTrackedProducts(activePhone, [keepProductId]);
+    }
 
     set({ isTrialExpiredPickerVisible: false });
   },

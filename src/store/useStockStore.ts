@@ -52,6 +52,7 @@ interface StockStoreState {
   setSelectedAlarmSoundId: (soundId: string) => void;
   addActivityLog: (log: Omit<ActivityLog, 'id' | 'timestamp'>) => void;
   syncCloudTrackedProductsForUser: (phoneNumber: string) => Promise<void>;
+  pruneTrackedProducts: (allowedIds: string[]) => void;
   refreshStock: (sessionCookie?: string) => Promise<void>;
   fetchAllCategoriesProducts: (sessionCookie?: string) => Promise<void>;
 }
@@ -709,10 +710,23 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
     try {
       const cloudSubs = await supabaseService.fetchUserTrackedProducts(phoneNumber);
       if (cloudSubs && cloudSubs.length > 0) {
+        let isVip = false;
+        try {
+          const { useSubscriptionStore } = require('./useSubscriptionStore');
+          isVip = useSubscriptionStore.getState().isVipActive;
+        } catch (_e) {}
+
+        // If free tier, only allow at most 1 product
+        const allowedSubs = isVip ? cloudSubs : cloudSubs.slice(0, 1);
+        if (!isVip && cloudSubs.length > 1) {
+          // Prune extra products from Supabase
+          supabaseService.pruneUserTrackedProducts(phoneNumber, [allowedSubs[0].product_id]);
+        }
+
         const trackedMap = { ...get().trackedProductsMap };
         let hasUpdates = false;
 
-        for (const sub of cloudSubs) {
+        for (const sub of allowedSubs) {
           if (!trackedMap[sub.product_id]) {
             const existingProd = get().allProductsMap[sub.product_id] || get().products.find((p) => p.id === sub.product_id);
             const prod: AmulProduct = existingProd || {
@@ -729,15 +743,58 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
           }
         }
 
-        if (hasUpdates) {
+        // If not VIP and trackedMap has more than 1 item, prune locally
+        if (!isVip && Object.keys(trackedMap).length > 1) {
+          const keepKey = allowedSubs[0]?.product_id || Object.keys(trackedMap)[0];
+          const singleTrackedMap: Record<string, AmulProduct> = { [keepKey]: trackedMap[keepKey] };
+          await AsyncStorage.setItem(STORAGE_KEYS.TRACKED_PRODUCTS, JSON.stringify(singleTrackedMap)).catch(() => {});
+          set({ trackedProductsMap: singleTrackedMap });
+        } else if (hasUpdates) {
           await AsyncStorage.setItem(STORAGE_KEYS.TRACKED_PRODUCTS, JSON.stringify(trackedMap)).catch(() => {});
           set({ trackedProductsMap: trackedMap });
-          console.log(`☁️ [useStockStore] Restored ${cloudSubs.length} tracked items from cloud for user ${phoneNumber}`);
+          console.log(`☁️ [useStockStore] Restored ${allowedSubs.length} tracked items from cloud for user ${phoneNumber}`);
         }
       }
     } catch (err) {
       console.log('⚠️ [useStockStore] Error syncing cloud tracked products:', err);
     }
+  },
+
+  pruneTrackedProducts: (allowedIds: string[]) => {
+    const state = get();
+    const newTrackedMap: Record<string, AmulProduct> = {};
+
+    Object.entries(state.trackedProductsMap).forEach(([id, prod]) => {
+      if (allowedIds.includes(id)) {
+        newTrackedMap[id] = prod;
+      } else {
+        // Unsubscribe from FCM topic
+        const activePin = state.selectedPincode.pincode || 'all';
+        const topic = fcmService.getTopicName(activePin, id);
+        fcmService.unsubscribeFromTopic(topic);
+      }
+    });
+
+    AsyncStorage.setItem(STORAGE_KEYS.TRACKED_PRODUCTS, JSON.stringify(newTrackedMap)).catch(() => {});
+
+    const updatedProducts = state.products.map((p) => ({
+      ...p,
+      autoCartEnabled: !!newTrackedMap[p.id],
+    }));
+
+    const updatedAllMap = { ...state.allProductsMap };
+    Object.keys(updatedAllMap).forEach((id) => {
+      updatedAllMap[id] = {
+        ...updatedAllMap[id],
+        autoCartEnabled: !!newTrackedMap[id],
+      };
+    });
+
+    set({
+      trackedProductsMap: newTrackedMap,
+      products: updatedProducts,
+      allProductsMap: updatedAllMap,
+    });
   },
 
   refreshStock: async (sessionCookie?: string) => {

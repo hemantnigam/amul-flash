@@ -206,10 +206,14 @@ export const supabaseService = {
   async fetchUserTrackedProducts(phoneNumber: string): Promise<any[]> {
     if (!supabase || !phoneNumber) return [];
     try {
+      const cleanDigits = phoneNumber.replace(/[^0-9]/g, '');
+      const last10 = cleanDigits.slice(-10);
+      const withPrefix = `+91${last10}`;
+
       const { data, error } = await supabase
         .from('tracked_subscriptions')
         .select('*')
-        .eq('phone_number', phoneNumber)
+        .or(`phone_number.eq.${last10},phone_number.eq.${withPrefix},phone_number.eq.91${last10}`)
         .eq('is_active', true);
 
       if (error) {
@@ -220,6 +224,48 @@ export const supabaseService = {
     } catch (e) {
       console.log('⚠️ [SupabaseService] fetchUserTrackedProducts exception:', e);
       return [];
+    }
+  },
+
+  /**
+   * Deactivate all excess tracked products in Supabase for a free-tier/expired user, keeping only the allowed product IDs
+   */
+  async pruneUserTrackedProducts(phoneNumber: string, keepProductIds: string[]): Promise<boolean> {
+    if (!supabase || !phoneNumber) return false;
+    try {
+      const cleanDigits = phoneNumber.replace(/[^0-9]/g, '');
+      const last10 = cleanDigits.slice(-10);
+      const withPrefix = `+91${last10}`;
+
+      // Fetch all active products for user
+      const { data: allActive } = await supabase
+        .from('tracked_subscriptions')
+        .select('id, product_id')
+        .or(`phone_number.eq.${last10},phone_number.eq.${withPrefix},phone_number.eq.91${last10}`)
+        .eq('is_active', true);
+
+      if (!allActive || allActive.length === 0) return true;
+
+      const idsToDeactivate = allActive
+        .filter((row) => !keepProductIds.includes(row.product_id))
+        .map((row) => row.id);
+
+      if (idsToDeactivate.length > 0) {
+        const { error } = await supabase
+          .from('tracked_subscriptions')
+          .update({ is_active: false, updated_at: new Date().toISOString() })
+          .in('id', idsToDeactivate);
+
+        if (error) {
+          console.log('⚠️ [SupabaseService] pruneUserTrackedProducts error:', error.message);
+          return false;
+        }
+        console.log(`🧹 [SupabaseService] Deactivated ${idsToDeactivate.length} excess tracked items in cloud for free user ${phoneNumber}`);
+      }
+      return true;
+    } catch (e) {
+      console.log('⚠️ [SupabaseService] pruneUserTrackedProducts exception:', e);
+      return false;
     }
   },
 
