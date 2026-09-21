@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -18,7 +18,8 @@ import {
   BellRing,
   ArrowRight,
 } from 'lucide-react-native';
-import { useSubscriptionStore } from '../store/useSubscriptionStore';
+import { useSubscriptionStore, parseFlexibleDate } from '../store/useSubscriptionStore';
+import { useSessionStore } from '../store/useSessionStore';
 import { useAppTheme } from '../hooks/useAppTheme';
 
 interface PaymentDetailsModalProps {
@@ -41,18 +42,31 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
     isPaymentDetailsVisible,
     closePaymentDetails,
     openPaywall,
+    verifySubscriptionStatus,
   } = useSubscriptionStore();
+  const { session, userProfile } = useSessionStore();
   const { colors, isDark } = useAppTheme();
 
   const isModalVisible = visible !== undefined ? visible : isPaymentDetailsVisible;
   const handleClose = onClose || closePaymentDetails;
+
+  useEffect(() => {
+    if (isModalVisible) {
+      const activeMobile = session?.mobile || userProfile?.phone;
+      if (activeMobile) {
+        verifySubscriptionStatus(activeMobile);
+      }
+    }
+  }, [isModalVisible, session?.mobile, userProfile?.phone, verifySubscriptionStatus]);
 
   if (!isModalVisible) return null;
 
   const formatDate = (isoDate?: string) => {
     if (!isoDate) return 'N/A';
     try {
-      const d = new Date(isoDate);
+      const ts = parseFlexibleDate(isoDate);
+      if (!ts) return String(isoDate);
+      const d = new Date(ts);
       if (isNaN(d.getTime())) return String(isoDate);
       return d.toLocaleDateString('en-IN', {
         day: 'numeric',

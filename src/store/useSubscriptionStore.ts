@@ -40,24 +40,49 @@ export interface SubscriptionState {
   simulateTrialExpiration: () => void; // Development/testing helper
 }
 
-function parseFlexibleDate(dateInput?: string | number | null): number {
+export function parseFlexibleDate(dateInput?: string | number | null): number {
   if (!dateInput) return 0;
   if (typeof dateInput === 'number') return dateInput;
   const str = String(dateInput).trim();
-  const parsed = new Date(str).getTime();
-  if (!isNaN(parsed) && parsed > 0) return parsed;
-  const ddmmyyyy = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/;
-  const match = str.match(ddmmyyyy);
-  if (match) {
-    const day = parseInt(match[1], 10);
-    const month = parseInt(match[2], 10) - 1;
-    const year = parseInt(match[3], 10);
+  if (!str) return 0;
+
+  // 1. Direct standard parse
+  let ts = new Date(str).getTime();
+  if (!isNaN(ts) && ts > 0) return ts;
+
+  // 2. Fix PostgreSQL timestamp format like '2026-09-20 18:30:00+00' -> '2026-09-20T18:30:00+00:00'
+  let isoFix = str.replace(' ', 'T');
+  if (/[+-]\d{2}$/.test(isoFix)) {
+    isoFix = isoFix + ':00'; // '+00' -> '+00:00'
+  }
+  ts = new Date(isoFix).getTime();
+  if (!isNaN(ts) && ts > 0) return ts;
+
+  // 3. Match DD-MM-YYYY or DD/MM/YYYY or DD-MM-YY or DD/MM/YY
+  const ddmmyy = /^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/;
+  const m1 = str.match(ddmmyy);
+  if (m1) {
+    const day = parseInt(m1[1], 10);
+    const month = parseInt(m1[2], 10) - 1;
+    let year = parseInt(m1[3], 10);
+    if (year < 100) year = 2000 + year;
     return new Date(year, month, day, 23, 59, 59).getTime();
   }
+
+  // 4. Match YYYY-MM-DD or YYYY/MM/DD
+  const yyyymmdd = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/;
+  const m2 = str.match(yyyymmdd);
+  if (m2) {
+    const year = parseInt(m2[1], 10);
+    const month = parseInt(m2[2], 10) - 1;
+    const day = parseInt(m2[3], 10);
+    return new Date(year, month, day, 23, 59, 59).getTime();
+  }
+
   return 0;
 }
 
-function computeSubscriptionMetrics(sub: UserSubscriptionRecord | null) {
+export function computeSubscriptionMetrics(sub: UserSubscriptionRecord | null) {
   if (!sub) {
     return {
       isVipActive: false,
@@ -73,10 +98,21 @@ function computeSubscriptionMetrics(sub: UserSubscriptionRecord | null) {
   const diffMs = expiryTime - now;
   const days = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
   
-  // Active purely when current time is within [starts_at, expires_at] and expires_at is in the future
+  // Active purely when current time is within [starts_at, expires_at] and expires_at is strictly in the future
   const isActive = expiryTime > 0 && diffMs > 0 && (!startTime || now >= startTime);
   const isTrial = isActive && sub.plan_name === '30_day_welcome_trial';
   const isExpiringSoon = isActive && isTrial && days <= 2 && days > 0;
+
+  console.log('📊 [computeSubscriptionMetrics]', {
+    plan: sub.plan_name,
+    starts_at: sub.starts_at,
+    expires_at: sub.expires_at,
+    parsedExpiry: expiryTime > 0 ? new Date(expiryTime).toISOString() : 'invalid',
+    now: new Date(now).toISOString(),
+    diffMs,
+    isActive,
+    daysRemaining: days,
+  });
 
   return {
     isVipActive: isActive,

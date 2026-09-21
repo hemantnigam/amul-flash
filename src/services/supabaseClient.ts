@@ -319,15 +319,16 @@ export const supabaseService = {
       const last10 = cleanDigits.slice(-10);
       const withPrefix = `+91${last10}`;
 
-      // 1. Try to fetch existing subscription
-      const { data: existing } = await supabase
+      // 1. Try to fetch existing subscription (resilient to multiple formats)
+      const { data, error } = await supabase
         .from('user_subscriptions')
         .select('*')
-        .or(`phone_number.eq.${last10},phone_number.eq.${withPrefix}`)
-        .maybeSingle();
+        .or(`phone_number.eq.${last10},phone_number.eq.${withPrefix},phone_number.eq.91${last10}`)
+        .order('updated_at', { ascending: false })
+        .limit(1);
 
-      if (existing) {
-        return existing as UserSubscriptionRecord;
+      if (!error && data && data.length > 0) {
+        return data[0] as UserSubscriptionRecord;
       }
 
       // 2. Not found: Provision new 30-Day VIP Welcome Trial
@@ -374,14 +375,15 @@ export const supabaseService = {
       const { data, error } = await supabase
         .from('user_subscriptions')
         .select('*')
-        .or(`phone_number.eq.${last10},phone_number.eq.${withPrefix}`)
-        .maybeSingle();
+        .or(`phone_number.eq.${last10},phone_number.eq.${withPrefix},phone_number.eq.91${last10}`)
+        .order('updated_at', { ascending: false })
+        .limit(1);
 
-      if (error) {
-        console.log('⚠️ [SupabaseService] fetchUserSubscription error:', error.message);
+      if (error || !data || data.length === 0) {
+        if (error) console.log('⚠️ [SupabaseService] fetchUserSubscription error:', error.message);
         return null;
       }
-      return data as UserSubscriptionRecord;
+      return data[0] as UserSubscriptionRecord;
     } catch (e) {
       return null;
     }
@@ -398,6 +400,9 @@ export const supabaseService = {
   ): Promise<UserSubscriptionRecord | null> {
     if (!supabase || !phoneNumber) return null;
     try {
+      const cleanDigits = phoneNumber.replace(/[^0-9]/g, '');
+      const last10 = cleanDigits.slice(-10);
+
       const startsAt = new Date();
       const durationDays = planName === '1_week_pass' ? 7 : 30;
       
@@ -411,7 +416,7 @@ export const supabaseService = {
       const expiresAt = new Date(baseTime + durationDays * 24 * 60 * 60 * 1000);
 
       const payload = {
-        phone_number: phoneNumber,
+        phone_number: last10,
         plan_name: planName,
         starts_at: startsAt.toISOString(),
         expires_at: expiresAt.toISOString(),
