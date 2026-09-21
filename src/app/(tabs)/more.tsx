@@ -40,7 +40,6 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
 import { AlarmSoundSelectorModal } from '../../components/AlarmSoundSelectorModal';
 import { ThemeSelectorModal } from '../../components/ThemeSelectorModal';
-import { VipBadge } from '../../components/VipBadge';
 import { LOCAL_ALARM_SOUNDS } from '../../constants/alarmSounds';
 
 let UpdatesModule: any = null;
@@ -242,20 +241,14 @@ export default function AccountScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Subscription & VIP Pass Status */}
-        <Text style={[styles.groupHeading, { color: colors.textSecondary }]}>MEMBERSHIP & VIP ACCESS</Text>
-        <View style={{ marginBottom: 16 }}>
-          <VipBadge showUpgradeBtn />
-        </View>
-
         <Text style={[styles.groupHeading, { color: colors.textSecondary }]}>MY AMUL ACTIVITY</Text>
         <View style={[styles.cardGroup, { backgroundColor: colors.surface, borderColor: colors.border }]}>
 
-          {/* Dedicated VIP Subscription Pass row - Only visible to users on Free plan */}
+          {/* Buy Premium Subscription row - Only visible to users on Free plan */}
           {!isVipActive && (
             <TouchableOpacity
               style={[styles.cardRow, { borderBottomColor: colors.border }]}
-              onPress={() => openPaywall('Upgrade to Amul Flash VIP Pass for unlimited tracking & Drop Intelligence.')}
+              onPress={() => openPaywall('Upgrade to Premium VIP Pass for unlimited tracking & Drop Intelligence.')}
               activeOpacity={0.7}
             >
               <View style={styles.rowLeft}>
@@ -264,7 +257,12 @@ export default function AccountScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <View style={styles.titleBadgeRow}>
-                    <Text style={[styles.rowTitle, { color: colors.text }]}>VIP Subscription Plans</Text>
+                    <Text style={[styles.rowTitle, { color: colors.text, fontWeight: '700' }]}>
+                      Buy Premium Subscription
+                    </Text>
+                    <View style={[styles.countBadge, { backgroundColor: isDark ? '#451A03' : '#FEF3C7' }]}>
+                      <Text style={[styles.countBadgeText, { color: '#D97706' }]}>UPGRADE</Text>
+                    </View>
                   </View>
                   <Text style={[styles.rowSub, { color: colors.textSecondary }]}>
                     View 1-Week & 1-Month Passes • Unlock all features
