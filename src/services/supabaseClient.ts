@@ -405,7 +405,7 @@ export const supabaseService = {
       // If user currently has active time left, extend from current expiry, else from now
       let baseTime = startsAt.getTime();
       const existing = await this.fetchUserSubscription(phoneNumber);
-      if (existing && existing.status === 'active' && new Date(existing.expires_at).getTime() > baseTime) {
+      if (existing && new Date(existing.expires_at).getTime() > baseTime) {
         baseTime = new Date(existing.expires_at).getTime();
       }
 
@@ -753,7 +753,7 @@ export interface UserSubscriptionRecord {
   plan_name: '30_day_welcome_trial' | '1_week_pass' | '1_month_pass' | 'free';
   starts_at: string;
   expires_at: string;
-  status: 'active' | 'expired';
+  status?: string;
   payment_id?: string;
   amount_paid?: number;
   created_at?: string;

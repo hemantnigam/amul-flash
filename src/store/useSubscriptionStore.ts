@@ -67,21 +67,14 @@ function computeSubscriptionMetrics(sub: UserSubscriptionRecord | null) {
     };
   }
 
-  // If status is explicitly marked as non-active in Supabase
-  if (sub.status && sub.status !== 'active') {
-    return {
-      isVipActive: false,
-      isTrial: false,
-      daysRemaining: 0,
-      isExpiringSoon: false,
-    };
-  }
-
   const now = Date.now();
+  const startTime = parseFlexibleDate(sub.starts_at);
   const expiryTime = parseFlexibleDate(sub.expires_at);
   const diffMs = expiryTime - now;
   const days = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-  const isActive = expiryTime > 0 && diffMs > 0;
+  
+  // Active purely when current time is within [starts_at, expires_at] and expires_at is in the future
+  const isActive = expiryTime > 0 && diffMs > 0 && (!startTime || now >= startTime);
   const isTrial = isActive && sub.plan_name === '30_day_welcome_trial';
   const isExpiringSoon = isActive && isTrial && days <= 2 && days > 0;
 
