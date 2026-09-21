@@ -55,7 +55,7 @@ function computeSubscriptionMetrics(sub: UserSubscriptionRecord | null) {
   const diffMs = expiryTime - now;
   const days = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
   const isActive = sub.status === 'active' && diffMs > 0;
-  const isTrial = sub.plan_name === '30_day_welcome_trial';
+  const isTrial = isActive && sub.plan_name === '30_day_welcome_trial';
   const isExpiringSoon = isActive && isTrial && days <= 2 && days > 0;
 
   return {
@@ -68,9 +68,9 @@ function computeSubscriptionMetrics(sub: UserSubscriptionRecord | null) {
 
 export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   subscription: null,
-  isVipActive: true, // Default to true initially for seamless experience
-  isTrial: true,
-  daysRemaining: 30,
+  isVipActive: false,
+  isTrial: false,
+  daysRemaining: 0,
   isExpiringSoon: false,
   isPaywallVisible: false,
   paywallReason: '',
@@ -82,9 +82,11 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     if (!phoneNumber) return;
     set({ isLoading: true });
 
+    const cleanKey = phoneNumber.replace(/[^0-9]/g, '').slice(-10);
+
     try {
       // 1. Load cached subscription from AsyncStorage for 0ms initial render
-      const cached = await AsyncStorage.getItem(`${STORAGE_KEY_SUBSCRIPTION}_${phoneNumber}`);
+      const cached = await AsyncStorage.getItem(`${STORAGE_KEY_SUBSCRIPTION}_${cleanKey}`);
       if (cached) {
         try {
           const parsed = JSON.parse(cached) as UserSubscriptionRecord;
@@ -105,7 +107,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
           ...metrics,
           isLoading: false,
         });
-        await AsyncStorage.setItem(`${STORAGE_KEY_SUBSCRIPTION}_${phoneNumber}`, JSON.stringify(cloudSub)).catch(() => {});
+        await AsyncStorage.setItem(`${STORAGE_KEY_SUBSCRIPTION}_${cleanKey}`, JSON.stringify(cloudSub)).catch(() => {});
 
         // 3. If trial is expired and user has >1 products tracked, trigger resolution modal
         if (!metrics.isVipActive) {
@@ -126,6 +128,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
 
   verifySubscriptionStatus: async (phoneNumber: string) => {
     if (!phoneNumber) return false;
+    const cleanKey = phoneNumber.replace(/[^0-9]/g, '').slice(-10);
     try {
       const cloudSub = await supabaseService.fetchUserSubscription(phoneNumber);
       if (cloudSub) {
@@ -134,7 +137,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
           subscription: cloudSub,
           ...metrics,
         });
-        await AsyncStorage.setItem(`${STORAGE_KEY_SUBSCRIPTION}_${phoneNumber}`, JSON.stringify(cloudSub)).catch(() => {});
+        await AsyncStorage.setItem(`${STORAGE_KEY_SUBSCRIPTION}_${cleanKey}`, JSON.stringify(cloudSub)).catch(() => {});
         return metrics.isVipActive;
       }
       return false;

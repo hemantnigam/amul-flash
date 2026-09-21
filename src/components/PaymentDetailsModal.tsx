@@ -64,11 +64,11 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   };
 
   const getPlanTitle = () => {
-    if (!subscription || !isVipActive) return 'Free Plan';
-    if (subscription.plan_name === '1_month_pass') return '1-Month VIP Pass';
-    if (subscription.plan_name === '1_week_pass') return '1-Week VIP Pass';
-    if (subscription.plan_name === '30_day_welcome_trial') return '30-Day VIP Welcome Trial';
-    return 'VIP Active';
+    if (!subscription) return 'Free Plan';
+    if (subscription.plan_name === '1_month_pass') return isVipActive ? '1-Month VIP Pass' : '1-Month VIP Pass (Expired)';
+    if (subscription.plan_name === '1_week_pass') return isVipActive ? '1-Week VIP Pass' : '1-Week VIP Pass (Expired)';
+    if (subscription.plan_name === '30_day_welcome_trial') return isVipActive ? '30-Day VIP Welcome Trial' : '30-Day Welcome Trial (Expired)';
+    return isVipActive ? 'VIP Active' : 'Free Plan';
   };
 
   const getAmountPaid = () => {
@@ -185,7 +185,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
               </View>
 
               {/* Validity Dates & Countdown */}
-              {isVipActive && (
+              {subscription?.expires_at ? (
                 <View style={styles.timelineBox}>
                   <View style={styles.datesRow}>
                     <View style={styles.dateCol}>
@@ -196,8 +196,10 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                     </View>
 
                     <View style={[styles.dateCol, { alignItems: 'flex-end' }]}>
-                      <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>Expires</Text>
-                      <Text style={[styles.dateValue, { color: colors.text }]}>
+                      <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>
+                        {isVipActive ? 'Expires' : 'Expired On'}
+                      </Text>
+                      <Text style={[styles.dateValue, { color: isVipActive ? colors.text : '#EF4444' }]}>
                         {formatDate(subscription?.expires_at)}
                       </Text>
                     </View>
@@ -209,21 +211,34 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                       style={[
                         styles.progressBarFill,
                         {
-                          width: `${progressPercent}%`,
-                          backgroundColor: daysRemaining <= 3 ? '#F59E0B' : '#3B82F6',
+                          width: `${isVipActive ? progressPercent : 0}%`,
+                          backgroundColor: isVipActive
+                            ? daysRemaining <= 3
+                              ? '#F59E0B'
+                              : '#3B82F6'
+                            : '#EF4444',
                         },
                       ]}
                     />
                   </View>
 
                   <View style={styles.remainingRow}>
-                    <Clock size={13} color={daysRemaining <= 3 ? '#F59E0B' : colors.primary} />
+                    <Clock size={13} color={isVipActive ? (daysRemaining <= 3 ? '#F59E0B' : colors.primary) : '#EF4444'} />
                     <Text style={[styles.remainingText, { color: colors.textSecondary }]}>
-                      <Text style={{ fontWeight: '800', color: colors.text }}>{daysRemaining} day{daysRemaining === 1 ? '' : 's'}</Text> remaining in current cycle
+                      {isVipActive ? (
+                        <>
+                          <Text style={{ fontWeight: '800', color: colors.text }}>
+                            {daysRemaining} day{daysRemaining === 1 ? '' : 's'}
+                          </Text>{' '}
+                          remaining in current cycle
+                        </>
+                      ) : (
+                        <Text style={{ fontWeight: '800', color: '#EF4444' }}>Plan expired • Upgrade to restore VIP features</Text>
+                      )}
                     </Text>
                   </View>
                 </View>
-              )}
+              ) : null}
 
               {/* Payment Details Meta */}
               <View style={[styles.metaDivider, { borderTopColor: colors.border }]} />

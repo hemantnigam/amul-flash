@@ -11,6 +11,7 @@ import {
   AmulApiClient,
 } from '../services/amulApi';
 import { useStockStore } from './useStockStore';
+import { useSubscriptionStore } from './useSubscriptionStore';
 import { fcmService } from '../services/fcmService';
 import { supabaseService } from '../services/supabaseClient';
 
@@ -253,6 +254,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         set({ orders });
       }
 
+      // 4. Fetch / Refresh Live Subscription from Supabase
+      const activePhone = profile?.phone || get().session.mobile;
+      if (activePhone) {
+        useSubscriptionStore.getState().initSubscription(activePhone);
+      }
     } catch (e) {
     } finally {
       set({ isLoadingUserData: false });

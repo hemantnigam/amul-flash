@@ -315,11 +315,15 @@ export const supabaseService = {
   async getOrCreateUserSubscription(phoneNumber: string): Promise<UserSubscriptionRecord | null> {
     if (!supabase || !phoneNumber) return null;
     try {
+      const cleanDigits = phoneNumber.replace(/[^0-9]/g, '');
+      const last10 = cleanDigits.slice(-10);
+      const withPrefix = `+91${last10}`;
+
       // 1. Try to fetch existing subscription
       const { data: existing } = await supabase
         .from('user_subscriptions')
         .select('*')
-        .eq('phone_number', phoneNumber)
+        .or(`phone_number.eq.${last10},phone_number.eq.${withPrefix}`)
         .maybeSingle();
 
       if (existing) {
@@ -331,7 +335,7 @@ export const supabaseService = {
       const expiresAt = new Date(startsAt.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
       const newSub: UserSubscriptionRecord = {
-        phone_number: phoneNumber,
+        phone_number: last10,
         plan_name: '30_day_welcome_trial',
         starts_at: startsAt.toISOString(),
         expires_at: expiresAt.toISOString(),
@@ -364,10 +368,14 @@ export const supabaseService = {
   async fetchUserSubscription(phoneNumber: string): Promise<UserSubscriptionRecord | null> {
     if (!supabase || !phoneNumber) return null;
     try {
+      const cleanDigits = phoneNumber.replace(/[^0-9]/g, '');
+      const last10 = cleanDigits.slice(-10);
+      const withPrefix = `+91${last10}`;
+
       const { data, error } = await supabase
         .from('user_subscriptions')
         .select('*')
-        .eq('phone_number', phoneNumber)
+        .or(`phone_number.eq.${last10},phone_number.eq.${withPrefix}`)
         .maybeSingle();
 
       if (error) {
