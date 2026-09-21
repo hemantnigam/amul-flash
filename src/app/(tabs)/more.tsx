@@ -245,6 +245,7 @@ export default function AccountScreen() {
         <View style={[styles.cardGroup, { backgroundColor: colors.surface, borderColor: colors.border }]}>
 
           {/* Buy Premium Subscription row - Only visible to users on Free plan */}
+          {/* Buy Premium Subscription row - Only visible to users on Free plan */}
           {!isVipActive && (
             <TouchableOpacity
               style={[styles.cardRow, { borderBottomColor: colors.border }]}
@@ -255,21 +256,21 @@ export default function AccountScreen() {
                 <View style={[styles.iconBox, { backgroundColor: isDark ? '#451A03' : '#FEF3C7' }]}>
                   <Zap size={18} color="#D97706" />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, minWidth: 0, paddingRight: 4 }}>
                   <View style={styles.titleBadgeRow}>
-                    <Text style={[styles.rowTitle, { color: colors.text, fontWeight: '700' }]}>
-                      Buy Premium Subscription
+                    <Text style={[styles.rowTitle, { color: colors.text, fontWeight: '700', flexShrink: 1 }]} numberOfLines={1}>
+                      Buy VIP Pass
                     </Text>
-                    <View style={[styles.countBadge, { backgroundColor: isDark ? '#451A03' : '#FEF3C7' }]}>
+                    <View style={[styles.countBadge, { backgroundColor: isDark ? '#451A03' : '#FEF3C7', flexShrink: 0 }]}>
                       <Text style={[styles.countBadgeText, { color: '#D97706' }]}>UPGRADE</Text>
                     </View>
                   </View>
-                  <Text style={[styles.rowSub, { color: colors.textSecondary }]}>
-                    View 1-Week & 1-Month Passes • Unlock all features
+                  <Text style={[styles.rowSub, { color: colors.textSecondary }]} numberOfLines={1}>
+                    From ₹7/week • Unlimited tracking & drop intelligence
                   </Text>
                 </View>
               </View>
-              <ChevronRight size={18} color={colors.textMuted} />
+              <ChevronRight size={18} color={colors.textMuted} style={{ flexShrink: 0 }} />
             </TouchableOpacity>
           )}
 

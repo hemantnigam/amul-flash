@@ -292,6 +292,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
+    flexShrink: 0,
   },
   actionPillText: {
     color: '#FFFFFF',
@@ -306,6 +307,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 1,
+    flexShrink: 0,
   },
   passActiveText: {
     fontSize: 10,
