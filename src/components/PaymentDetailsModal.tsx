@@ -53,13 +53,14 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
     if (!isoDate) return 'N/A';
     try {
       const d = new Date(isoDate);
+      if (isNaN(d.getTime())) return String(isoDate);
       return d.toLocaleDateString('en-IN', {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
       });
     } catch (_e) {
-      return 'N/A';
+      return String(isoDate);
     }
   };
 

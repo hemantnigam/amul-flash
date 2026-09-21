@@ -40,6 +40,23 @@ export interface SubscriptionState {
   simulateTrialExpiration: () => void; // Development/testing helper
 }
 
+function parseFlexibleDate(dateInput?: string | number | null): number {
+  if (!dateInput) return 0;
+  if (typeof dateInput === 'number') return dateInput;
+  const str = String(dateInput).trim();
+  const parsed = new Date(str).getTime();
+  if (!isNaN(parsed) && parsed > 0) return parsed;
+  const ddmmyyyy = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/;
+  const match = str.match(ddmmyyyy);
+  if (match) {
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1;
+    const year = parseInt(match[3], 10);
+    return new Date(year, month, day, 23, 59, 59).getTime();
+  }
+  return 0;
+}
+
 function computeSubscriptionMetrics(sub: UserSubscriptionRecord | null) {
   if (!sub) {
     return {
@@ -50,11 +67,21 @@ function computeSubscriptionMetrics(sub: UserSubscriptionRecord | null) {
     };
   }
 
+  // If status is explicitly marked as non-active in Supabase
+  if (sub.status && sub.status !== 'active') {
+    return {
+      isVipActive: false,
+      isTrial: false,
+      daysRemaining: 0,
+      isExpiringSoon: false,
+    };
+  }
+
   const now = Date.now();
-  const expiryTime = new Date(sub.expires_at).getTime();
+  const expiryTime = parseFlexibleDate(sub.expires_at);
   const diffMs = expiryTime - now;
   const days = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-  const isActive = sub.status === 'active' && diffMs > 0;
+  const isActive = expiryTime > 0 && diffMs > 0;
   const isTrial = isActive && sub.plan_name === '30_day_welcome_trial';
   const isExpiringSoon = isActive && isTrial && days <= 2 && days > 0;
 
