@@ -22,8 +22,8 @@ import { useSubscriptionStore } from '../store/useSubscriptionStore';
 import { useAppTheme } from '../hooks/useAppTheme';
 
 interface PaymentDetailsModalProps {
-  visible: boolean;
-  onClose: () => void;
+  visible?: boolean;
+  onClose?: () => void;
   onUpgrade?: () => void;
 }
 
@@ -32,10 +32,22 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   onClose,
   onUpgrade,
 }) => {
-  const { subscription, isVipActive, isTrial, daysRemaining, openPaywall } = useSubscriptionStore();
+  const {
+    subscription,
+    isVipActive,
+    isTrial,
+    daysRemaining,
+    isExpiringSoon,
+    isPaymentDetailsVisible,
+    closePaymentDetails,
+    openPaywall,
+  } = useSubscriptionStore();
   const { colors, isDark } = useAppTheme();
 
-  if (!visible) return null;
+  const isModalVisible = visible !== undefined ? visible : isPaymentDetailsVisible;
+  const handleClose = onClose || closePaymentDetails;
+
+  if (!isModalVisible) return null;
 
   const formatDate = (isoDate?: string) => {
     if (!isoDate) return 'N/A';
@@ -95,10 +107,10 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
 
   return (
     <Modal
-      visible={visible}
+      visible={isModalVisible}
       transparent
       animationType="slide"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <View style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}>
         <View
@@ -116,7 +128,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
               </Text>
             </View>
             <TouchableOpacity
-              onPress={onClose}
+              onPress={handleClose}
               style={[styles.closeBtn, { backgroundColor: isDark ? '#27272A' : '#F1F5F9' }]}
               activeOpacity={0.7}
             >
@@ -279,7 +291,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                 <TouchableOpacity
                   style={[styles.upgradeBtn, { backgroundColor: colors.primary }]}
                   onPress={() => {
-                    onClose();
+                    handleClose();
                     if (onUpgrade) onUpgrade();
                     else openPaywall('Renew your VIP Pass for ₹7/week to unlock unlimited tracking.');
                   }}
@@ -287,6 +299,20 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                 >
                   <Zap size={18} color="#FFFFFF" />
                   <Text style={styles.upgradeBtnText}>Upgrade to VIP Pass (₹7/week)</Text>
+                  <ArrowRight size={16} color="#FFFFFF" />
+                </TouchableOpacity>
+              ) : isExpiringSoon ? (
+                <TouchableOpacity
+                  style={[styles.upgradeBtn, { backgroundColor: '#D97706' }]}
+                  onPress={() => {
+                    handleClose();
+                    if (onUpgrade) onUpgrade();
+                    else openPaywall('Extend your VIP Pass before your welcome gift expires.');
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Zap size={18} color="#FFFFFF" />
+                  <Text style={styles.upgradeBtnText}>Extend VIP Pass (₹7/week)</Text>
                   <ArrowRight size={16} color="#FFFFFF" />
                 </TouchableOpacity>
               ) : null}
@@ -302,7 +328,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                       : '#F1F5F9',
                   },
                 ]}
-                onPress={onClose}
+                onPress={handleClose}
                 activeOpacity={0.85}
               >
                 <Text

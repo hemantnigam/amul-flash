@@ -16,12 +16,21 @@ export const VipBadge: React.FC<VipBadgeProps> = ({
   compact = false,
   onPress,
 }) => {
-  const { isVipActive, isTrial, daysRemaining, isExpiringSoon, openPaywall } = useSubscriptionStore();
+  const {
+    isVipActive,
+    isTrial,
+    daysRemaining,
+    isExpiringSoon,
+    openPaywall,
+    openPaymentDetails,
+  } = useSubscriptionStore();
   const { colors, isDark } = useAppTheme();
 
   const handlePress = () => {
     if (onPress) {
       onPress();
+    } else if (isVipActive && !isExpiringSoon) {
+      openPaymentDetails();
     } else {
       openPaywall();
     }
@@ -120,7 +129,7 @@ export const VipBadge: React.FC<VipBadgeProps> = ({
   // Case 3: Active Paid Pass (1-Week or 1-Month)
   if (isVipActive && !isTrial) {
     return (
-      <View
+      <TouchableOpacity
         style={[
           styles.container,
           {
@@ -128,6 +137,8 @@ export const VipBadge: React.FC<VipBadgeProps> = ({
             borderColor: isDark ? '#065F46' : '#A7F3D0',
           },
         ]}
+        onPress={handlePress}
+        activeOpacity={0.85}
       >
         <View style={styles.contentRow}>
           <View style={[styles.iconBox, { backgroundColor: isDark ? '#047857' : '#D1FAE5' }]}>
@@ -152,17 +163,18 @@ export const VipBadge: React.FC<VipBadgeProps> = ({
           </View>
         </View>
 
-        {daysRemaining <= 2 && (
-          <TouchableOpacity
-            style={[styles.actionPill, { backgroundColor: '#059669' }]}
-            onPress={handlePress}
-            activeOpacity={0.8}
-          >
+        {daysRemaining <= 2 ? (
+          <View style={[styles.actionPill, { backgroundColor: '#059669' }]}>
             <Text style={styles.actionPillText}>Renew</Text>
             <ArrowRight size={12} color="#FFFFFF" />
-          </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={[styles.passActiveTag, { borderColor: isDark ? '#10B981' : '#6EE7B7' }]}>
+            <Sparkles size={11} color={isDark ? '#6EE7B7' : '#059669'} />
+            <Text style={[styles.passActiveText, { color: isDark ? '#6EE7B7' : '#059669' }]}>Details</Text>
+          </View>
         )}
-      </View>
+      </TouchableOpacity>
     );
   }
 

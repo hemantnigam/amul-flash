@@ -40,7 +40,6 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
 import { AlarmSoundSelectorModal } from '../../components/AlarmSoundSelectorModal';
 import { ThemeSelectorModal } from '../../components/ThemeSelectorModal';
-import { PaymentDetailsModal } from '../../components/PaymentDetailsModal';
 import { VipBadge } from '../../components/VipBadge';
 import { LOCAL_ALARM_SOUNDS } from '../../constants/alarmSounds';
 
@@ -71,14 +70,13 @@ export default function AccountScreen() {
     setAlarmOverlayEnabled,
   } = useStockStore();
 
-  const { isVipActive, openPaywall } = useSubscriptionStore();
+  const { isVipActive, openPaywall, openPaymentDetails } = useSubscriptionStore();
 
   const { colors, isDark, themeMode, systemColorScheme } = useAppTheme();
 
   const [isPincodeModalVisible, setIsPincodeModalVisible] = useState(false);
   const [isSoundModalVisible, setIsSoundModalVisible] = useState(false);
   const [isThemeModalVisible, setIsThemeModalVisible] = useState(false);
-  const [isPaymentDetailsModalVisible, setIsPaymentDetailsModalVisible] = useState(false);
 
   const currentSound =
     LOCAL_ALARM_SOUNDS.find((s) => s.id === selectedAlarmSoundId) || LOCAL_ALARM_SOUNDS[0];
@@ -280,7 +278,7 @@ export default function AccountScreen() {
           {/* Payment & Subscription Details Row */}
           <TouchableOpacity
             style={[styles.cardRow, { borderBottomColor: colors.border }]}
-            onPress={() => setIsPaymentDetailsModalVisible(true)}
+            onPress={openPaymentDetails}
             activeOpacity={0.7}
           >
             <View style={styles.rowLeft}>
@@ -568,15 +566,6 @@ export default function AccountScreen() {
       <ThemeSelectorModal
         visible={isThemeModalVisible}
         onClose={() => setIsThemeModalVisible(false)}
-      />
-
-      <PaymentDetailsModal
-        visible={isPaymentDetailsModalVisible}
-        onClose={() => setIsPaymentDetailsModalVisible(false)}
-        onUpgrade={() => {
-          setIsPaymentDetailsModalVisible(false);
-          openPaywall('Upgrade to Amul Flash VIP Pass for unlimited tracking & Drop Intelligence.');
-        }}
       />
 
       <Modal visible={isEditProfileVisible} transparent animationType="fade">

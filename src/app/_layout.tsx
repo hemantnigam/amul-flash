@@ -15,6 +15,7 @@ import { useStockStore } from '../store/useStockStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { SubscriptionModal } from '../components/SubscriptionModal';
+import { PaymentDetailsModal } from '../components/PaymentDetailsModal';
 import { TrialExpiredPickerModal } from '../components/TrialExpiredPickerModal';
 
 import {
@@ -238,6 +239,7 @@ export default function RootLayout() {
       </Stack>
       <FullScreenAlarmOverlay />
       <SubscriptionModal />
+      <PaymentDetailsModal />
       <TrialExpiredPickerModal />
     </SafeAreaProvider>
   );

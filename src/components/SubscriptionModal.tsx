@@ -28,7 +28,17 @@ import { useAppTheme } from '../hooks/useAppTheme';
 
 export const SubscriptionModal: React.FC = () => {
   const router = useRouter();
-  const { isPaywallVisible, paywallReason, closePaywall, verifySubscriptionStatus } = useSubscriptionStore();
+  const {
+    isPaywallVisible,
+    paywallReason,
+    closePaywall,
+    verifySubscriptionStatus,
+    isVipActive,
+    isTrial,
+    daysRemaining,
+    isExpiringSoon,
+    openPaymentDetails,
+  } = useSubscriptionStore();
   const { session } = useSessionStore();
   const { colors, isDark } = useAppTheme();
 
@@ -335,24 +345,41 @@ export const SubscriptionModal: React.FC = () => {
                 </View>
 
                 {/* Pay Action Button */}
-                <TouchableOpacity
-                  style={[styles.payButton, { backgroundColor: colors.primary }]}
-                  onPress={handlePay}
-                  disabled={isProcessing}
-                  activeOpacity={0.85}
-                >
-                  {isProcessing ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
-                  ) : (
-                    <>
-                      <Zap size={18} color="#FFFFFF" />
-                      <Text style={styles.payButtonText}>
-                        Unlock VIP Pass • Pay ₹{selectedPlan === '1_week_pass' ? '7' : '25'}
-                      </Text>
-                      <ArrowRight size={16} color="#FFFFFF" />
-                    </>
-                  )}
-                </TouchableOpacity>
+                {isVipActive && isTrial && !isExpiringSoon ? (
+                  <TouchableOpacity
+                    style={[styles.payButton, { backgroundColor: '#10B981' }]}
+                    onPress={() => {
+                      closePaywall();
+                      openPaymentDetails();
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Sparkles size={18} color="#FFFFFF" />
+                    <Text style={styles.payButtonText}>
+                      VIP Active • 30-Day Gift Pack ({daysRemaining}d Left)
+                    </Text>
+                    <ArrowRight size={16} color="#FFFFFF" />
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.payButton, { backgroundColor: colors.primary }]}
+                    onPress={handlePay}
+                    disabled={isProcessing}
+                    activeOpacity={0.85}
+                  >
+                    {isProcessing ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <>
+                        <Zap size={18} color="#FFFFFF" />
+                        <Text style={styles.payButtonText}>
+                          Unlock VIP Pass • Pay ₹{selectedPlan === '1_week_pass' ? '7' : '25'}
+                        </Text>
+                        <ArrowRight size={16} color="#FFFFFF" />
+                      </>
+                    )}
+                  </TouchableOpacity>
+                )}
 
                 <Text style={[styles.guaranteeText, { color: colors.textSecondary }]}>
                   ⚡ Instant activation • No recurring lock-in • 100% Secure

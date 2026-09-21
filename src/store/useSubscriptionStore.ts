@@ -18,6 +18,7 @@ export interface SubscriptionState {
   isExpiringSoon: boolean; // Day 28 pre-expiry trigger (<= 2 days)
   isPaywallVisible: boolean;
   paywallReason: string;
+  isPaymentDetailsVisible: boolean;
   isTrialExpiredPickerVisible: boolean;
   isLoading: boolean;
 
@@ -27,6 +28,8 @@ export interface SubscriptionState {
   checkGating: (action: 'track_product' | 'add_pincode' | 'view_stats', currentCount?: number) => boolean;
   openPaywall: (reason?: string) => void;
   closePaywall: () => void;
+  openPaymentDetails: () => void;
+  closePaymentDetails: () => void;
   purchasePass: (
     plan: '1_week_pass' | '1_month_pass',
     paymentMethod: string,
@@ -71,6 +74,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   isExpiringSoon: false,
   isPaywallVisible: false,
   paywallReason: '',
+  isPaymentDetailsVisible: false,
   isTrialExpiredPickerVisible: false,
   isLoading: false,
 
@@ -182,6 +186,13 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   },
 
   openPaywall: (reason) => {
+    const { isVipActive, isTrial, isExpiringSoon } = get();
+    // If user has active welcome pack with > 2 days remaining, show details modal instead of payment paywall
+    if (isVipActive && isTrial && !isExpiringSoon) {
+      set({ isPaymentDetailsVisible: true, isPaywallVisible: false });
+      return;
+    }
+
     set({
       isPaywallVisible: true,
       paywallReason: reason || 'Unlock Unlimited Tracking, Multi-Hub Monitoring & Drop Intelligence.',
@@ -190,6 +201,14 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
 
   closePaywall: () => {
     set({ isPaywallVisible: false });
+  },
+
+  openPaymentDetails: () => {
+    set({ isPaymentDetailsVisible: true });
+  },
+
+  closePaymentDetails: () => {
+    set({ isPaymentDetailsVisible: false });
   },
 
   purchasePass: async (plan, paymentMethod, phoneNumber) => {
