@@ -1,10 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
   Modal,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   ScrollView,
+  PanResponder,
+  Animated,
 } from 'react-native';
 import { AppText as Text } from './AppText';
 import {
@@ -50,14 +53,68 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   const isModalVisible = visible !== undefined ? visible : isPaymentDetailsVisible;
   const handleClose = onClose || closePaymentDetails;
 
+  const translateY = useRef(new Animated.Value(400)).current;
+
   useEffect(() => {
     if (isModalVisible) {
+      translateY.setValue(400);
+      Animated.spring(translateY, {
+        toValue: 0,
+        tension: 65,
+        friction: 9,
+        useNativeDriver: true,
+      }).start();
       const activeMobile = session?.mobile || userProfile?.phone;
       if (activeMobile) {
         verifySubscriptionStatus(activeMobile);
       }
     }
-  }, [isModalVisible, session?.mobile, userProfile?.phone, verifySubscriptionStatus]);
+  }, [isModalVisible, session?.mobile, userProfile?.phone, verifySubscriptionStatus, translateY]);
+
+  const closeWithSlideDown = () => {
+    Animated.timing(translateY, {
+      toValue: 600,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(() => {
+      handleClose();
+    });
+  };
+
+  const resetPosition = () => {
+    Animated.spring(translateY, {
+      toValue: 0,
+      tension: 80,
+      friction: 10,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dy > 4 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          translateY.setValue(gestureState.dy);
+        } else {
+          translateY.setValue(gestureState.dy * 0.15);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 80 || (gestureState.dy > 30 && gestureState.vy > 0.4)) {
+          closeWithSlideDown();
+        } else {
+          resetPosition();
+        }
+      },
+      onPanResponderTerminate: () => {
+        resetPosition();
+      },
+    })
+  ).current;
 
   if (!isModalVisible) return null;
 
@@ -124,31 +181,52 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
     <Modal
       visible={isModalVisible}
       transparent
-      animationType="slide"
-      onRequestClose={handleClose}
+      animationType="fade"
+      onRequestClose={closeWithSlideDown}
     >
       <View style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}>
-        <View
+        <TouchableWithoutFeedback onPress={closeWithSlideDown}>
+          <View style={StyleSheet.absoluteFill} />
+        </TouchableWithoutFeedback>
+
+        <Animated.View
           style={[
             styles.sheetContainer,
-            { backgroundColor: colors.surface, borderColor: colors.border },
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              transform: [{ translateY }],
+            },
           ]}
         >
-          {/* Header Row */}
-          <View style={styles.topRow}>
-            <View style={styles.headerTag}>
-              <CreditCard size={14} color={colors.primary} />
-              <Text style={[styles.headerTagText, { color: colors.primary }]}>
-                PAYMENT & SUBSCRIPTION
-              </Text>
+          {/* Draggable Header Section */}
+          <View {...panResponder.panHandlers} style={styles.dragHeaderWrapper}>
+            {/* Grab Handle Pill */}
+            <View style={styles.dragHandleArea}>
+              <View
+                style={[
+                  styles.dragHandlePill,
+                  { backgroundColor: isDark ? '#52525B' : '#CBD5E1' },
+                ]}
+              />
             </View>
-            <TouchableOpacity
-              onPress={handleClose}
-              style={[styles.closeBtn, { backgroundColor: isDark ? '#27272A' : '#F1F5F9' }]}
-              activeOpacity={0.7}
-            >
-              <X size={18} color={colors.textSecondary} />
-            </TouchableOpacity>
+
+            {/* Header Row */}
+            <View style={styles.topRow}>
+              <View style={styles.headerTag}>
+                <CreditCard size={14} color={colors.primary} />
+                <Text style={[styles.headerTagText, { color: colors.primary }]}>
+                  PAYMENT & SUBSCRIPTION
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={closeWithSlideDown}
+                style={[styles.closeBtn, { backgroundColor: isDark ? '#27272A' : '#F1F5F9' }]}
+                activeOpacity={0.7}
+              >
+                <X size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -358,7 +436,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                       : '#F1F5F9',
                   },
                 ]}
-                onPress={handleClose}
+                onPress={closeWithSlideDown}
                 activeOpacity={0.85}
               >
                 <Text
@@ -372,7 +450,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
               </TouchableOpacity>
             </View>
           </ScrollView>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -390,12 +468,26 @@ const styles = StyleSheet.create({
     maxHeight: '90%',
     paddingBottom: 20,
   },
+  dragHeaderWrapper: {
+    width: '100%',
+    paddingBottom: 2,
+  },
+  dragHandleArea: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  dragHandlePill: {
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+  },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingTop: 4,
     paddingBottom: 12,
   },
   headerTag: {

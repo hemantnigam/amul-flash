@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
   Modal,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   ScrollView,
   Platform,
+  PanResponder,
+  Animated,
 } from 'react-native';
 import { AppText as Text } from './AppText';
 import {
@@ -34,13 +37,73 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
   const { colors, isDark } = useAppTheme();
   const [playingId, setPlayingId] = useState<string | null>(null);
 
+  const translateY = useRef(new Animated.Value(400)).current;
+
   // Stop audio on close or unmount
   useEffect(() => {
     if (!visible) {
       alarmSoundService.stopPreview();
       setPlayingId(null);
+    } else {
+      translateY.setValue(400);
+      Animated.spring(translateY, {
+        toValue: 0,
+        tension: 65,
+        friction: 9,
+        useNativeDriver: true,
+      }).start();
     }
-  }, [visible]);
+  }, [visible, translateY]);
+
+  const handleClose = () => {
+    alarmSoundService.stopPreview();
+    onClose();
+  };
+
+  const closeWithSlideDown = () => {
+    Animated.timing(translateY, {
+      toValue: 600,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(() => {
+      handleClose();
+    });
+  };
+
+  const resetPosition = () => {
+    Animated.spring(translateY, {
+      toValue: 0,
+      tension: 80,
+      friction: 10,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dy > 4 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          translateY.setValue(gestureState.dy);
+        } else {
+          translateY.setValue(gestureState.dy * 0.15);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 80 || (gestureState.dy > 30 && gestureState.vy > 0.4)) {
+          closeWithSlideDown();
+        } else {
+          resetPosition();
+        }
+      },
+      onPanResponderTerminate: () => {
+        resetPosition();
+      },
+    })
+  ).current;
 
   const handleTogglePlay = async (soundItem: LocalSoundItem) => {
     if (playingId === soundItem.id) {
@@ -62,41 +125,53 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
-      onRequestClose={() => {
-        alarmSoundService.stopPreview();
-        onClose();
-      }}
+      animationType="fade"
+      onRequestClose={closeWithSlideDown}
     >
       <View style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}>
-        <View
+        <TouchableWithoutFeedback onPress={closeWithSlideDown}>
+          <View style={StyleSheet.absoluteFill} />
+        </TouchableWithoutFeedback>
+
+        <Animated.View
           style={[
             styles.modalContent,
             {
               backgroundColor: colors.surface,
               borderColor: colors.border,
               paddingBottom: Math.max(insets.bottom + 16, 28),
+              transform: [{ translateY }],
             },
           ]}
         >
-          {/* Header */}
-          <View style={[styles.header, { borderBottomColor: colors.border }]}>
-            <View>
-              <Text style={[styles.title, { color: colors.text }]}>Custom Notification Sound</Text>
-              <Text style={[styles.subTitle, { color: colors.textSecondary }]}>
-                Select the sound played when tracked items drop
-              </Text>
+          {/* Draggable Header Section */}
+          <View {...panResponder.panHandlers} style={styles.dragHeaderWrapper}>
+            {/* Grab Handle Pill */}
+            <View style={styles.dragHandleArea}>
+              <View
+                style={[
+                  styles.dragHandlePill,
+                  { backgroundColor: isDark ? '#52525B' : '#CBD5E1' },
+                ]}
+              />
             </View>
-            <TouchableOpacity
-              onPress={() => {
-                alarmSoundService.stopPreview();
-                onClose();
-              }}
-              style={[styles.closeBtn, { backgroundColor: colors.surfaceContainer }]}
-              activeOpacity={0.7}
-            >
-              <X size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
+
+            {/* Header */}
+            <View style={[styles.header, { borderBottomColor: colors.border }]}>
+              <View>
+                <Text style={[styles.title, { color: colors.text }]}>Custom Notification Sound</Text>
+                <Text style={[styles.subTitle, { color: colors.textSecondary }]}>
+                  Select the sound played when tracked items drop
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={closeWithSlideDown}
+                style={[styles.closeBtn, { backgroundColor: colors.surfaceContainer }]}
+                activeOpacity={0.7}
+              >
+                <X size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Sound List */}
@@ -220,15 +295,12 @@ export const AlarmSoundSelectorModal: React.FC<AlarmSoundSelectorModalProps> = (
           {/* Done Button */}
           <TouchableOpacity
             style={[styles.doneBtn, { backgroundColor: colors.primary }]}
-            onPress={() => {
-              alarmSoundService.stopPreview();
-              onClose();
-            }}
+            onPress={closeWithSlideDown}
             activeOpacity={0.85}
           >
             <Text style={styles.doneBtnText}>Confirm</Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -245,7 +317,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingTop: 8,
     paddingBottom: Platform.OS === 'ios' ? 36 : 24,
     maxHeight: '82%',
     shadowColor: '#000',
@@ -253,6 +325,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 16,
     elevation: 20,
+  },
+  dragHeaderWrapper: {
+    width: '100%',
+    paddingBottom: 2,
+  },
+  dragHandleArea: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  dragHandlePill: {
+    width: 44,
+    height: 5,
+    borderRadius: 3,
   },
   header: {
     flexDirection: 'row',

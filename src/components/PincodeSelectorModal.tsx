@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Modal,
   View,
   StyleSheet,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  PanResponder,
+  Animated,
 } from 'react-native';
 import { AppText as Text } from './AppText';
 import { AppTextInput as TextInput } from './AppTextInput';
@@ -33,9 +36,68 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
   const [newLabel, setNewLabel] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
 
+  const translateY = useRef(new Animated.Value(400)).current;
+
+  useEffect(() => {
+    if (visible) {
+      translateY.setValue(400);
+      Animated.spring(translateY, {
+        toValue: 0,
+        tension: 65,
+        friction: 9,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible, translateY]);
+
+  const closeWithSlideDown = () => {
+    Animated.timing(translateY, {
+      toValue: 600,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(() => {
+      onClose();
+    });
+  };
+
+  const resetPosition = () => {
+    Animated.spring(translateY, {
+      toValue: 0,
+      tension: 80,
+      friction: 10,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dy > 4 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          translateY.setValue(gestureState.dy);
+        } else {
+          translateY.setValue(gestureState.dy * 0.15);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 80 || (gestureState.dy > 30 && gestureState.vy > 0.4)) {
+          closeWithSlideDown();
+        } else {
+          resetPosition();
+        }
+      },
+      onPanResponderTerminate: () => {
+        resetPosition();
+      },
+    })
+  ).current;
+
   const handleSelect = (item: PincodeLocation) => {
     setSelectedPincode(item);
-    onClose();
+    closeWithSlideDown();
   };
 
   const handleAddToggle = () => {
@@ -73,31 +135,49 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={closeWithSlideDown}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
         <View style={[styles.overlay, { backgroundColor: colors.modalOverlay }]}>
-          <View
+          <TouchableWithoutFeedback onPress={closeWithSlideDown}>
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+
+          <Animated.View
             style={[
               styles.modalContent,
               {
                 backgroundColor: colors.surface,
                 borderColor: colors.border,
                 paddingBottom: Math.max(insets.bottom + 16, 28),
+                transform: [{ translateY }],
               },
             ]}
           >
-            {/* Header */}
-            <View style={styles.modalHeader}>
-              <View style={styles.titleRow}>
-                <Navigation size={20} color={colors.primary} />
-                <Text style={[styles.modalTitle, { color: colors.text }]}>Select Delivery Pincode</Text>
+            {/* Draggable Header Section */}
+            <View {...panResponder.panHandlers} style={styles.dragHeaderWrapper}>
+              {/* Grab Handle Pill */}
+              <View style={styles.dragHandleArea}>
+                <View
+                  style={[
+                    styles.dragHandlePill,
+                    { backgroundColor: isDark ? '#52525B' : '#CBD5E1' },
+                  ]}
+                />
               </View>
-              <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: colors.surfaceContainer }]}>
-                <X size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
+
+              {/* Header */}
+              <View style={styles.modalHeader}>
+                <View style={styles.titleRow}>
+                  <Navigation size={20} color={colors.primary} />
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>Select Delivery Pincode</Text>
+                </View>
+                <TouchableOpacity onPress={closeWithSlideDown} style={[styles.closeBtn, { backgroundColor: colors.surfaceContainer }]}>
+                  <X size={20} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <Text style={[styles.subtext, { color: colors.textSecondary }]}>
@@ -223,7 +303,7 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
                 </View>
               )}
             </ScrollView>
-          </View>
+          </Animated.View>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -239,8 +319,23 @@ const styles = StyleSheet.create({
   modalContent: {
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 8,
     maxHeight: '80%',
+  },
+  dragHeaderWrapper: {
+    width: '100%',
+    paddingBottom: 4,
+  },
+  dragHandleArea: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  dragHandlePill: {
+    width: 44,
+    height: 5,
+    borderRadius: 3,
   },
   modalHeader: {
     flexDirection: 'row',
