@@ -6,8 +6,8 @@ import { useStockStore } from './useStockStore';
 const STORAGE_KEY_SUBSCRIPTION = '@amul_user_subscription';
 
 export const RAZORPAY_PAYMENT_LINKS = {
-  '1_week_pass': 'https://rzp.io/rzp/ilpyAh9C',
-  '1_month_pass': 'https://rzp.io/rzp/MmT6Uxtd',
+  '1_week_pass': 'https://rzp.io/rzp/KqTU4csu',
+  '1_month_pass': 'https://rzp.io/rzp/8qjHsc9',
 } as const;
 
 export interface SubscriptionState {
@@ -97,7 +97,7 @@ export function computeSubscriptionMetrics(sub: UserSubscriptionRecord | null) {
   const expiryTime = parseFlexibleDate(sub.expires_at);
   const diffMs = expiryTime - now;
   const days = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-  
+
   // Active purely when current time is within [starts_at, expires_at] and expires_at is strictly in the future
   const isActive = expiryTime > 0 && diffMs > 0 && (!startTime || now >= startTime);
   const isTrial = isActive && sub.plan_name === '30_day_welcome_trial';
@@ -154,7 +154,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
           if (!metrics.isVipActive) {
             useStockStore.getState().prunePincodesForFreeUser();
           }
-        } catch (_e) {}
+        } catch (_e) { }
       }
 
       // 2. Fetch or auto-provision 30-Day VIP Welcome Pass in Supabase
@@ -166,7 +166,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
           ...metrics,
           isLoading: false,
         });
-        await AsyncStorage.setItem(`${STORAGE_KEY_SUBSCRIPTION}_${cleanKey}`, JSON.stringify(cloudSub)).catch(() => {});
+        await AsyncStorage.setItem(`${STORAGE_KEY_SUBSCRIPTION}_${cleanKey}`, JSON.stringify(cloudSub)).catch(() => { });
 
         // 3. If trial/VIP is expired and user has >1 products tracked, enforce 1-product limit and prune in cloud
         if (!metrics.isVipActive) {
@@ -202,7 +202,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
         if (!metrics.isVipActive) {
           useStockStore.getState().prunePincodesForFreeUser();
         }
-        await AsyncStorage.setItem(`${STORAGE_KEY_SUBSCRIPTION}_${cleanKey}`, JSON.stringify(cloudSub)).catch(() => {});
+        await AsyncStorage.setItem(`${STORAGE_KEY_SUBSCRIPTION}_${cleanKey}`, JSON.stringify(cloudSub)).catch(() => { });
         return metrics.isVipActive;
       }
       return false;
@@ -306,7 +306,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
         await AsyncStorage.setItem(
           `${STORAGE_KEY_SUBSCRIPTION}_${activePhone}`,
           JSON.stringify(updatedSub)
-        ).catch(() => {});
+        ).catch(() => { });
 
         return true;
       }

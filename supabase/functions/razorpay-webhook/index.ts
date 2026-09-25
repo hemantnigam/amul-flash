@@ -41,9 +41,9 @@ async function verifyRazorpaySignature(bodyText: string, signature: string, secr
 }
 
 // Clean and normalize 10-digit Indian mobile number
-function normalizePhoneNumber(rawPhone: string | undefined): string | null {
+function normalizePhoneNumber(rawPhone: any): string | null {
   if (!rawPhone) return null;
-  const digits = rawPhone.replace(/\D/g, '');
+  const digits = String(rawPhone).replace(/\D/g, '');
   if (digits.length === 10) return digits;
   if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2);
   if (digits.length > 10) return digits.slice(-10);
@@ -52,44 +52,71 @@ function normalizePhoneNumber(rawPhone: string | undefined): string | null {
 
 // Helper to extract customer phone number across all Razorpay event structures
 function extractPhoneNumber(payload: any): string | null {
-  const payment = payload.payload?.payment?.entity;
-  const paymentLink = payload.payload?.payment_link?.entity;
-  const order = payload.payload?.order?.entity;
-  const qrCode = payload.payload?.qr_code?.entity;
-  const subscription = payload.payload?.subscription?.entity;
-  const refund = payload.payload?.refund?.entity;
+  const payment = payload?.payload?.payment?.entity;
+  const paymentLink = payload?.payload?.payment_link?.entity;
+  const order = payload?.payload?.order?.entity;
+  const qrCode = payload?.payload?.qr_code?.entity;
+  const subscription = payload?.payload?.subscription?.entity;
+  const refund = payload?.payload?.refund?.entity;
 
-  const candidates = [
+  const directCandidates = [
     payment?.contact,
+    payment?.phone,
     paymentLink?.customer?.contact,
+    paymentLink?.customer?.phone,
     paymentLink?.contact,
+    order?.customer_details?.contact,
+    order?.customer_details?.phone,
     qrCode?.customer_id,
     order?.notes?.phone,
     order?.notes?.mobile,
+    order?.notes?.contact,
     payment?.notes?.phone,
     payment?.notes?.mobile,
     payment?.notes?.contact,
     paymentLink?.notes?.phone,
     paymentLink?.notes?.mobile,
+    paymentLink?.notes?.contact,
     subscription?.notes?.phone,
     refund?.notes?.phone,
   ];
 
-  for (const raw of candidates) {
+  for (const raw of directCandidates) {
     const normalized = normalizePhoneNumber(raw);
     if (normalized) return normalized;
   }
 
+  // Scan all values in notes objects
+  const notesObjects = [payment?.notes, paymentLink?.notes, order?.notes].filter(Boolean);
+  for (const notes of notesObjects) {
+    for (const val of Object.values(notes)) {
+      const normalized = normalizePhoneNumber(val);
+      if (normalized) return normalized;
+    }
+  }
+
   // Fallback: Check if description contains 10-digit phone
   if (payment?.description) {
-    const match = payment.description.match(/\b[6-9]\d{9}\b/);
+    const match = String(payment.description).match(/\b[6-9]\d{9}\b/);
     if (match) return match[0];
   }
+
+  // Deep scan in full payload JSON for any 10-digit Indian phone number
+  try {
+    const str = JSON.stringify(payload);
+    const matches = str.match(/(?:(?:\+?91)|0)?([6-9]\d{9})/g);
+    if (matches && matches.length > 0) {
+      for (const m of matches) {
+        const norm = normalizePhoneNumber(m);
+        if (norm) return norm;
+      }
+    }
+  } catch (_e) {}
 
   return null;
 }
 
-// Optional helper to log raw payment event to audit table
+// Optional helper to log raw payment event to audit table if available
 async function logPaymentAudit(eventName: string, paymentId: string, phone: string | null, amount: number, status: string, details: any) {
   try {
     await supabaseAdmin.from('payment_logs').insert({
@@ -127,7 +154,7 @@ Deno.serve(async (req) => {
     const rawBody = await req.text();
     const signature = req.headers.get('x-razorpay-signature') || '';
 
-    // 1. Verify Razorpay HMAC signature
+    // 1. Verify Razorpay HMAC signature if configured
     if (RAZORPAY_WEBHOOK_SECRET) {
       const isValid = await verifyRazorpaySignature(rawBody, signature, RAZORPAY_WEBHOOK_SECRET);
       if (!isValid) {
@@ -139,8 +166,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    const payload = JSON.parse(rawBody);
-    const event = payload.event;
+    let payload: any = {};
+    try {
+      payload = JSON.parse(rawBody);
+    } catch (_parseErr) {
+      payload = {};
+    }
+
+    const event = String(payload?.event || '');
     console.log(`🔔 [RazorpayWebhook] Processing Event: ${event}`);
 
     const paymentEntity = payload.payload?.payment?.entity;
@@ -292,7 +325,7 @@ Deno.serve(async (req) => {
     // =========================================================================
     // EVENT CATEGORY 4: DISPUTES & CHARGEBACKS
     // =========================================================================
-    if (event.startsWith('payment.dispute.') || event.startsWith('dispute.')) {
+    if (event && (event.startsWith('payment.dispute.') || event.startsWith('dispute.'))) {
       console.warn(`🚨 [RazorpayWebhook] Dispute event received: ${event} for payment ${paymentId}`);
       await logPaymentAudit(event, paymentId, phoneNumber, amountInRupees, 'dispute', payload);
       return new Response(JSON.stringify({ success: true, message: 'Dispute recorded' }), {

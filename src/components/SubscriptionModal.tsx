@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { AppText as Text } from './AppText';
 import * as WebBrowser from 'expo-web-browser';
@@ -20,6 +21,7 @@ import {
   Bell,
   ArrowRight,
   Check,
+  RefreshCw,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useSubscriptionStore, RAZORPAY_PAYMENT_LINKS } from '../store/useSubscriptionStore';
@@ -39,27 +41,37 @@ export const SubscriptionModal: React.FC = () => {
     isExpiringSoon,
     openPaymentDetails,
   } = useSubscriptionStore();
-  const { session } = useSessionStore();
+  const { session, userProfile } = useSessionStore();
   const { colors, isDark } = useAppTheme();
 
   const [selectedPlan, setSelectedPlan] = useState<'1_week_pass' | '1_month_pass'>('1_month_pass');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [isCheckingManual, setIsCheckingManual] = useState<boolean>(false);
+  const [pendingVerification, setPendingVerification] = useState<boolean>(false);
+  const [verificationStatusText, setVerificationStatusText] = useState<string>('');
 
   const handlePay = async () => {
     setIsProcessing(true);
+    setPendingVerification(false);
+    setVerificationStatusText('Opening secure payment...');
+
+    // Open exact Razorpay link without appending query parameters as requested
     const paymentUrl = RAZORPAY_PAYMENT_LINKS[selectedPlan];
+    const mobile = session.mobile || userProfile?.phone || '';
 
     try {
-      // 1. Open Razorpay payment link directly in browser
+      // 1. Open Razorpay in in-app browser
       await WebBrowser.openBrowserAsync(paymentUrl);
 
-      // 2. Poll Supabase to check if server-side Razorpay webhook verified & activated the account
+      // 2. Returned from browser: Poll Supabase for webhook activation
+      setVerificationStatusText('Verifying payment with bank & Razorpay...');
+
       let isVerified = false;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        if (session.mobile) {
-          const isVip = await verifySubscriptionStatus(session.mobile);
+      for (let attempt = 0; attempt < 10; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        if (mobile) {
+          const isVip = await verifySubscriptionStatus(mobile);
           if (isVip) {
             isVerified = true;
             break;
@@ -70,15 +82,42 @@ export const SubscriptionModal: React.FC = () => {
       setIsProcessing(false);
       if (isVerified) {
         setIsSuccess(true);
+        setPendingVerification(false);
+      } else {
+        setPendingVerification(true);
+        setVerificationStatusText('');
       }
     } catch (err) {
       console.log('Payment error:', err);
       setIsProcessing(false);
+      setPendingVerification(true);
+    }
+  };
+
+  const handleManualCheck = async () => {
+    setIsCheckingManual(true);
+    const mobile = session.mobile || userProfile?.phone || '';
+    if (mobile) {
+      const isVip = await verifySubscriptionStatus(mobile);
+      setIsCheckingManual(false);
+      if (isVip) {
+        setIsSuccess(true);
+        setPendingVerification(false);
+      } else {
+        Alert.alert(
+          'Verification Pending',
+          'Payment is being processed by the bank. If money was debited, please wait a few seconds and tap "Check Payment Status" again.',
+          [{ text: 'OK' }]
+        );
+      }
+    } else {
+      setIsCheckingManual(false);
     }
   };
 
   const handleDone = () => {
     setIsSuccess(false);
+    setPendingVerification(false);
     closePaywall();
     router.push('/(tabs)/more' as any);
   };
@@ -88,7 +127,10 @@ export const SubscriptionModal: React.FC = () => {
       visible={isPaywallVisible}
       transparent
       animationType="slide"
-      onRequestClose={closePaywall}
+      onRequestClose={() => {
+        if (isSuccess) handleDone();
+        else closePaywall();
+      }}
     >
       <View style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}>
         <View
@@ -344,6 +386,54 @@ export const SubscriptionModal: React.FC = () => {
                   </View>
                 </View>
 
+                {/* Pending Verification Notice / Manual Verify Option */}
+                {pendingVerification ? (
+                  <View
+                    style={[
+                      styles.pendingBox,
+                      {
+                        backgroundColor: isDark ? '#1C1917' : '#FFFBEB',
+                        borderColor: isDark ? '#78350F' : '#FDE68A',
+                      },
+                    ]}
+                  >
+                    <View style={styles.pendingHeader}>
+                      <RefreshCw size={14} color="#D97706" />
+                      <Text style={[styles.pendingTitle, { color: isDark ? '#FDE68A' : '#92400E' }]}>
+                        Payment Verification Pending
+                      </Text>
+                    </View>
+                    <Text style={[styles.pendingSubtitle, { color: colors.textSecondary }]}>
+                      Already paid on Razorpay? Tap below to verify and activate your VIP Pass immediately.
+                    </Text>
+                    <TouchableOpacity
+                      style={[styles.manualCheckButton, { backgroundColor: '#D97706' }]}
+                      onPress={handleManualCheck}
+                      disabled={isCheckingManual}
+                      activeOpacity={0.85}
+                    >
+                      {isCheckingManual ? (
+                        <ActivityIndicator color="#FFFFFF" size="small" />
+                      ) : (
+                        <>
+                          <CheckCircle2 size={16} color="#FFFFFF" />
+                          <Text style={styles.manualCheckButtonText}>Check Payment Status</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+
+                {/* Processing status banner */}
+                {isProcessing && verificationStatusText ? (
+                  <View style={styles.processingBanner}>
+                    <ActivityIndicator color={colors.primary} size="small" />
+                    <Text style={[styles.processingText, { color: colors.textSecondary }]}>
+                      {verificationStatusText}
+                    </Text>
+                  </View>
+                ) : null}
+
                 {/* Pay Action Button */}
                 {isVipActive && isTrial && !isExpiringSoon ? (
                   <TouchableOpacity
@@ -364,7 +454,7 @@ export const SubscriptionModal: React.FC = () => {
                   <TouchableOpacity
                     style={[styles.payButton, { backgroundColor: colors.primary }]}
                     onPress={handlePay}
-                    disabled={isProcessing}
+                    disabled={isProcessing || isCheckingManual}
                     activeOpacity={0.85}
                   >
                     {isProcessing ? (
@@ -589,6 +679,51 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
   },
+  pendingBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    gap: 6,
+  },
+  pendingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  pendingTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  pendingSubtitle: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  manualCheckButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  manualCheckButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  processingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  processingText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
   payButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -596,7 +731,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     borderRadius: 14,
-    marginTop: 8,
+    marginTop: 4,
     shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,

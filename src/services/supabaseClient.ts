@@ -25,7 +25,7 @@ const ExpoSafeStorage = {
     }
     try {
       await AsyncStorage.setItem(key, value);
-    } catch (_e) {}
+    } catch (_e) { }
   },
   removeItem: async (key: string): Promise<void> => {
     if (Platform.OS === 'web' && typeof window === 'undefined') {
@@ -33,7 +33,7 @@ const ExpoSafeStorage = {
     }
     try {
       await AsyncStorage.removeItem(key);
-    } catch (_e) {}
+    } catch (_e) { }
   },
 };
 
@@ -451,7 +451,7 @@ export const supabaseService = {
 
       const startsAt = new Date();
       const durationDays = planName === '1_week_pass' ? 7 : 30;
-      
+
       // If user currently has active time left, extend from current expiry, else from now
       let baseTime = startsAt.getTime();
       const existing = await this.fetchUserSubscription(phoneNumber);
@@ -772,7 +772,7 @@ export const supabaseService = {
    * Subscribe to live restock events in Supabase Realtime
    */
   subscribeToRestockEvents(onNewDrop: (drop: any) => void): () => void {
-    if (!supabase) return () => {};
+    if (!supabase) return () => { };
 
     try {
       const channel = supabase
@@ -792,7 +792,7 @@ export const supabaseService = {
       };
     } catch (e) {
       console.log('⚠️ [SupabaseService] Realtime subscription failed:', e);
-      return () => {};
+      return () => { };
     }
   },
 };
