@@ -52,7 +52,7 @@ class StockRadarService {
     if (this.isRunning) return;
     this.isRunning = true;
     this.hasInitialBaseline = false;
-    console.log(`📡 [StockRadarService] Starting Live Amul Stock Radar (Interval: ${this.checkIntervalMs / 1000}s)`);
+    console.log(`📡 [StockRadarService] Starting Live Protein Stock Radar (Interval: ${this.checkIntervalMs / 1000}s)`);
 
     // Run initial baseline check immediately
     this.performLiveStockCheck();
@@ -109,7 +109,7 @@ class StockRadarService {
     state.addActivityLog({
       type: 'restock',
       title: `Live Restock: ${product.title}`,
-      description: pincode ? `Restock confirmed via Amul API for Hub ${pincode}` : 'Restock confirmed via Amul API',
+      description: pincode ? `Restock confirmed for Hub ${pincode}` : 'Restock confirmed',
       pincode: pincode,
       status: 'success',
     });

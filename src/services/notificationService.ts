@@ -49,13 +49,13 @@ async function ensureNotificationChannel(soundId: string = 'digital_clock_beep')
   const soundItem: LocalSoundItem =
     LOCAL_ALARM_SOUNDS.find((s) => s.id === soundId) || LOCAL_ALARM_SOUNDS[0];
   const soundResName = soundItem.filename.replace(/\.wav$/i, '');
-  const channelId = `amul_ch_${soundItem.id}`;
+  const channelId = `radar_ch_${soundItem.id}`;
 
   if (notifeeModule) {
     try {
       await notifeeModule.createChannel({
         id: channelId,
-        name: `Amul: ${soundItem.name}`,
+        name: `Radar: ${soundItem.name}`,
         importance: 4, // AndroidImportance.HIGH
         visibility: 1, // AndroidVisibility.PUBLIC
         sound: soundResName,
@@ -71,7 +71,7 @@ async function ensureNotificationChannel(soundId: string = 'digital_clock_beep')
   if (expoNotifications && expoNotifications.setNotificationChannelAsync) {
     try {
       await expoNotifications.setNotificationChannelAsync(channelId, {
-        name: `Amul: ${soundItem.name}`,
+        name: `Radar: ${soundItem.name}`,
         importance: 5, // AndroidImportance.MAX
         sound: soundResName,
         vibrationPattern: [0, 500, 250, 500],

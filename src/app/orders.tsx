@@ -46,12 +46,12 @@ export default function OrdersScreen() {
 
   const handleTrackShipment = (trackingNumber?: string) => {
     if (!trackingNumber) {
-      Alert.alert('Tracking Info', 'Order is processed at central GCMMF hub. AWB generation in progress.');
+      Alert.alert('Tracking Info', 'Order is processed at central warehouse hub. AWB generation in progress.');
       return;
     }
     // Track via Bluedart / Delhivery / SpeedPost
     Linking.openURL(`https://www.delhivery.com/track/package/${trackingNumber}`).catch(() => {
-      Alert.alert('Tracking Number', `AWB: ${trackingNumber}\nCourier: Amul Express Logistics`);
+      Alert.alert('Tracking Number', `AWB: ${trackingNumber}\nCourier: Express Logistics`);
     });
   };
 
@@ -69,7 +69,7 @@ export default function OrdersScreen() {
         <View style={styles.headerCenter}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Order History</Text>
           <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-            {orders.length} {orders.length === 1 ? 'order' : 'orders'} placed on Amul
+            {orders.length} {orders.length === 1 ? 'order' : 'orders'} placed
           </Text>
         </View>
         <TouchableOpacity

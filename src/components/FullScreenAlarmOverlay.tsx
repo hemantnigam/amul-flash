@@ -202,7 +202,7 @@ export const FullScreenAlarmOverlay: React.FC = () => {
         <View style={styles.headerInfo}>
           <Text style={styles.mainTitle}>ITEM BACK IN STOCK!</Text>
           <Text style={styles.subTitle}>
-            Tracked product is now available to order on Amul store
+            Tracked product is now available to order on official store
           </Text>
         </View>
 
@@ -222,7 +222,7 @@ export const FullScreenAlarmOverlay: React.FC = () => {
 
           <View style={styles.productInfoCol}>
             <Text style={styles.productName} numberOfLines={2}>
-              {activeAlarmEvent?.productName || 'Amul Restock Alert'}
+              {activeAlarmEvent?.productName || 'Restock Alert'}
             </Text>
 
             <View style={styles.productBadgesRow}>

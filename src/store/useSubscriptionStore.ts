@@ -224,7 +224,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       if (currentCount >= 1) {
         set({
           isPaywallVisible: true,
-          paywallReason: 'Free plan allows tracking 1 product. Unlock VIP Pass for unlimited restock alerts across all Amul items.',
+          paywallReason: 'Free plan allows tracking 1 product. Unlock VIP Pass for unlimited restock alerts across all items.',
         });
         return false;
       }

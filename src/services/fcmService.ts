@@ -171,7 +171,7 @@ class FCMService {
     }
 
     const pincode = data.pincode || useStockStore.getState().selectedPincode.pincode || '';
-    const title = notification.title || data.title || '⚡ Amul Restock Alert!';
+    const title = notification.title || data.title || '⚡ Restock Alert!';
 
     console.log('🚨 [FCMService] Incoming restock alert for productId:', productId, 'title:', title);
 
@@ -184,7 +184,7 @@ class FCMService {
     const restockEvent: RestockEvent = {
       id: `fcm_${Date.now()}_${productId}`,
       productId: productId,
-      productName: cleanTitle || 'Amul Protein Product',
+      productName: cleanTitle || 'Protein Product',
       pincode: pincode,
       timestamp: Date.now(),
       unitsAdded: Number(data.unitsAdded || data.stockCount || 30),

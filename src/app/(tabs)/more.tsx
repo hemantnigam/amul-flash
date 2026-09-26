@@ -125,7 +125,7 @@ export default function AccountScreen() {
   const displayName =
     userProfile?.firstName || userProfile?.lastName
       ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim()
-      : session.userName || (addresses.length > 0 ? addresses[0].fullName : (session.mobile ? `+91 ${session.mobile.replace('+91', '')}` : 'Amul User'));
+      : session.userName || (addresses.length > 0 ? addresses[0].fullName : (session.mobile ? `+91 ${session.mobile.replace('+91', '')}` : 'User'));
 
   const displayPhone = userProfile?.phone || (session.mobile ? (session.mobile.startsWith('+') ? session.mobile : `+91 ${session.mobile}`) : 'Not available');
   const displayEmail = userProfile?.email || 'No email set';
@@ -143,7 +143,7 @@ export default function AccountScreen() {
       let lName = userProfile?.lastName || '';
       let mail = userProfile?.email || '';
 
-      if (!fName && displayName && displayName !== 'Amul User') {
+      if (!fName && displayName && displayName !== 'User') {
         const parts = displayName.split(' ');
         fName = parts[0] || '';
         lName = parts.slice(1).join(' ') || '';
@@ -168,7 +168,7 @@ export default function AccountScreen() {
 
   const handleSignOut = async () => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const confirmed = window.confirm('Are you sure you want to sign out of your Amul session?');
+      const confirmed = window.confirm('Are you sure you want to sign out of your session?');
       if (confirmed) {
         await logout();
         router.replace('/login');
@@ -176,7 +176,7 @@ export default function AccountScreen() {
       return;
     }
 
-    Alert.alert('Sign Out', 'Are you sure you want to sign out of your Amul session?', [
+    Alert.alert('Sign Out', 'Are you sure you want to sign out of your session?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Sign Out',
@@ -199,7 +199,7 @@ export default function AccountScreen() {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Account & Profile</Text>
-        <Text style={[styles.headerSub, { color: colors.textSecondary }]}>Connected to Amul Store</Text>
+        <Text style={[styles.headerSub, { color: colors.textSecondary }]}>Connected Store Account</Text>
       </View>
 
       <ScrollView
@@ -218,7 +218,7 @@ export default function AccountScreen() {
           <View style={styles.avatarWrapper}>
             <View style={[styles.avatarCircle, { backgroundColor: colors.primary }]}>
               <Text style={styles.avatarLetter}>
-                {displayName ? displayName.charAt(0).toUpperCase() : 'A'}
+                {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
               </Text>
             </View>
             {isVipActive && (
@@ -242,7 +242,7 @@ export default function AccountScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={[styles.groupHeading, { color: colors.textSecondary }]}>MY AMUL ACTIVITY</Text>
+        <Text style={[styles.groupHeading, { color: colors.textSecondary }]}>MY STORE ACTIVITY</Text>
         <View style={[styles.cardGroup, { backgroundColor: colors.surface, borderColor: colors.border }]}>
 
           {/* Buy Premium Subscription row - Only visible to users on Free plan */}
@@ -578,7 +578,7 @@ export default function AccountScreen() {
         >
           <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Edit Amul Profile</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Edit Profile</Text>
               <TouchableOpacity onPress={() => setIsEditProfileVisible(false)}>
                 <X size={20} color={colors.textSecondary} />
               </TouchableOpacity>

@@ -122,7 +122,7 @@ export const TrialExpiredPickerModal: React.FC = () => {
                       {product.title}
                     </Text>
                     <Text style={[styles.productCategory, { color: colors.textSecondary }]}>
-                      {product.flavor || product.category || 'Amul High Protein'}
+                      {product.flavor || product.category || 'High Protein Product'}
                     </Text>
                   </View>
                   <View

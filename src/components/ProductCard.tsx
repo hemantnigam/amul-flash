@@ -128,7 +128,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <View style={styles.imageFallbackContainer}>
               <Package size={28} color={colors.primary} />
               <Text style={[styles.imageFallbackText, { color: colors.textSecondary }]} numberOfLines={1}>
-                Amul
+                Protein
               </Text>
             </View>
           ) : (
@@ -152,7 +152,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </Text>
 
           <Text style={[styles.categorySubtext, { color: colors.textSecondary }]}>
-            {product.flavor || 'Amul Official'}
+            {product.flavor || 'Official Product'}
           </Text>
 
           {/* Price & Quick Buy */}

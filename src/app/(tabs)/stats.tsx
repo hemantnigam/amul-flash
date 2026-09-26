@@ -86,7 +86,7 @@ const DEFAULT_LEADERBOARD_ITEMS: TrackedLeaderboardItem[] = [
   {
     id: 'whey_protein',
     rank: 2,
-    name: 'Amul High Protein Whey 32g',
+    name: 'High Protein Whey 32g',
     demandShare: 76,
     subscribers: '11,940',
     subscriberCount: 11940,
@@ -106,7 +106,7 @@ const DEFAULT_LEADERBOARD_ITEMS: TrackedLeaderboardItem[] = [
   {
     id: 'protein_paneer',
     rank: 4,
-    name: 'Amul High Protein Fresh Paneer',
+    name: 'High Protein Fresh Paneer',
     demandShare: 52,
     subscribers: '7,830',
     subscriberCount: 7830,
@@ -210,7 +210,7 @@ export default function DropIntelligenceScreen() {
       if (historyData) {
         const formatted = historyData.map((item) => ({
           id: item.id || String(Math.random()),
-          productTitle: item.product_title || 'Amul High Protein Restock',
+          productTitle: item.product_title || 'High Protein Restock',
           pincode: item.pincode ? `Hub ${item.pincode}` : 'India Central Hub',
           unitsAdded: item.units_added || item.stock_count || 30,
           timeAgo: formatTimeAgo(item.detected_at),
@@ -235,7 +235,7 @@ export default function DropIntelligenceScreen() {
     const unsubscribe = supabaseService.subscribeToRestockEvents((newDrop) => {
       const newDropItem = {
         id: newDrop.id || String(Date.now()),
-        productTitle: newDrop.product_title || 'Amul High Protein Restock',
+        productTitle: newDrop.product_title || 'High Protein Restock',
         pincode: newDrop.pincode ? `Hub ${newDrop.pincode}` : 'India Central Hub',
         unitsAdded: newDrop.units_added || newDrop.stock_count || 24,
         timeAgo: 'Just now',

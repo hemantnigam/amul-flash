@@ -64,7 +64,7 @@ export default function LoginScreen() {
         analyticsService.logUserLogin(res.user?._id || mobile, mobile);
         router.replace('/(tabs)');
       } else {
-        Alert.alert('Verification Failed', 'Invalid OTP code. Please enter the OTP sent by Amul.');
+        Alert.alert('Verification Failed', 'Invalid OTP code. Please enter the verification code sent to your phone.');
       }
     } catch (e) {
       setIsLoading(false);
@@ -166,7 +166,7 @@ export default function LoginScreen() {
                   <View style={styles.cardHeaderTextCol}>
                     <Text style={[styles.cardTitle, { color: colors.text }]}>Mobile Verification</Text>
                     <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
-                      Enter your phone number to receive an Amul OTP
+                      Enter your phone number to receive a verification OTP
                     </Text>
                   </View>
                 </View>
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 8,
   },
-  brandTitleAmul: {
+  brandTitleMain: {
     fontSize: 36,
     fontWeight: '900',
     fontFamily: 'PlusJakartaSans_800ExtraBold_Italic',

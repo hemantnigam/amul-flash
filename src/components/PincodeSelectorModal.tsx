@@ -121,7 +121,7 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
       const added: PincodeLocation = {
         pincode: newPincode.trim(),
         label: newLabel.trim() || `Location ${newPincode}`,
-        address: `Amul Cluster Hub for ${newPincode}`,
+        address: `Warehouse Hub for ${newPincode}`,
         storeId: `STORE_${newPincode}`,
         serviceable: true,
         distanceKm: Math.floor(Math.random() * 8) + 1,
@@ -181,7 +181,7 @@ export const PincodeSelectorModal: React.FC<PincodeSelectorModalProps> = ({
             </View>
 
             <Text style={[styles.subtext, { color: colors.textSecondary }]}>
-              Amul allocates high-protein inventory by regional warehouse clusters.
+              High-protein inventory is allocated by regional warehouse clusters.
             </Text>
 
             <ScrollView

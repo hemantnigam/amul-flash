@@ -151,7 +151,7 @@ export default function ProductDetailsScreen() {
           {!imageUri || imageError ? (
             <View style={{ alignItems: 'center', justifyContent: 'center', height: 220, backgroundColor: colors.surfaceContainer, borderRadius: 16, width: '100%' }}>
               <Package size={56} color={colors.primary} />
-              <Text style={{ fontSize: 13, fontWeight: '700', color: colors.primary, marginTop: 8 }}>Amul Packshot</Text>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: colors.primary, marginTop: 8 }}>Product Preview</Text>
             </View>
           ) : (
             <Image
@@ -174,7 +174,7 @@ export default function ProductDetailsScreen() {
         <View style={[styles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.productTitle, { color: colors.text }]}>{product.title}</Text>
           <Text style={[styles.categorySubtext, { color: colors.textSecondary }]}>
-            {product.category?.toUpperCase()} • {product.flavor || 'Amul Official'}
+            {product.category?.toUpperCase()} • {product.flavor || 'Official Product'}
           </Text>
 
           <View style={styles.priceRow}>
@@ -207,8 +207,8 @@ export default function ProductDetailsScreen() {
               <Globe size={18} color={colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.webLinkTitle, { color: colors.primary }]}>View on Amul Website</Text>
-              <Text style={[styles.webLinkSub, { color: colors.textSecondary }]}>Tap to open product page on shop.amul.com</Text>
+              <Text style={[styles.webLinkTitle, { color: colors.primary }]}>View on Official Store</Text>
+              <Text style={[styles.webLinkSub, { color: colors.textSecondary }]}>Tap to open official product page</Text>
             </View>
           </View>
           <ExternalLink size={16} color={colors.primary} />

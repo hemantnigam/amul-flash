@@ -59,7 +59,7 @@ export default function LocationsScreen() {
       const added: PincodeLocation = {
         pincode: newPincode.trim(),
         label: newLabel.trim() || `Location ${newPincode}`,
-        address: `Amul Cluster for Pincode ${newPincode}`,
+        address: `Warehouse Hub for Pincode ${newPincode}`,
         storeId: `STORE_${newPincode}`,
         serviceable: true,
         distanceKm: Math.floor(Math.random() * 8) + 2,

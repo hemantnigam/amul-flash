@@ -80,7 +80,7 @@ export default function AddressesScreen() {
 
     setIsSavingAddress(true);
     const success = await addAddress({
-      fullName: addrFullName.trim() || 'Amul Customer',
+      fullName: addrFullName.trim() || 'Customer',
       phone: addrPhone.trim() || session.mobile,
       address: addrStreet.trim(),
       city: addrCity.trim(),
@@ -104,7 +104,7 @@ export default function AddressesScreen() {
 
   const handleDelete = (id: string) => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      if (window.confirm('Delete this delivery address from your Amul account?')) {
+      if (window.confirm('Delete this delivery address from your account?')) {
         deleteAddress(id);
       }
       return;

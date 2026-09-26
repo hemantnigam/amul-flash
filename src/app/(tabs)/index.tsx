@@ -239,7 +239,7 @@ export default function HomeScreen() {
         {isLoadingProducts ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Fetching live catalog from Amul...</Text>
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Fetching live product catalog...</Text>
           </View>
         ) : filteredProducts.length > 0 ? (
           <View style={styles.mainContent}>

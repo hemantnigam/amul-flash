@@ -58,7 +58,7 @@ export default function TrackedScreen() {
               <Text style={[styles.headerTitle, { color: colors.text }]}>Tracked Items</Text>
             </View>
             <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
-              Active Radar monitoring Amul stock drops
+              Active Radar monitoring high-protein stock drops
             </Text>
           </View>
         </View>
@@ -107,7 +107,7 @@ export default function TrackedScreen() {
             </View>
             <Text style={[styles.emptyTitle, { color: colors.text }]}>No Tracked Items Yet</Text>
             <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-              Turn on the "Track" switch on any Amul protein or grocery product to receive instant &lt;500ms drop alerts and 1-tap checkout.
+              Turn on the "Track" switch on any high-protein item to receive instant &lt;500ms drop alerts and 1-tap checkout.
             </Text>
 
             <TouchableOpacity

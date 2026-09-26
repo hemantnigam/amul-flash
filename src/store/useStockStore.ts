@@ -760,7 +760,7 @@ export const useStockStore = create<StockStoreState>((set, get) => ({
             const prod: AmulProduct = existingProd || {
               id: sub.product_id,
               title: sub.product_title,
-              brand: 'Amul',
+              brand: 'Official',
               category: 'protein',
               image: 'https://shop.amul.com/placeholder.png',
               variants: [{ id: `${sub.product_id}_var`, name: 'Standard Pack', price: 0, isInStock: false }],

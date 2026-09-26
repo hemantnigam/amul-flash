@@ -16,7 +16,7 @@ export const LegalDisclaimer: React.FC<LegalDisclaimerProps> = ({ compact = fals
       <View style={[styles.compactContainer, { backgroundColor: isDark ? '#18181B' : '#F1F5F9' }]}>
         <Info size={12} color={colors.textSecondary} />
         <Text style={[styles.compactText, { color: colors.textSecondary }]}>
-          Independent inventory tracking tool. Not affiliated with or endorsed by Amul / GCMMF Ltd.
+          Independent inventory tracking tool. Not affiliated with or endorsed by official brand manufacturers.
         </Text>
       </View>
     );
@@ -40,7 +40,7 @@ export const LegalDisclaimer: React.FC<LegalDisclaimerProps> = ({ compact = fals
       </View>
 
       <Text style={[styles.bodyText, { color: colors.textSecondary }]}>
-        <Text style={{ fontWeight: '700', color: colors.text }}>ProteinRadar</Text> is an independent third-party inventory monitoring and alert utility. It is not affiliated, associated, authorized, endorsed by, or in any way officially connected with Gujarat Co-operative Milk Marketing Federation Ltd. (GCMMF), Amul, or any of their subsidiaries or affiliates.
+        <Text style={{ fontWeight: '700', color: colors.text }}>ProteinRadar</Text> is an independent third-party inventory monitoring and alert utility. It is not affiliated, associated, authorized, endorsed by, or in any way officially connected with any dairy brands, official manufacturers, or any of their subsidiaries or affiliates.
       </Text>
 
       <Text style={[styles.subText, { color: colors.textMuted }]}>
