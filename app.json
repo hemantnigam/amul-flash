@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Amul Flash",
+    "name": "ProteinRadar",
     "slug": "amul-flash",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "amulflash",
+    "scheme": "proteinradar",
     "userInterfaceStyle": "automatic",
     "updates": {
       "url": "https://u.expo.dev/38eba317-b0d6-4ecf-99fa-3a0ed032fd0a"
@@ -15,10 +15,10 @@
     },
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.amul.flash"
+      "bundleIdentifier": "com.proteinradar.app"
     },
     "android": {
-      "package": "com.amul.flash",
+      "package": "com.proteinradar.app",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#0F172A",
@@ -55,11 +55,11 @@
         {
           "widgets": [
             {
-              "name": "AmulStockWidget",
-              "label": "Amul Stock Tracker",
+              "name": "ProteinStockWidget",
+              "label": "Protein Stock Radar",
               "minWidth": "100dp",
               "minHeight": "50dp",
-              "description": "Live Amul Protein Stock Status",
+              "description": "Live High-Protein Stock Radar",
               "updatePeriodMillis": 1800000
             }
           ]

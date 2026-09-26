@@ -218,14 +218,14 @@ export default function OrdersScreen() {
             </View>
             <Text style={[styles.emptyTitle, { color: colors.text }]}>No Orders Found</Text>
             <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-              Your orders placed via Amul Flash or online will automatically appear here.
+              Your orders placed via ProteinRadar or official checkout will automatically appear here.
             </Text>
             <TouchableOpacity
               style={[styles.browseBtn, { backgroundColor: colors.primary }]}
               onPress={() => router.push('/(tabs)')}
               activeOpacity={0.8}
             >
-              <Text style={styles.browseBtnText}>Browse Amul Store</Text>
+              <Text style={styles.browseBtnText}>Browse Available Stock</Text>
               <ArrowRight size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </View>

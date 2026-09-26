@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Zap } from 'lucide-react-native';
+import { Radio, Zap } from 'lucide-react-native';
 import { AppText as Text } from './AppText';
 
 interface BrandLogoHeaderProps {
@@ -19,23 +19,23 @@ export const BrandLogoHeader: React.FC<BrandLogoHeaderProps> = ({
       {/* Premium Emblem Badge */}
       <View style={[styles.logoCard, isLarge ? styles.logoCardLarge : styles.logoCardNormal]}>
         <View style={styles.iconCircle}>
-          <Zap size={isLarge ? 20 : 16} color="#FFFFFF" fill="#FFFFFF" />
+          <Radio size={isLarge ? 20 : 16} color="#FFFFFF" />
         </View>
 
-        <Text style={[styles.titleAmul, isLarge ? styles.titleAmulLarge : styles.titleAmulNormal]}>
-          Amul
+        <Text style={[styles.titleBrand, isLarge ? styles.titleBrandLarge : styles.titleBrandNormal]}>
+          Protein
         </Text>
 
-        <View style={[styles.flashPill, isLarge ? styles.flashPillLarge : styles.flashPillNormal]}>
-          <Text style={[styles.flashText, isLarge ? styles.flashTextLarge : styles.flashTextNormal]}>
-            FLASH
+        <View style={[styles.radarPill, isLarge ? styles.radarPillLarge : styles.radarPillNormal]}>
+          <Text style={[styles.radarText, isLarge ? styles.radarTextLarge : styles.radarTextNormal]}>
+            RADAR
           </Text>
         </View>
       </View>
 
       {showSubtitle && (
         <Text style={styles.subtitle}>
-          OFFICIAL RESTOCK RADAR
+          LIVE HIGH-PROTEIN RESTOCK RADAR
         </Text>
       )}
     </View>
@@ -73,53 +73,53 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   iconCircle: {
-    backgroundColor: '#004AC6',
+    backgroundColor: '#2563EB',
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 8,
   },
-  titleAmul: {
+  titleBrand: {
     fontWeight: '900',
-    color: '#0037B0',
-    fontStyle: 'italic',
+    color: '#0F172A',
+    letterSpacing: -0.5,
   },
-  titleAmulLarge: {
-    fontSize: 32,
-    lineHeight: 38,
+  titleBrandLarge: {
+    fontSize: 30,
+    lineHeight: 36,
   },
-  titleAmulNormal: {
-    fontSize: 24,
-    lineHeight: 30,
+  titleBrandNormal: {
+    fontSize: 22,
+    lineHeight: 28,
   },
-  flashPill: {
+  radarPill: {
     backgroundColor: '#FF5722',
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  flashPillLarge: {
+  radarPillLarge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  flashPillNormal: {
+  radarPillNormal: {
     paddingHorizontal: 9,
     paddingVertical: 4,
   },
-  flashText: {
+  radarText: {
     color: '#FFFFFF',
     fontWeight: '900',
     letterSpacing: 1,
   },
-  flashTextLarge: {
+  radarTextLarge: {
     fontSize: 13,
   },
-  flashTextNormal: {
+  radarTextNormal: {
     fontSize: 11,
   },
   subtitle: {
     marginTop: 10,
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
     color: '#64748B',
     letterSpacing: 1.5,

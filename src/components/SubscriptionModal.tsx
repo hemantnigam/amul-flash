@@ -30,6 +30,7 @@ import { useRouter } from 'expo-router';
 import { useSubscriptionStore, RAZORPAY_PAYMENT_LINKS } from '../store/useSubscriptionStore';
 import { useSessionStore } from '../store/useSessionStore';
 import { useAppTheme } from '../hooks/useAppTheme';
+import { LegalDisclaimer } from './LegalDisclaimer';
 
 export const SubscriptionModal: React.FC = () => {
   const router = useRouter();
@@ -230,7 +231,7 @@ export const SubscriptionModal: React.FC = () => {
             <View style={styles.topRow}>
               <View style={styles.headerTag}>
                 <Zap size={14} color="#F59E0B" />
-                <Text style={styles.headerTagText}>AMUL FLASH VIP PASS</Text>
+                <Text style={styles.headerTagText}>PROTEINRADAR VIP PASS</Text>
               </View>
               <TouchableOpacity
                 onPress={closeWithSlideDown}
@@ -559,6 +560,8 @@ export const SubscriptionModal: React.FC = () => {
                 <Text style={[styles.guaranteeText, { color: colors.textSecondary }]}>
                   ⚡ Instant activation • No recurring lock-in • 100% Secure
                 </Text>
+
+                <LegalDisclaimer compact />
               </>
             )}
           </ScrollView>

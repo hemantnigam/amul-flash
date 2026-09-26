@@ -40,6 +40,7 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
 import { AlarmSoundSelectorModal } from '../../components/AlarmSoundSelectorModal';
 import { ThemeSelectorModal } from '../../components/ThemeSelectorModal';
+import { LegalDisclaimer } from '../../components/LegalDisclaimer';
 import { LOCAL_ALARM_SOUNDS } from '../../constants/alarmSounds';
 
 let UpdatesModule: any = null;
@@ -100,7 +101,7 @@ export default function AccountScreen() {
         await UpdatesModule.fetchUpdateAsync();
         Alert.alert(
           'Update Ready!',
-          'A fresh Amul Flash update has been downloaded. Restart app now?',
+          'A fresh ProteinRadar update has been downloaded. Restart app now?',
           [
             { text: 'Later', style: 'cancel' },
             {
@@ -112,7 +113,7 @@ export default function AccountScreen() {
           ]
         );
       } else {
-        Alert.alert('Up to Date', 'You are already running the latest Amul Flash build!');
+        Alert.alert('Up to Date', 'You are already running the latest ProteinRadar build!');
       }
     } catch (err: any) {
       Alert.alert('Update Check', err?.message || 'Could not check for OTA updates right now.');
@@ -547,9 +548,12 @@ export default function AccountScreen() {
         >
           <LogOut size={16} color={isDark ? '#F87171' : '#DC2626'} />
           <Text style={[styles.logoutButtonText, { color: isDark ? '#F87171' : '#DC2626' }]}>
-            Sign Out of Amul Account
+            Sign Out of Account
           </Text>
         </TouchableOpacity>
+
+        {/* Legal Disclaimer & Independent Notice */}
+        <LegalDisclaimer />
       </ScrollView>
 
       <PincodeSelectorModal

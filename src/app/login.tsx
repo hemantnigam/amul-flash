@@ -20,6 +20,7 @@ import {
   Clock,
 } from 'lucide-react-native';
 import { BrandLogoHeader } from '../components/BrandLogoHeader';
+import { LegalDisclaimer } from '../components/LegalDisclaimer';
 import { AmulApiClient } from '../services/amulApi';
 import { useSessionStore } from '../store/useSessionStore';
 import { useAppTheme } from '../hooks/useAppTheme';
@@ -319,6 +320,10 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </>
             )}
+          </View>
+
+          <View style={{ width: '100%', maxWidth: 420, marginTop: 12 }}>
+            <LegalDisclaimer compact />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

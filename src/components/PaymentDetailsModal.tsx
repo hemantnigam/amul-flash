@@ -24,6 +24,7 @@ import {
 import { useSubscriptionStore, parseFlexibleDate } from '../store/useSubscriptionStore';
 import { useSessionStore } from '../store/useSessionStore';
 import { useAppTheme } from '../hooks/useAppTheme';
+import { LegalDisclaimer } from './LegalDisclaimer';
 
 interface PaymentDetailsModalProps {
   visible?: boolean;
@@ -158,7 +159,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
     {
       icon: Sparkles,
       title: 'Unlimited Product Tracking',
-      desc: 'Track all Amul protein, whey, paneer, and lassi items simultaneously',
+      desc: 'Track all high-protein, whey, paneer, and lassi items simultaneously',
     },
     {
       icon: ShieldCheck,
@@ -448,6 +449,8 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                   Close
                 </Text>
               </TouchableOpacity>
+
+              <LegalDisclaimer compact />
             </View>
           </ScrollView>
         </Animated.View>

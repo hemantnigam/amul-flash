@@ -127,8 +127,8 @@ export default function HomeScreen() {
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <View style={styles.topRow}>
           <View style={styles.brandTitleCol}>
-            <Text style={[styles.brandTitle, { color: colors.text }]}>Amul Flash</Text>
-            <Text style={[styles.brandSubtitle, { color: colors.textSecondary }]}>Stock Tracker</Text>
+            <Text style={[styles.brandTitle, { color: colors.text }]}>ProteinRadar</Text>
+            <Text style={[styles.brandSubtitle, { color: colors.textSecondary }]}>Live Restock Radar</Text>
           </View>
 
           {/* Location Pill */}
