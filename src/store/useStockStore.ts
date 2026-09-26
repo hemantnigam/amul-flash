@@ -1,8 +1,8 @@
 import { AppState } from 'react-native';
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AmulProduct, PincodeLocation, ActivityLog, RestockEvent, AmulCategory } from '../types/amul';
-import { AmulApiClient } from '../services/amulApi';
+import { AmulProduct, PincodeLocation, ActivityLog, RestockEvent, AmulCategory } from '../types/store';
+import { AmulApiClient } from '../services/storeApi';
 import { stockRadarService } from '../services/radarService';
 import { NotificationService } from '../services/notificationService';
 import { alarmSoundService } from '../services/alarmSoundService';

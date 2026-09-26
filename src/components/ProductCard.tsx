@@ -3,7 +3,7 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { AppText as Text } from './AppText';
 import { Image } from 'expo-image';
 import { Bell, ChevronRight, Package } from 'lucide-react-native';
-import { AmulProduct } from '../types/amul';
+import { AmulProduct } from '../types/store';
 import { useStockStore } from '../store/useStockStore';
 import { useAppTheme } from '../hooks/useAppTheme';
 

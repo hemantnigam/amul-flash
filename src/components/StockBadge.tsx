@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { AppText as Text } from './AppText';
 import { CommonTheme } from '../constants/theme';
 import { useAppTheme } from '../hooks/useAppTheme';
-import { StockStatus } from '../types/amul';
+import { StockStatus } from '../types/store';
 
 interface StockBadgeProps {
   status?: StockStatus;

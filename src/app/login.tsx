@@ -21,7 +21,7 @@ import {
 } from 'lucide-react-native';
 import { BrandLogoHeader } from '../components/BrandLogoHeader';
 import { LegalDisclaimer } from '../components/LegalDisclaimer';
-import { AmulApiClient } from '../services/amulApi';
+import { AmulApiClient } from '../services/storeApi';
 import { useSessionStore } from '../store/useSessionStore';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { analyticsService } from '../services/analyticsService';

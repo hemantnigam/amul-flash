@@ -22,7 +22,7 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 import { ProductCard } from '../../components/ProductCard';
 import { DropAlertBanner } from '../../components/DropAlertBanner';
 import { PincodeSelectorModal } from '../../components/PincodeSelectorModal';
-import { AmulProduct } from '../../types/amul';
+import { AmulProduct } from '../../types/store';
 import { analyticsService } from '../../services/analyticsService';
 
 export default function HomeScreen() {

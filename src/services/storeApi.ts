@@ -5,7 +5,7 @@ import {
   AmulUserAddress,
   AmulOrder,
   ProductMetafields,
-} from '../types/amul';
+} from '../types/store';
 
 /**
  * Pure JS SHA-256 implementation - zero native module dependency, 100% cross-platform

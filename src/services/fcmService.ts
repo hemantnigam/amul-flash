@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useStockStore } from '../store/useStockStore';
-import { RestockEvent } from '../types/amul';
+import { RestockEvent } from '../types/store';
 
 const FCM_TOKEN_STORAGE_KEY = '@amul_fcm_token';
 

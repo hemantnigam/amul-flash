@@ -4,7 +4,7 @@ import { AppText as Text } from './AppText';
 import { Zap, Clock, X } from 'lucide-react-native';
 import { CommonTheme } from '../constants/theme';
 import { useAppTheme } from '../hooks/useAppTheme';
-import { RestockEvent } from '../types/amul';
+import { RestockEvent } from '../types/store';
 
 interface DropAlertBannerProps {
   alert: RestockEvent;

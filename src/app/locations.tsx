@@ -23,7 +23,7 @@ import { useStockStore } from '../store/useStockStore';
 import { useSessionStore } from '../store/useSessionStore';
 import { useSubscriptionStore } from '../store/useSubscriptionStore';
 import { useAppTheme } from '../hooks/useAppTheme';
-import { PincodeLocation } from '../types/amul';
+import { PincodeLocation } from '../types/store';
 import { analyticsService } from '../services/analyticsService';
 
 export default function LocationsScreen() {

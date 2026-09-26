@@ -6,10 +6,10 @@ import {
   AmulUserProfile,
   AmulUserAddress,
   AmulOrder,
-} from '../types/amul';
+} from '../types/store';
 import {
   AmulApiClient,
-} from '../services/amulApi';
+} from '../services/storeApi';
 import { useStockStore } from './useStockStore';
 import { useSubscriptionStore } from './useSubscriptionStore';
 import { fcmService } from '../services/fcmService';

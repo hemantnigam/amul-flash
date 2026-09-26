@@ -8,7 +8,7 @@ import { backgroundFetchService } from '../services/backgroundFetchService';
 import { fcmService } from '../services/fcmService';
 import { supabaseService } from '../services/supabaseClient';
 import { useSessionStore } from '../store/useSessionStore';
-import { AmulApiClient } from '../services/amulApi';
+import { AmulApiClient } from '../services/storeApi';
 import { BrandLogoHeader } from '../components/BrandLogoHeader';
 import { FullScreenAlarmOverlay } from '../components/FullScreenAlarmOverlay';
 import { useStockStore } from '../store/useStockStore';

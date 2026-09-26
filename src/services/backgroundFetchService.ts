@@ -2,9 +2,9 @@ import { Platform } from 'react-native';
 import * as TaskManager from 'expo-task-manager';
 import * as BackgroundFetch from 'expo-background-fetch';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AmulApiClient } from './amulApi';
+import { AmulApiClient } from './storeApi';
 import { NotificationService } from './notificationService';
-import { AmulProduct, PincodeLocation } from '../types/amul';
+import { AmulProduct, PincodeLocation } from '../types/store';
 
 export const BACKGROUND_STOCK_RADAR_TASK = 'AMUL_BACKGROUND_STOCK_RADAR_TASK';
 

@@ -1,7 +1,7 @@
 import { AppState, AppStateStatus, NativeEventSubscription } from 'react-native';
-import { AmulApiClient } from './amulApi';
+import { AmulApiClient } from './storeApi';
 import { useStockStore } from '../store/useStockStore';
-import { RestockEvent, AmulProduct } from '../types/amul';
+import { RestockEvent, AmulProduct } from '../types/store';
 import { analyticsService } from './analyticsService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

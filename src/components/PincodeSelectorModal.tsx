@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStockStore } from '../store/useStockStore';
 import { useSubscriptionStore } from '../store/useSubscriptionStore';
 import { useAppTheme } from '../hooks/useAppTheme';
-import { PincodeLocation } from '../types/amul';
+import { PincodeLocation } from '../types/store';
 
 interface PincodeSelectorModalProps {
   visible: boolean;
